@@ -1,0 +1,22 @@
+{
+  "name": "asociacion-jardines-vtf",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema Web de Gestión, Finanzas y Transparencia — Asociación de Jardines VTF",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "test:backend": "npm --prefix backend run test:auth"
+  },
+  "keywords": [
+    "vtf",
+    "gestion",
+    "react",
+    "express",
+    "prisma",
+    "postgresql"
+  ],
+  "author": "Asociación VTF",
+  "license": "ISC"
+}

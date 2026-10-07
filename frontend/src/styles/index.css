@@ -1,0 +1,341 @@
+/* ==========================================================================
+   SISTEMA DE DISEÑO INSTITUCIONAL — ASOCIACIÓN DE JARDINES VTF
+   Dirección de arte: Fintech Institucional, Paleta HSL Suave y Cálida
+   ========================================================================== */
+
+:root {
+  /* Paleta Primaria Institucional (Morado Suave) */
+  --primary-50: hsl(276, 45%, 96%);
+  --primary-100: hsl(276, 42%, 91%);
+  --primary-200: hsl(276, 38%, 80%);
+  --primary-300: hsl(276, 35%, 68%);
+  --primary-400: hsl(276, 32%, 55%);
+  --primary-500: hsl(276, 35%, 45%); /* Color de marca principal */
+  --primary-600: hsl(276, 38%, 38%);
+  --primary-700: hsl(276, 42%, 30%);
+  --primary-800: hsl(276, 46%, 23%);
+  --primary-900: hsl(276, 50%, 16%);
+
+  /* Paleta Secundaria Acento (Rosado Suave) */
+  --accent-pink-50: hsl(345, 55%, 97%);
+  --accent-pink-100: hsl(345, 50%, 93%);
+  --accent-pink-300: hsl(345, 46%, 78%);
+  --accent-pink-500: hsl(345, 45%, 62%); /* Rosado institucional suave */
+  --accent-pink-600: hsl(345, 48%, 52%);
+
+  /* Paleta Terciaria (Café Claro / Arena Cálida) */
+  --sand-50: hsl(34, 45%, 97%);
+  --sand-100: hsl(34, 42%, 93%);
+  --sand-200: hsl(32, 38%, 86%);
+  --sand-300: hsl(32, 35%, 76%); /* Café claro suave */
+  --sand-500: hsl(30, 32%, 58%);
+  --sand-700: hsl(28, 30%, 40%);
+
+  /* Superficies y Neutros */
+  --bg-page: hsl(220, 20%, 98%);
+  --bg-surface: hsl(0, 0%, 100%);
+  --bg-surface-elevated: hsl(0, 0%, 100%);
+  --bg-surface-subtle: hsl(220, 16%, 96%);
+
+  /* Texto y Contraste */
+  --text-main: hsl(222, 28%, 18%);
+  --text-muted: hsl(220, 14%, 46%);
+  --text-subtle: hsl(220, 12%, 60%);
+  --text-inverse: hsl(0, 0%, 100%);
+
+  /* Bordes */
+  --border-light: hsl(220, 16%, 90%);
+  --border-subtle: hsl(220, 18%, 94%);
+  --border-focus: hsl(276, 35%, 45%);
+
+  /* Estados Funcionales */
+  --success-bg: hsl(145, 45%, 94%);
+  --success-text: hsl(150, 60%, 25%);
+  --success-border: hsl(145, 40%, 82%);
+
+  --warning-bg: hsl(40, 85%, 95%);
+  --warning-text: hsl(35, 80%, 28%);
+  --warning-border: hsl(40, 70%, 82%);
+
+  --error-bg: hsl(0, 75%, 96%);
+  --error-text: hsl(0, 65%, 40%);
+  --error-border: hsl(0, 60%, 86%);
+
+  --info-bg: hsl(210, 80%, 96%);
+  --info-text: hsl(215, 70%, 35%);
+  --info-border: hsl(210, 70%, 86%);
+
+  /* Tipografías */
+  --font-family-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-family-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+
+  /* Sombras Multicapa Refinadas */
+  --shadow-xs: 0 1px 2px rgba(18, 24, 38, 0.04);
+  --shadow-sm: 0 2px 4px rgba(18, 24, 38, 0.04), 0 1px 2px rgba(18, 24, 38, 0.03);
+  --shadow-md: 0 4px 12px rgba(18, 24, 38, 0.06), 0 2px 4px rgba(18, 24, 38, 0.03);
+  --shadow-lg: 0 12px 28px rgba(18, 24, 38, 0.08), 0 4px 8px rgba(18, 24, 38, 0.04);
+  --shadow-card: 0 0 0 1px var(--border-light), 0 2px 8px rgba(18, 24, 38, 0.04);
+
+  /* Radios */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Transiciones */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset y Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-family-sans);
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-display);
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+/* Contenedores y Layouts */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.content-body {
+  flex: 1;
+  padding: 1.75rem 2rem;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .content-body {
+    padding: 1.25rem 1rem;
+  }
+}
+
+/* Componente Tarjeta */
+.vtf-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.vtf-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Badges de Estado */
+.vtf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.vtf-badge-success {
+  background: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+}
+
+.vtf-badge-warning {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border);
+}
+
+.vtf-badge-error {
+  background: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid var(--error-border);
+}
+
+.vtf-badge-info {
+  background: var(--info-bg);
+  color: var(--info-text);
+  border: 1px solid var(--info-border);
+}
+
+.vtf-badge-neutral {
+  background: var(--bg-surface-subtle);
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+}
+
+/* Botones */
+.vtf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.125rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.vtf-btn-primary {
+  background: var(--primary-500);
+  color: var(--text-inverse);
+  box-shadow: 0 1px 3px rgba(109, 89, 122, 0.3);
+}
+
+.vtf-btn-primary:hover {
+  background: var(--primary-600);
+  box-shadow: 0 3px 8px rgba(109, 89, 122, 0.4);
+}
+
+.vtf-btn-secondary {
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border-color: var(--border-light);
+}
+
+.vtf-btn-secondary:hover {
+  background: var(--bg-surface-subtle);
+  border-color: var(--primary-200);
+}
+
+.vtf-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.vtf-btn-ghost:hover {
+  background: var(--bg-surface-subtle);
+  color: var(--text-main);
+}
+
+/* Inputs y Formularios */
+.vtf-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1.125rem;
+}
+
+.vtf-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.vtf-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.vtf-input:focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px var(--primary-100);
+}
+
+.vtf-error-text {
+  font-size: 0.75rem;
+  color: var(--error-text);
+  font-weight: 500;
+}
+
+/* Tablas estilizadas */
+.vtf-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.vtf-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.vtf-table th {
+  padding: 0.875rem 1rem;
+  background: var(--bg-surface-subtle);
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.vtf-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-main);
+}
+
+.vtf-table tr:last-child td {
+  border-bottom: none;
+}
+
+.vtf-table tr:hover td {
+  background: hsl(220, 20%, 99%);
+}

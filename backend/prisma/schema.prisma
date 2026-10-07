@@ -1,0 +1,242 @@
+// Configuración de Prisma ORM para PostgreSQL
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------------------------------------------
+// ENUMS Y TIPOS DEL SISTEMA
+// ---------------------------------------------
+
+enum RoleCode {
+  PRESIDENTA
+  TESORERA
+  SECRETARIA
+  PRIMERA_DIRECTORA
+  SEGUNDA_DIRECTORA
+  DELEGADA
+  SOCIA
+}
+
+enum CargoSocia {
+  DIRECTORA
+  EDUCADORA
+  TECNICO
+}
+
+enum EstadoSocia {
+  ACTIVA
+  SUSPENDIDA
+}
+
+enum EstadoCredito {
+  ACTIVO
+  PENDIENTE
+  CANCELADO
+  FINALIZADO
+  RECHAZADO
+}
+
+enum EstadoPago {
+  PENDIENTE
+  EN_REVISION
+  VERIFICADO
+  RECHAZADO
+}
+
+enum TipoMovimiento {
+  INGRESO
+  EGRESO
+}
+
+// ---------------------------------------------
+// MODELOS DE USUARIO, ROLES Y AUDITORÍA
+// ---------------------------------------------
+
+model Role {
+  id          String   @id @default(uuid())
+  code        RoleCode @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+
+  @@map("roles")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  rut          String      @unique
+  email        String      @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  isActive     Boolean     @default(true)
+  roleId       String
+  role         Role        @relation(fields: [roleId], references: [id])
+  sociaId      String?     @unique
+  socia        Socia?      @relation(fields: [sociaId], references: [id])
+  auditLogs    AuditLog[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@map("usuarios")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("auditorias")
+}
+
+// ---------------------------------------------
+// MODELOS DE JARDINES Y SOCIAS
+// ---------------------------------------------
+
+model Jardin {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  code        String            @unique
+  address     String?
+  isActive    Boolean           @default(true)
+  socias      Socia[]
+  historial   HistorialJardin[] @relation("JardinNuevo")
+  historialAnt HistorialJardin[] @relation("JardinAnterior")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("jardines")
+}
+
+model Socia {
+  id                String            @id @default(uuid())
+  rut               String            @unique
+  firstName         String
+  lastName          String
+  cargo             CargoSocia
+  estado            EstadoSocia       @default(ACTIVA)
+  jardinId          String
+  jardin            Jardin            @relation(fields: [jardinId], references: [id])
+  fechaIncorporacion DateTime         @default(now())
+  user              User?
+  cuotas            Cuota[]
+  creditos          Credito[]
+  historialJardin   HistorialJardin[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@map("socias")
+}
+
+model HistorialJardin {
+  id               String   @id @default(uuid())
+  sociaId          String
+  socia            Socia    @relation(fields: [sociaId], references: [id])
+  jardinAnteriorId String
+  jardinAnterior   Jardin   @relation("JardinAnterior", fields: [jardinAnteriorId], references: [id])
+  jardinNuevoId    String
+  jardinNuevo      Jardin   @relation("JardinNuevo", fields: [jardinNuevoId], references: [id])
+  changedByUserId  String
+  reason           String?
+  createdAt        DateTime @default(now())
+
+  @@map("historial_cambios_jardin")
+}
+
+// ---------------------------------------------
+// MODELOS FINANCIEROS (CUOTAS, CRÉDITOS, PAGOS)
+// ---------------------------------------------
+
+model Cuota {
+  id               String     @id @default(uuid())
+  sociaId          String
+  socia            Socia      @relation(fields: [sociaId], references: [id])
+  period           String     // YYYY-MM
+  amount           Decimal    @default(4000)
+  federacionAmount Decimal    @default(1000)
+  asociacionAmount Decimal    @default(1000)
+  cenaAnualAmount  Decimal    @default(2000)
+  status           EstadoPago @default(PENDIENTE)
+  paidAt           DateTime?
+  comprobanteId    String?
+  comprobante      Comprobante? @relation(fields: [comprobanteId], references: [id])
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@unique([sociaId, period])
+  @@map("cuotas")
+}
+
+model TipoCredito {
+  id             String    @id @default(uuid())
+  code           String    @unique // SOS, EASYMUNDO, DENTAL, OPTICA
+  name           String
+  commissionRate Decimal   @default(0.0) // 0.02 para EasyMundo
+  creditos       Credito[]
+  createdAt      DateTime  @default(now())
+
+  @@map("tipos_credito")
+}
+
+model Credito {
+  id                 String        @id @default(uuid())
+  sociaId            String
+  socia              Socia         @relation(fields: [sociaId], references: [id])
+  tipoCreditoId      String
+  tipoCredito        TipoCredito   @relation(fields: [tipoCreditoId], references: [id])
+  requestedAmount    Decimal
+  totalAmount        Decimal
+  totalInstallments  Int           // Cuotas totales contratadas
+  currentInstallment Int           @default(0) // Cuotas pagadas a la fecha
+  installmentValue   Decimal
+  status             EstadoCredito @default(ACTIVO)
+  startDate          DateTime
+  estimatedEndDate   DateTime
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@map("creditos")
+}
+
+model Comprobante {
+  id               String       @id @default(uuid())
+  fileUrl          String
+  fileName         String
+  fileType         String
+  fileSize         Int
+  amount           Decimal?
+  description      String?
+  uploadedByUserId String
+  cuotas           Cuota[]
+  movimientos      MovimientoFinanciero[]
+  createdAt        DateTime     @default(now())
+
+  @@map("comprobantes")
+}
+
+model MovimientoFinanciero {
+  id            String         @id @default(uuid())
+  type          TipoMovimiento
+  category      String
+  amount        Decimal
+  description   String
+  registeredBy  String
+  date          DateTime       @default(now())
+  comprobanteId String?
+  comprobante   Comprobante?   @relation(fields: [comprobanteId], references: [id])
+  createdAt     DateTime       @default(now())
+
+  @@map("movimientos_financieros")
+}
