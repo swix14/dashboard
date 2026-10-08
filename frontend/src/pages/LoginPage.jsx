@@ -7,6 +7,7 @@ import { Lock, Mail, ShieldAlert, ArrowRight, CheckCircle2, UserCheck } from 'lu
 import { useAuth } from '../context/AuthContext.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { Button } from '../components/common/Button.jsx';
+import { ThemeToggle } from '../components/common/ThemeToggle.jsx';
 
 const loginFormSchema = z.object({
   identifier: z.string().min(3, 'Ingrese su correo institucional o RUT'),
@@ -223,13 +224,24 @@ export function LoginPage() {
             justifyContent: 'center'
           }}
         >
-          <div style={{ marginBottom: '1.75rem' }}>
-            <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              Acceso Institucional
-            </h2>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-              Ingrese su correo registrado o RUT junto con su contraseña.
-            </p>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              marginBottom: '1.75rem'
+            }}
+          >
+            <div>
+              <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                Acceso Institucional
+              </h2>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                Ingrese su correo registrado o RUT junto con su contraseña.
+              </p>
+            </div>
+            <ThemeToggle size="sm" />
           </div>
 
           {authError && (

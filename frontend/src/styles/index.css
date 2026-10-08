@@ -83,9 +83,87 @@
   --radius-xl: 20px;
   --radius-full: 9999px;
 
+  /* Esquema nativo */
+  color-scheme: light;
+
   /* Transiciones */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   TEMA OSCURO INSTITUCIONAL — Paleta Dark Slate Navy con Acentos Morados
+   ========================================================================== */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Paleta Primaria Institucional Adaptada a Fondo Oscuro */
+  --primary-50: hsl(276, 35%, 15%);
+  --primary-100: hsl(276, 35%, 22%);
+  --primary-200: hsl(276, 32%, 30%);
+  --primary-300: hsl(276, 35%, 45%);
+  --primary-400: hsl(276, 42%, 55%);
+  --primary-500: hsl(276, 50%, 62%); /* Color de marca más brillante para alto contraste */
+  --primary-600: hsl(276, 45%, 52%);
+  --primary-700: hsl(276, 45%, 78%);
+  --primary-800: hsl(276, 46%, 86%);
+  --primary-900: hsl(276, 50%, 93%);
+
+  /* Paleta Secundaria Acento (Rosado Suave) */
+  --accent-pink-50: hsl(345, 45%, 16%);
+  --accent-pink-100: hsl(345, 42%, 22%);
+  --accent-pink-300: hsl(345, 44%, 40%);
+  --accent-pink-500: hsl(345, 60%, 68%);
+  --accent-pink-600: hsl(345, 55%, 60%);
+
+  /* Paleta Terciaria (Café Claro / Arena Cálida) */
+  --sand-50: hsl(34, 25%, 14%);
+  --sand-100: hsl(34, 25%, 18%);
+  --sand-200: hsl(32, 22%, 26%);
+  --sand-300: hsl(32, 30%, 48%);
+  --sand-500: hsl(30, 40%, 68%);
+  --sand-700: hsl(34, 50%, 78%);
+
+  /* Superficies y Neutros */
+  --bg-page: hsl(224, 25%, 9%);             /* Dark Slate Navy Profundo */
+  --bg-surface: hsl(224, 22%, 13%);          /* Tarjetas y Paneles */
+  --bg-surface-elevated: hsl(224, 20%, 17%);    /* Modales y Menús */
+  --bg-surface-subtle: hsl(224, 18%, 18%);      /* Hover, Cabeceras e Inputs */
+
+  /* Texto y Contraste */
+  --text-main: hsl(220, 20%, 94%);
+  --text-muted: hsl(220, 14%, 68%);
+  --text-subtle: hsl(220, 12%, 50%);
+  --text-inverse: hsl(222, 28%, 12%);
+
+  /* Bordes */
+  --border-light: hsl(224, 16%, 22%);
+  --border-subtle: hsl(224, 16%, 17%);
+  --border-focus: hsl(276, 50%, 62%);
+
+  /* Estados Funcionales */
+  --success-bg: hsl(145, 40%, 14%);
+  --success-text: hsl(145, 65%, 66%);
+  --success-border: hsl(145, 35%, 25%);
+
+  --warning-bg: hsl(40, 50%, 15%);
+  --warning-text: hsl(40, 80%, 70%);
+  --warning-border: hsl(40, 40%, 25%);
+
+  --error-bg: hsl(0, 45%, 15%);
+  --error-text: hsl(0, 75%, 72%);
+  --error-border: hsl(0, 40%, 26%);
+
+  --info-bg: hsl(215, 45%, 15%);
+  --info-text: hsl(215, 75%, 72%);
+  --info-border: hsl(215, 40%, 26%);
+
+  /* Sombras Multicapa Refinadas para Fondo Oscuro */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 14px 35px rgba(0, 0, 0, 0.6), 0 4px 10px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 0 0 1px var(--border-light), 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 /* Reset y Base */
@@ -103,6 +181,7 @@ html, body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 #root {
@@ -337,5 +416,5 @@ button, input, select, textarea {
 }
 
 .vtf-table tr:hover td {
-  background: hsl(220, 20%, 99%);
+  background: var(--bg-surface-subtle);
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Menu, Bell, ShieldCheck, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { ThemeToggle } from '../common/ThemeToggle.jsx';
 
 export function Navbar({ onToggleSidebar }) {
   const { user, logout } = useAuth();
@@ -96,6 +97,9 @@ export function Navbar({ onToggleSidebar }) {
               RUT: {user?.rut}
             </div>
           </div>
+
+          {/* Selector de Modo Oscuro / Claro */}
+          <ThemeToggle size="sm" />
 
           <button
             onClick={logout}
