@@ -81,7 +81,14 @@
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 20px;
-  --radius-full: 9999px;
+  /* Panel Institucional de Acceso (Login Hero) */
+  --login-hero-bg: hsl(276, 44%, 26%);
+  --login-hero-border: hsl(276, 40%, 20%);
+  --login-hero-text: hsl(0, 0%, 100%);
+  --login-hero-text-muted: hsla(0, 0%, 100%, 0.82);
+  --login-hero-card-bg: rgba(255, 255, 255, 0.08);
+  --login-hero-card-border: rgba(255, 255, 255, 0.15);
+  --login-hero-card-hover: rgba(255, 255, 255, 0.16);
 
   /* Esquema nativo */
   color-scheme: light;
@@ -164,6 +171,15 @@
   --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.25);
   --shadow-lg: 0 14px 35px rgba(0, 0, 0, 0.6), 0 4px 10px rgba(0, 0, 0, 0.3);
   --shadow-card: 0 0 0 1px var(--border-light), 0 4px 14px rgba(0, 0, 0, 0.35);
+
+  /* Panel Institucional de Acceso en Dark Mode (Mismo morado profundo sobrio, sin brillo excesivo) */
+  --login-hero-bg: hsl(276, 38%, 15%);
+  --login-hero-border: hsl(276, 32%, 24%);
+  --login-hero-text: hsl(220, 20%, 95%);
+  --login-hero-text-muted: hsl(220, 14%, 74%);
+  --login-hero-card-bg: rgba(255, 255, 255, 0.04);
+  --login-hero-card-border: rgba(255, 255, 255, 0.1);
+  --login-hero-card-hover: rgba(255, 255, 255, 0.08);
 }
 
 /* Reset y Base */

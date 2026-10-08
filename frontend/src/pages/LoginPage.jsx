@@ -88,14 +88,16 @@ export function LoginPage() {
         {/* Columna Izquierda: Información Institucional y Selector Rápido */}
         <div
           style={{
-            backgroundColor: 'var(--primary-700)',
-            color: 'white',
+            backgroundColor: 'var(--login-hero-bg)',
+            color: 'var(--login-hero-text)',
             borderRadius: 'var(--radius-xl)',
             padding: '2.5rem 2rem',
+            border: '1px solid var(--login-hero-border)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            boxShadow: 'var(--shadow-lg)'
+            boxShadow: 'var(--shadow-lg)',
+            transition: 'background-color var(--transition-normal), border-color var(--transition-normal)'
           }}
         >
           <div>
@@ -104,7 +106,8 @@ export function LoginPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                backgroundColor: 'rgba(255,255,255,0.12)',
+                backgroundColor: 'var(--login-hero-card-bg)',
+                border: '1px solid var(--login-hero-card-border)',
                 padding: '0.35rem 0.75rem',
                 borderRadius: 'var(--radius-full)',
                 fontSize: '0.75rem',
@@ -120,7 +123,7 @@ export function LoginPage() {
               style={{
                 fontSize: '1.75rem',
                 fontWeight: 700,
-                color: 'white',
+                color: 'var(--login-hero-text)',
                 lineHeight: 1.25,
                 marginBottom: '1rem'
               }}
@@ -130,7 +133,7 @@ export function LoginPage() {
             <p
               style={{
                 fontSize: '0.875rem',
-                color: 'rgba(255,255,255,0.85)',
+                color: 'var(--login-hero-text-muted)',
                 lineHeight: 1.6,
                 marginBottom: '2rem'
               }}
@@ -145,7 +148,7 @@ export function LoginPage() {
                   fontSize: '0.75rem',
                   fontWeight: 700,
                   textTransform: 'uppercase',
-                  color: 'var(--sand-200)',
+                  color: 'var(--sand-300)',
                   letterSpacing: '0.05em',
                   marginBottom: '0.75rem'
                 }}
@@ -159,32 +162,32 @@ export function LoginPage() {
                     type="button"
                     onClick={() => handleSelectDemo(acc.email)}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      background: 'var(--login-hero-card-bg)',
+                      border: '1px solid var(--login-hero-card-border)',
                       borderRadius: 'var(--radius-md)',
                       padding: '0.625rem 0.875rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      color: 'white',
+                      color: 'var(--login-hero-text)',
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all var(--transition-fast)'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.18)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                      e.currentTarget.style.backgroundColor = 'var(--login-hero-card-hover)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.28)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                      e.currentTarget.style.backgroundColor = 'var(--login-hero-card-bg)';
+                      e.currentTarget.style.borderColor = 'var(--login-hero-card-border)';
                     }}
                   >
                     <div>
                       <div style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
                         {acc.role} ({acc.email})
                       </div>
-                      <div style={{ fontSize: '0.6875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--login-hero-text-muted)' }}>
                         {acc.desc}
                       </div>
                     </div>
@@ -198,8 +201,8 @@ export function LoginPage() {
           <div
             style={{
               fontSize: '0.75rem',
-              color: 'rgba(255,255,255,0.6)',
-              borderTop: '1px solid rgba(255,255,255,0.15)',
+              color: 'var(--login-hero-text-muted)',
+              borderTop: '1px solid var(--login-hero-card-border)',
               paddingTop: '1rem',
               display: 'flex',
               alignItems: 'center',
