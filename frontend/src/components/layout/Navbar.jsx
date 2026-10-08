@@ -24,17 +24,7 @@ export function Navbar({ onToggleSidebar }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <button
           onClick={onToggleSidebar}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-main)',
-            cursor: 'pointer',
-            padding: '0.375rem',
-            borderRadius: 'var(--radius-sm)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
+          className="navbar-menu-btn"
           aria-label="Abrir menú"
         >
           <Menu size={20} />
@@ -104,6 +94,24 @@ export function Navbar({ onToggleSidebar }) {
       </div>
 
       <style>{`
+        .navbar-menu-btn {
+          background: transparent;
+          border: none;
+          color: var(--text-main);
+          cursor: pointer;
+          padding: 0.375rem;
+          border-radius: var(--radius-sm);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        @media (min-width: 1024px) {
+          .navbar-menu-btn {
+            display: none !important;
+          }
+        }
+
         @media (min-width: 640px) {
           .user-text-md {
             display: block !important;
