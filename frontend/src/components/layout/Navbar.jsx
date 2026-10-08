@@ -1,10 +1,10 @@
 import React from 'react';
-import { Menu, Bell, ShieldCheck, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, Bell, ShieldCheck, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ThemeToggle } from '../common/ThemeToggle.jsx';
 
 export function Navbar({ onToggleSidebar }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
     <header
@@ -100,35 +100,6 @@ export function Navbar({ onToggleSidebar }) {
 
           {/* Selector de Modo Oscuro / Claro */}
           <ThemeToggle size="sm" />
-
-          <button
-            onClick={logout}
-            title="Cerrar sesión"
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border-light)',
-              borderRadius: 'var(--radius-md)',
-              padding: '0.375rem 0.5rem',
-              cursor: 'pointer',
-              color: 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              fontSize: '0.75rem',
-              transition: 'all var(--transition-fast)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--error-text)';
-              e.currentTarget.style.borderColor = 'var(--error-border)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-muted)';
-              e.currentTarget.style.borderColor = 'var(--border-light)';
-            }}
-          >
-            <LogOut size={14} />
-            <span style={{ fontWeight: 500 }}>Salir</span>
-          </button>
         </div>
       </div>
 
