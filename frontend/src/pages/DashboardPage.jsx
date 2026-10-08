@@ -17,6 +17,16 @@ import { Card } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
 
+// Formatea fecha en estándar completo DD/MM/AAAA con dígitos tabulares
+const formatFullDate = (dateStr) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+};
+
 export function DashboardPage() {
   const { user, isDirectiva, isTesorera } = useAuth();
   const [data, setData] = useState(null);
@@ -183,13 +193,7 @@ export function DashboardPage() {
       </div>
 
       {/* Desglose de Cuota Mensual y Distribución Financiera */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isDirectiva ? 'repeat(auto-fit, minmax(360px, 1fr))' : '1fr',
-          gap: '1.5rem'
-        }}
-      >
+      <div className={`dashboard-finance-grid ${isDirectiva ? 'has-movements' : ''}`}>
         {/* Desglose de la Cuota Obligatoria */}
         <Card
           title="Estructura de la Cuota Social ($4.000 CLP)"
@@ -271,18 +275,27 @@ export function DashboardPage() {
               <table className="vtf-table">
                 <thead>
                   <tr>
-                    <th>Fecha</th>
-                    <th>Tipo</th>
+                    <th style={{ whiteSpace: 'nowrap', width: '120px' }}>Fecha</th>
+                    <th style={{ whiteSpace: 'nowrap', width: '90px' }}>Tipo</th>
                     <th>Categoría</th>
-                    <th>Monto</th>
-                    <th>Comprobante</th>
+                    <th style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>Monto</th>
+                    <th style={{ whiteSpace: 'nowrap', textAlign: 'center', width: '110px' }}>Comprobante</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.movimientosRecientes.map((mov) => (
                     <tr key={mov.id}>
-                      <td>{mov.fecha}</td>
-                      <td>
+                      <td
+                        style={{
+                          whiteSpace: 'nowrap',
+                          fontVariantNumeric: 'tabular-nums',
+                          fontWeight: 600,
+                          color: 'var(--text-main)'
+                        }}
+                      >
+                        {formatFullDate(mov.fecha)}
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         <Badge variant={mov.tipo === 'INGRESO' ? 'success' : 'neutral'}>
                           {mov.tipo}
                         </Badge>
@@ -291,12 +304,15 @@ export function DashboardPage() {
                       <td
                         style={{
                           fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                          textAlign: 'right',
+                          fontVariantNumeric: 'tabular-nums',
                           color: mov.tipo === 'INGRESO' ? 'var(--success-text)' : 'var(--text-main)'
                         }}
                       >
                         {mov.tipo === 'INGRESO' ? '+' : '-'}${mov.monto.toLocaleString('es-CL')}
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         {mov.comprobante ? (
                           <Badge variant="info">Verificado</Badge>
                         ) : (
@@ -338,6 +354,20 @@ export function DashboardPage() {
           </div>
         </div>
       )}
+
+      <style>{`
+        .dashboard-finance-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+        }
+
+        @media (min-width: 1024px) {
+          .dashboard-finance-grid.has-movements {
+            grid-template-columns: 360px 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 }
