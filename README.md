@@ -1,51 +1,94 @@
-# Sistema Web de Gestión — Asociación de Jardines VTF
+# Sistema Web de Gestión — Asociación VTF Temuco
 
-Sistema web responsive para la gestión administrativa, financiera y de transparencia de una Asociación de Jardines VTF (Vía Transferencia de Fondos).
+Sistema web institucional responsive para la gestión administrativa, contable, financiera y de transparencia de la **Asociación de Jardines VTF Temuco** (Vía Transferencia de Fondos).
 
 ---
 
 ## 1. Contexto Institucional
 
 La Asociación cuenta con:
-- **280 socias** (Directoras, Educadoras y Técnicos).
-- **23 jardines infantiles**.
-- **23 delegadas** (una representante electa por cada jardín).
-- **Directiva:** Presidenta, Tesorera, Secretaria, Primera Directora y Segunda Directora.
+- **280 socias activas y suspendidas** (Directoras, Educadoras y Técnicos en Educación Parvularia).
+- **23 jardines infantiles** distribuidos en la comuna de Temuco.
+- **23 delegadas** (una representante electa por cada establecimiento educativo).
+- **Directiva Oficial:** Presidenta, Tesorera, Secretaria y Directora.
+- **Cuota Social Mensual:** $4.000 CLP fijos con distribución tripartita estatutaria ($1.000 Federación Nacional, $1.000 Asociación, $2.000 Fondo Cena Anual).
 
 ---
 
-## 2. Tecnologías Utilizadas (V1)
+## 2. Matriz Oficial de Roles y Permisos
 
-### Frontend
-- **React 18** + **Vite 6**
-- **React Router v6** para navegación declarativa y rutas protegidas
-- **Axios** con interceptores JWT y control de expiración de sesión
-- **React Hook Form** + **Zod** para validación reactiva de formularios
-- **Lucide React** para iconografía institucional moderna
-- **CSS3 Puro (Vanilla CSS)** con diseño anti-genérico, tipografías Google Fonts (*Plus Jakarta Sans* y *Outfit*), paleta HSL institucional suave (morado, rosado, arena cálido, gris y blanco) y sombras multicapa refinadas.
+| Rol | Titular Oficial | Identificador / RUT | Permisos Operativos | Visibilidad Financiera |
+| :--- | :--- | :--- | :--- | :--- |
+| **Super Admin** | Jhonny Marcelo Ferrada Pasten | `17.260.651-2` | Administración global del sistema, roles y base de datos | Acceso y modificación total |
+| **Tesorera** | Alejandra Romanett Sias Novoa | `13.918.472-6` | Modificación de todo el sistema y dueña exclusiva del módulo Tesorería | Acceso financiero completo y registro de movimientos |
+| **Presidenta** | Yerthie Johanna Sayago Gajardo | `15.421.368-7` | Supervisión general y modificación en toda la app | **Solo Lectura en Tesorería** (supervisión sin edición de gastos) |
+| **Secretaria** | Nelly Ester Mella Burgos | `14.832.195-4` | Solo ver general, pero **puede agregar y modificar Socias** | Sin acceso a finanzas operativas |
+| **Directora** | Victoria Catalina Abarza Vega | `16.274.593-8` | Solo ver general, con excepción en gestión de Convenios/Créditos | Resumen general autorizado |
+| **Delegadas** | Representantes de Jardín (Ej: Claudia Navarro) | `17.890.123-1` | Representación de su establecimiento ante la asamblea | **Exclusivo módulo de Reportes** (prohibido ver deudas privadas) |
 
-### Backend
-- **Node.js 24 LTS** + **Express.js**
-- **Prisma ORM 6** con modelo de datos normalizado para **PostgreSQL**
-- **JWT (JSON Web Tokens)** + **bcryptjs** para hashing de contraseñas
-- **Zod** para validación de datos en servidor
-- **Helmet**, **CORS** y **Morgan** para seguridad y observabilidad
-- **Validador de RUT chileno** con algoritmo módulo 11
-- **Sistema de Auditoría** inmutable para trazabilidad de operaciones
+> **Nota:** La contraseña unificada de prueba para todas las cuentas de demostración es: `Admin123!`
 
 ---
 
-## 3. Matriz de Roles y Permisos (V1)
+## 3. Hoja de Ruta Segmentada por Versiones
 
-| Rol | Correo Demo | Permisos Operativos | Visibilidad Financiera |
-| :--- | :--- | :--- | :--- |
-| **Tesorera** | `tesorera@vtf.cl` | Registro de ingresos, egresos, cuotas, créditos y verificación de pagos | Acceso financiero completo |
-| **Presidenta** | `presidenta@vtf.cl` | Supervisión general, consulta de rendición e informes | Fondo común y reportes de gestión |
-| **Secretaria** | `secretaria@vtf.cl` | Gestión de socias, jardines y estados administrativos | Sin acceso financiero sensible no autorizado |
-| **Delegada** | `delegada.bambi@vtf.cl` | Representación de su jardín ante la asamblea | **Solo fondo común general y estado de su jardín** (Privacidad: Prohibido ver créditos/deudas individuales) |
-| **Socia** | `socia.educadora@vtf.cl` | Consulta de su estado y cuota social | **Solo información pública y personal autorizada** |
+El desarrollo del sistema está estructurado en versiones incrementales y especializadas:
 
-> **Nota:** La contraseña unificada de prueba para todas las cuentas demo es: `Admin123!`
+```mermaid
+graph TD
+    V1[V1: Inicio & Autenticación Real] --> V2[V2: Tesorería & Fondos]
+    V2 --> V3[V3: Padrón de Socias & Créditos]
+    V3 --> V4[V4: Gestión Documental & Convenios]
+    V4 --> V5[V5: Reportes Ejecutivos & Delegadas]
+    V5 --> V6[V6: Bitácora de Auditoría & Seguridad]
+```
+
+### ✅ V1 — Inicio Institucional y Autenticación Real [COMPLETADA]
+- **Identidad Oficial:** Integración del logo oficial de la Asociación VTF Temuco y sistema de diseño HSL institucional (morado suave, rosado suave, arena cálida y neutros).
+- **Autenticación RBAC:** Soporte de acceso mediante **RUT chileno** (módulo 11) o correo institucional, con perfiles reales precargados.
+- **Navbar Institucional:** Buscador global (*"Buscar en sistema..."*) y tarjeta de perfil activo con avatar, cargo y rol.
+- **Dashboard de Inicio:**
+  * **3 Recuadros KPI Superiores:** Socias Activas (276), Socias Suspendidas (4) y Saldo Total ($14.580.000 desglosado en Cena Anual $9.260.000 + Asociación $5.320.000).
+  * **3 Recuadros Medianos:** Correlativo de los últimos 5 pagos a federación con comprobante respaldado, Próximas Tareas de tesorería y Alertas inteligentes (socias con última cuota y estado de aporte federación al día).
+  * **2 Gráficos Analíticos:** Gráfico de Recaudación Mensual con selector interactivo de año (2026/2025) y Gráfico de Estado de Socias con créditos vigentes.
+
+### ✅ V2 — Módulo Completo de Tesorería [COMPLETADA]
+- **Centros de Costo Oficiales:**
+  * `ASOCIACION`: Cuotas sociales ordinarias y gastos operativos/bienestar.
+  * `CENA ANUAL`: Ahorro para el evento anual y préstamos de emergencia S.O.S.
+  * `FEDERACION`: Exclusivo para registrar egresos/pagos del aporte nacional.
+  * `ISI MUNDO COMISION`: Ingresos generados por el 2% de retorno de convenios.
+- **7 Recuadros de Información Visible:** Total Ingresos, Total Egresos, Saldo Total (`Asociación + Cena Anual`), Total Movimientos, Pagos a Federación, Saldo Asociación y Saldo Cena Anual.
+- **Regla Estricta de Egresos:** Prohibición absoluta de registrar egresos sin comprobante obligatorio adjunto.
+- **Modal de Nuevo Movimiento:** Pestañas transaccionales diferenciadas para *Ingreso*, *Egreso* y *Pago Federación* con responsable automático de sesión.
+- **Permisos Específicos:** Vista de *Solo Lectura* automática para la Presidenta y modo operativo de registro para la Tesorera y el Admin.
+- **Filtros y Exportación:** Filtrado por tipo, centro de costo, método y fechas, con exportación completa a formato `.csv` compatible con Excel.
+
+### ⏳ V3 — Padrón de Socias y Gestión de Créditos
+- Administración completa del padrón de 280 socias con estados `Activa` y `Suspendida` (con bloqueo de cobro indebido a suspendidas).
+- Catálogo de los 23 jardines infantiles de Temuco con asignación de delegada y traslados.
+- Control de convenios y créditos: `ISIMUNDO`, `S.O.S`, `OPTICA` y `DENTAL`.
+- Columna interactiva **CRÉDITO (SI / NO)**: muestra resumen o documento modal de créditos vigentes y cuotas acumuladas (ej: cuotas 3/6).
+- Procesamiento y validación masiva de planillas Excel mensuales con SheetJS.
+
+### ⏳ V4 — Gestión Documental y Subida Móvil
+- **3 Subsecciones Documentales:**
+  * *Documentos Maestros:* 4 contratos marco descargables para convenios.
+  * *Carpetas por Empresa:* `ISIMUNDO`, `OPTICA`, `DENTAL`, `GIMNASIO` organizadas cronológicamente por año/mes/día con correlativo formal.
+- Flujo de solicitud, firma y digitalización de pagarés y autorizaciones.
+- Conexión PWA ligera para captura y subida rápida de comprobantes fotográficos desde el celular.
+
+### ⏳ V5 — Reportes Ejecutivos y Portal Delegadas
+- Vista dedicada y protegida exclusivamente para las **23 Delegadas** de jardín:
+  * Monto total pagado a Federación.
+  * Saldo consolidado Asociación + Cena Anual.
+  * Socias activas por jardín.
+  * **Protección estricta de privacidad:** Sin acceso a deudas individuales ni datos confidenciales de otras socias.
+- Generación de informe oficial de **Rendición Anual de Cuentas** en PDF formal para asamblea.
+
+### ⏳ V6 — Bitácora de Auditoría y Seguridad
+- Trazabilidad forense inmutable de todas las acciones realizadas en la plataforma (inicios de sesión, creación de movimientos contables, cambios en socias y exportaciones).
+- Metadatos con dirección IP, usuario, timestamp y detalle de cambios para respaldo legal.
 
 ---
 
@@ -56,35 +99,36 @@ dashboard/
 ├── backend/
 │   ├── src/
 │   │   ├── config/          # Variables de entorno y cliente Prisma
-│   │   ├── controllers/     # AuthController, DashboardController
+│   │   ├── controllers/     # AuthController, DashboardController, TreasuryController
 │   │   ├── middlewares/     # authMiddleware, roleMiddleware, errorMiddleware
-│   │   ├── routes/          # authRoutes, dashboardRoutes, index
-│   │   ├── services/        # AuthService, AuditService, DashboardService, seedData
+│   │   ├── routes/          # authRoutes, dashboardRoutes, treasuryRoutes, index
+│   │   ├── services/        # AuthService, AuditService, DashboardService, TreasuryService, seedData
 │   │   ├── utils/           # rutValidator, helpers
-│   │   ├── validators/      # authValidator (Zod)
+│   │   ├── validators/      # authValidator, treasuryValidator (Zod)
 │   │   └── server.js        # Punto de entrada Express
 │   ├── prisma/
-│   │   ├── schema.prisma    # Esquema relacional completo PostgreSQL
-│   │   └── seed.js          # Poblado de roles, jardines y convenios
+│   │   ├── schema.prisma    # Esquema relacional PostgreSQL
+│   │   └── seed.js          # Poblado de base de datos
 │   ├── test/
 │   │   └── authTest.js      # Pruebas automatizadas de autenticación y RBAC
-│   ├── .env.example
 │   └── package.json
 ├── frontend/
+│   ├── public/
+│   │   └── logo-vtf.png     # Logo oficial de la Asociación VTF Temuco
 │   ├── src/
 │   │   ├── components/      # UI institucional: Button, Input, Card, Badge, Sidebar, Navbar
-│   │   ├── context/         # AuthContext (Sesión y roles)
-│   │   ├── pages/           # LoginPage, DashboardPage, UnauthorizedPage, NotFoundPage
+│   │   ├── context/         # AuthContext (Sesión y roles RBAC), ThemeContext
+│   │   ├── pages/           # LoginPage, DashboardPage (V1), TreasuryPage (V2), Placeholders (V3-V6)
 │   │   ├── routes/          # AppRoutes, ProtectedRoute
-│   │   ├── services/        # Cliente Axios configurado
-│   │   ├── styles/          # Variables HSL, diseño responsivo y tipografía
+│   │   ├── services/        # Cliente Axios y servicios API (auth, treasury)
+│   │   ├── styles/          # index.css (tokens HSL, diseño responsivo, tipografías)
 │   │   ├── App.jsx
 │   │   └── main.jsx
 │   ├── index.html
 │   └── package.json
 ├── AGENTS.md                # Reglas de desarrollo Antigravity
 ├── .gitignore
-├── package.json             # Scripts de orquestación raíz
+├── package.json             # Scripts raíz
 └── README.md
 ```
 
@@ -92,36 +136,21 @@ dashboard/
 
 ## 5. Instrucciones de Ejecución Local
 
-### Paso 1: Levantar el Backend
+### Paso 1: Iniciar Servidores de Desarrollo
+En terminal PowerShell:
 ```powershell
-cd backend
-npm run dev
-```
-El servidor backend se iniciará en `http://localhost:4000`.
+# Levantar backend en puerto 4000
+npm run dev:backend
 
-### Paso 2: Levantar el Frontend
-En otra terminal:
-```powershell
-cd frontend
-npm run dev
-```
-La aplicación web se abrirá en `http://localhost:5173`.
-
-### Ejecutar Pruebas de Validación Automatizada
-```powershell
-cd backend
-npm run test:auth
+# Levantar frontend en puerto 5173
+npm run dev:frontend
 ```
 
----
+La aplicación estará disponible de inmediato en:
+- **Frontend:** `http://localhost:5173`
+- **Backend Health:** `http://localhost:4000/api/health`
 
-## 6. Hoja de Ruta de Versiones
-
-- [x] **V1 — Base y Autenticación:** Configuración del proyecto, arquitectura limpia, Prisma ORM, autenticación JWT, RBAC por roles, auditoría y Dashboard adaptativo inicial.
-- [ ] **V2 — Socias y Jardines:** CRUD de 280 socias, asignación a los 23 jardines, cargos, estados e historial inmutable.
-- [ ] **V3 — Finanzas:** Cuota mensual ($4.000 CLP: $1.000 Fed, $1.000 Asoc, $2.000 Cena Anual), ingresos y egresos.
-- [ ] **V4 — Créditos:** Convenios SOS, EasyMundo (comisión 2%), Dental y Óptica con control automático de cuotas.
-- [ ] **V5 — Comprobantes:** Carga y verificación de boletas/facturas con workflow de aprobación por Tesorera.
-- [ ] **V6 — Reportes:** Informes en Excel (ExcelJS) y Rendición Anual oficial en PDF.
-- [ ] **V7 — Seguridad y Auditoría:** Fortalecimiento y bitácora forense de auditoría.
-- [ ] **V8 — Final:** Optimización completa, validaciones de campo y entrega académica.
+### Paso 2: Ejecutar Pruebas Automatizadas
+```powershell
+npm run test:backend
+```

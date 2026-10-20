@@ -3,10 +3,8 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
-  Building2,
   DollarSign,
-  CreditCard,
-  Receipt,
+  FolderOpen,
   FileSpreadsheet,
   ShieldAlert,
   LogOut,
@@ -22,26 +20,10 @@ export function Sidebar({ isOpen, onClose }) {
   const navItems = [
     {
       to: '/dashboard',
-      label: 'Dashboard General',
+      label: 'Inicio Institucional',
       icon: LayoutDashboard,
       badge: 'V1 Activo',
       badgeVariant: 'success',
-      allowed: true
-    },
-    {
-      to: '/socias',
-      label: 'Gestión de Socias',
-      icon: Users,
-      badge: 'V2',
-      badgeVariant: 'neutral',
-      allowed: isDirectiva || isSecretaria
-    },
-    {
-      to: '/jardines',
-      label: '23 Jardines VTF',
-      icon: Building2,
-      badge: 'V2',
-      badgeVariant: 'neutral',
       allowed: true
     },
     {
@@ -53,26 +35,26 @@ export function Sidebar({ isOpen, onClose }) {
       allowed: isDirectiva || isTesorera
     },
     {
-      to: '/creditos',
-      label: 'Créditos y Convenios',
-      icon: CreditCard,
+      to: '/socias',
+      label: 'Socias y Créditos',
+      icon: Users,
+      badge: 'V3',
+      badgeVariant: 'neutral',
+      allowed: isDirectiva || isSecretaria
+    },
+    {
+      to: '/documentos',
+      label: 'Gestión Documental',
+      icon: FolderOpen,
       badge: 'V4',
       badgeVariant: 'neutral',
       allowed: isDirectiva || isTesorera
     },
     {
-      to: '/comprobantes',
-      label: 'Comprobantes y Pagos',
-      icon: Receipt,
-      badge: 'V5',
-      badgeVariant: 'neutral',
-      allowed: isDirectiva || isTesorera
-    },
-    {
       to: '/reportes',
-      label: 'Reportes y Rendición',
+      label: 'Reportes y Delegadas',
       icon: FileSpreadsheet,
-      badge: 'V6',
+      badge: 'V5',
       badgeVariant: 'neutral',
       allowed: true
     },
@@ -80,7 +62,7 @@ export function Sidebar({ isOpen, onClose }) {
       to: '/auditoria',
       label: 'Bitácora de Auditoría',
       icon: ShieldAlert,
-      badge: 'V7',
+      badge: 'V6',
       badgeVariant: 'neutral',
       allowed: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode)
     }

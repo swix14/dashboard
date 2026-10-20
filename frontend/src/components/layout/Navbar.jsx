@@ -62,7 +62,7 @@ export function Navbar({ onToggleSidebar }) {
             }}
             className="badge-v1-desktop"
           >
-            V1 Activa
+            V2 Activa
           </span>
         </div>
       </div>

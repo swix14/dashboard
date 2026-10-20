@@ -25,113 +25,83 @@ export function AppRoutes() {
         }
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
+        {/* V1 — Inicio Institucional */}
         <Route path="dashboard" element={<DashboardPage />} />
-
-        {/* V2 — Socias y Jardines */}
-        <Route
-          path="socias"
-          element={
-            <ModulePlaceholderPage
-              title="Gestión de Socias (280 Socias)"
-              version="Fase V2"
-              description="Administración de padrón de socias, RUT, jardín asignado, cargos (Directora, Educadora, Técnico), estados (Activa, Suspendida) e historial de modificaciones."
-              features={[
-                'Registro y edición con validación de RUT chileno',
-                'Estados: Activa / Suspendida (con control de no cobro indebido)',
-                'Historial completo de cambios',
-                'Exportación de padrón institucional'
-              ]}
-            />
-          }
-        />
-        <Route
-          path="jardines"
-          element={
-            <ModulePlaceholderPage
-              title="23 Jardines VTF"
-              version="Fase V2"
-              description="Directorio de los 23 jardines infantiles de la asociación, asignación de delegadas, socias pertenecientes y registro de traslados con historial inmutable."
-              features={[
-                'Catálogo de 23 jardines asociados',
-                'Asignación de una delegada por cada jardín',
-                'Trazabilidad inmutable de traslados entre jardines',
-                'Estadísticas de dotación por establecimiento'
-              ]}
-            />
-          }
-        />
 
         {/* V2 — Módulo Completo de Tesorería */}
         <Route path="tesoreria" element={<TreasuryPage />} />
         <Route path="finanzas" element={<Navigate to="/tesoreria" replace />} />
 
-        {/* V4 — Créditos */}
+        {/* V3 — Padrón de Socias y Gestión de Créditos */}
         <Route
-          path="creditos"
+          path="socias"
           element={
             <ModulePlaceholderPage
-              title="Gestión de Créditos y Convenios"
+              title="Padrón de Socias y Gestión de Créditos"
+              version="Fase V3"
+              description="Administración de 280 socias (Activa / Suspendida), cuota fija de $4.000 CLP, créditos por convenio (Isimundo, S.O.S, Óptica, Dental) y verificación mensual de planilla Excel con SheetJS."
+              features={[
+                'Padrón de 280 socias en 23 jardines infantiles de Temuco',
+                'Estados: Activa / Suspendida (con control de no cobro indebido)',
+                'Columna CRÉDITO (SI / NO) con visualización de cuotas y saldos',
+                'Carga y validación masiva mensual de planillas Excel'
+              ]}
+            />
+          }
+        />
+        <Route path="jardines" element={<Navigate to="/socias" replace />} />
+        <Route path="creditos" element={<Navigate to="/socias" replace />} />
+
+        {/* V4 — Gestión Documental y Convenios */}
+        <Route
+          path="documentos"
+          element={
+            <ModulePlaceholderPage
+              title="Gestión Documental y Subida Móvil"
               version="Fase V4"
-              description="Manejo de créditos SOS, EasyMundo (con comisión 2%), Dental y Óptica. Cálculo automático estricto de cuotas (impidiendo cuotas posteriores a la última configurada)."
+              description="Subsecciones de documentos maestros descargables, carpetas por empresa (Isimundo, Óptica, Dental, Gimnasio) organizadas año/mes/día y subida ágil de comprobantes desde el celular."
               features={[
-                'Líneas de crédito: SOS, EasyMundo, Dental y Óptica',
-                'Regla crítica: Cancelación automática al llegar a cuota final (sin cuota 13/12)',
-                'Cálculo e ingreso del 2% de comisión EasyMundo al fondo común',
-                'Perfil financiero confidencial por socia'
+                'Subsección Maestros con 4 contratos tipo descargables',
+                'Carpetas cronológicas por empresa con correlativo de día y hora',
+                'Flujo de impresión, firma física y digitalización de pagarés',
+                'Conexión ligera PWA para captura de comprobantes desde el teléfono'
               ]}
             />
           }
         />
+        <Route path="comprobantes" element={<Navigate to="/documentos" replace />} />
 
-        {/* V5 — Comprobantes */}
-        <Route
-          path="comprobantes"
-          element={
-            <ModulePlaceholderPage
-              title="Carga y Verificación de Comprobantes"
-              version="Fase V5"
-              description="Carga y validación de boletas, facturas y transferencias bancarias asociadas a cuotas, pagos y gastos con workflow de aprobación por Tesorería."
-              features={[
-                'Subida segura de comprobantes (PDF, JPG, PNG)',
-                'Workflow de estados: Pendiente, En revisión, Verificado, Rechazado',
-                'Asociación directa a movimientos y cuotas',
-                'Control de permisos exclusivo para Tesorera'
-              ]}
-            />
-          }
-        />
-
-        {/* V6 — Reportes y Rendición */}
+        {/* V5 — Reportes Ejecutivos y Portal Delegadas */}
         <Route
           path="reportes"
           element={
             <ModulePlaceholderPage
-              title="Reportes y Rendición Anual"
-              version="Fase V6"
-              description="Generación y exportación de reportes mensuales, anuales, por jardín y rendición de cuentas anual en formatos PDF y Excel."
+              title="Reportes Ejecutivos y Portal Delegadas"
+              version="Fase V5"
+              description="Portal exclusivo para las 23 Delegadas con cifras consolidadas de aportes a federación, fondos de bienestar y generación de la Rendición Anual en PDF."
               features={[
-                'Exportación de informes ejecutivos en Excel (ExcelJS)',
-                'Generación de Rendición Anual oficial en PDF',
-                'Reportes de recaudación por jardín y convenio',
-                'Auditoría visual de balance de cierre'
+                'Perfil de visualización protegido exclusivo para Delegadas',
+                'Estadísticas de socias activas por jardín infantil',
+                'Resguardo estricto de privacidad (sin acceso a deudas individuales)',
+                'Exportación de Rendición Anual de Cuentas oficial en PDF e informes Excel'
               ]}
             />
           }
         />
 
-        {/* V7 — Auditoría */}
+        {/* V6 — Bitácora de Auditoría */}
         <Route
           path="auditoria"
           element={
             <ModulePlaceholderPage
-              title="Bitácora de Auditoría del Sistema"
-              version="Fase V7"
-              description="Registro y trazabilidad exhaustiva de todas las acciones del sistema: autenticaciones, modificaciones de socias, operaciones financieras y verificaciones."
+              title="Bitácora de Auditoría y Seguridad"
+              version="Fase V6"
+              description="Registro inmutable de cada acción en el sistema (autenticaciones, creación de movimientos de tesorería, modificaciones de socias y exportaciones) para respaldo legal."
               features={[
                 'Registro cronológico inmutable con IP, usuario y timestamp',
                 'Filtros por acción, fecha y módulo afectado',
-                'Supervisión exclusiva para Directiva',
-                'Garantía de integridad y trazabilidad legal'
+                'Supervisión exclusiva para Directiva y Super Admin',
+                'Garantía de integridad y trazabilidad legal de la Asociación'
               ]}
             />
           }
