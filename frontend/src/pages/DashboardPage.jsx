@@ -1,22 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Users,
   UserCheck,
   UserX,
   Wallet,
-  Clock,
   AlertTriangle,
   CheckCircle2,
   FileText,
-  Calendar,
-  Download,
   Filter,
-  Eye,
-  CreditCard,
-  Building,
-  TrendingUp,
-  ShieldCheck,
-  Sparkles
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';

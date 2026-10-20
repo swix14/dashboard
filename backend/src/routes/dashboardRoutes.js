@@ -14,7 +14,7 @@ router.get('/metrics', DashboardController.getMetrics);
 // Auditoría reciente (restringida a Directiva: Presidenta, Tesorera, Secretaria)
 router.get(
   '/audit-recent',
-  requireRole('PRESIDENTA', 'TESORERA', 'SECRETARIA'),
+  requireRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'),
   DashboardController.getRecentAudit
 );
 

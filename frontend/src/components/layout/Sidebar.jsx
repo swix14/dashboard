@@ -82,7 +82,7 @@ export function Sidebar({ isOpen, onClose }) {
       icon: ShieldAlert,
       badge: 'V7',
       badgeVariant: 'neutral',
-      allowed: ['PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode)
+      allowed: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode)
     }
   ];
 

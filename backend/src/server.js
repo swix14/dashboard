@@ -43,8 +43,12 @@ app.use((req, res) => {
 // Middleware global de errores
 app.use(errorMiddleware);
 
-// Iniciar servidor solo si no es importado en tests
-if (process.env.NODE_ENV !== 'test') {
+import { fileURLToPath } from 'node:url';
+
+// Iniciar servidor solo si es ejecutado directamente como proceso principal (no cuando es importado en tests)
+const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+
+if (isMainModule && process.env.NODE_ENV !== 'test') {
   app.listen(env.PORT, () => {
     console.log(`====================================================`);
     console.log(` ASOCIACIÓN DE JARDINES VTF — BACKEND API INICIADO `);

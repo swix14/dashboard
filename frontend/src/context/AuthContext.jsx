@@ -68,11 +68,11 @@ export function AuthProvider({ children }) {
 
   const currentRoleCode = user?.role?.code || user?.role;
   const isDirectiva = [
+    'ADMIN',
     'PRESIDENTA',
     'TESORERA',
     'SECRETARIA',
-    'PRIMERA_DIRECTORA',
-    'SEGUNDA_DIRECTORA'
+    'DIRECTORA'
   ].includes(currentRoleCode);
 
   const value = {
@@ -84,6 +84,7 @@ export function AuthProvider({ children }) {
     logout,
     hasRole,
     isDirectiva,
+    isAdmin: currentRoleCode === 'ADMIN',
     isTesorera: currentRoleCode === 'TESORERA',
     isSecretaria: currentRoleCode === 'SECRETARIA',
     isDelegada: currentRoleCode === 'DELEGADA',
