@@ -45,11 +45,11 @@ export function Sidebar({ isOpen, onClose }) {
       allowed: true
     },
     {
-      to: '/finanzas',
-      label: 'Cuotas e Ingresos',
+      to: '/tesoreria',
+      label: 'Tesorería y Fondos',
       icon: DollarSign,
-      badge: 'V3',
-      badgeVariant: 'neutral',
+      badge: 'V2 Activo',
+      badgeVariant: 'success',
       allowed: isDirectiva || isTesorera
     },
     {

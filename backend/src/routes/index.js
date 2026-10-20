@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import authRoutes from './authRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
+import treasuryRoutes from './treasuryRoutes.js';
 
 const router = Router();
 
@@ -15,5 +16,6 @@ router.get('/health', (req, res) => {
 
 router.use('/auth', authRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/tesoreria', treasuryRoutes);
 
 export default router;

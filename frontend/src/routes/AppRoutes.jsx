@@ -7,6 +7,7 @@ import { DashboardPage } from '../pages/DashboardPage.jsx';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage.jsx';
 import { NotFoundPage } from '../pages/NotFoundPage.jsx';
 import { ModulePlaceholderPage } from '../pages/ModulePlaceholderPage.jsx';
+import { TreasuryPage } from '../pages/TreasuryPage.jsx';
 
 export function AppRoutes() {
   return (
@@ -60,23 +61,9 @@ export function AppRoutes() {
           }
         />
 
-        {/* V3 — Finanzas y Cuotas */}
-        <Route
-          path="finanzas"
-          element={
-            <ModulePlaceholderPage
-              title="Finanzas y Cuotas Sociales"
-              version="Fase V3"
-              description="Control de la cuota mensual de $4.000 CLP con desglose tripartito ($1.000 Federación, $1.000 Asociación, $2.000 Fondo Cena Anual), registro de ingresos y egresos."
-              features={[
-                'Generación y seguimiento de períodos de cuotas mensuales',
-                'Control de pagos: Quién pagó, pendientes y en revisión',
-                'Registro de ingresos y egresos categorizados',
-                'Consolidación del saldo del Fondo Común'
-              ]}
-            />
-          }
-        />
+        {/* V2 — Módulo Completo de Tesorería */}
+        <Route path="tesoreria" element={<TreasuryPage />} />
+        <Route path="finanzas" element={<Navigate to="/tesoreria" replace />} />
 
         {/* V4 — Créditos */}
         <Route
