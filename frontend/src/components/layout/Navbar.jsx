@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
-import { Menu, Search, ShieldCheck, User } from 'lucide-react';
+import { LogOut, Menu, Search, ShieldCheck, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ThemeToggle } from '../common/ThemeToggle.jsx';
 
 export function Navbar({ onToggleSidebar }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <header
@@ -162,9 +172,53 @@ export function Navbar({ onToggleSidebar }) {
 
         {/* Toggle Modo Oscuro / Claro */}
         <ThemeToggle size="sm" />
+        <button
+          type="button"
+          className="navbar-logout-btn"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          aria-label={isLoggingOut ? 'Cerrando sesión' : 'Cerrar sesión'}
+          title="Cerrar sesión"
+        >
+          <LogOut size={18} aria-hidden="true" />
+          <span>{isLoggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}</span>
+        </button>
       </div>
 
       <style>{`
+        .navbar-logout-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          min-height: 40px;
+          padding: 0.5rem 0.75rem;
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-md);
+          background: transparent;
+          color: var(--error-text);
+          font: inherit;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+        .navbar-logout-btn:hover {
+          background: var(--error-bg);
+        }
+        .navbar-logout-btn:focus-visible {
+          outline: 2px solid var(--primary-500);
+          outline-offset: 2px;
+        }
+        .navbar-logout-btn:disabled {
+          opacity: 0.6;
+          cursor: wait;
+        }
+        @media (max-width: 639px) {
+          .navbar-logout-btn span {
+            display: none;
+          }
+        }
         .navbar-menu-btn {
           background: transparent;
           border: none;
