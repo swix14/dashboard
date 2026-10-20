@@ -15,11 +15,12 @@ const loginFormSchema = z.object({
 });
 
 const DEMO_ACCOUNTS = [
-  { role: 'Tesorera', email: 'tesorera@vtf.cl', desc: 'Control financiero total, cuotas, créditos y pagos' },
-  { role: 'Presidenta', email: 'presidenta@vtf.cl', desc: 'Supervisión general, rendición e informes' },
-  { role: 'Secretaria', email: 'secretaria@vtf.cl', desc: 'Gestión de 280 socias y 23 jardines' },
-  { role: 'Delegada', email: 'delegada.bambi@vtf.cl', desc: 'Transparencia de jardín y fondo común' },
-  { role: 'Socia', email: 'socia.educadora@vtf.cl', desc: 'Consulta institucional individual' }
+  { role: 'Admin (Poder Total)', name: 'Jhonny Ferrada Pasten', identifier: '17.260.651-2', desc: 'Super Administrador con control total del sistema' },
+  { role: 'Presidenta', name: 'Yerthie Sayago Gajardo', identifier: '15.421.368-7', desc: 'Supervisión y modificación general (solo lectura en Tesorería)' },
+  { role: 'Tesorera', name: 'Alejandra Sias Novoa', identifier: '13.918.472-6', desc: 'Control financiero total, cuotas, créditos y tesorería' },
+  { role: 'Secretaria', name: 'Nelly Mella Burgos', identifier: '14.832.195-4', desc: 'Gestión y modificación de socias (solo lectura general)' },
+  { role: 'Directora', name: 'Victoria Abarza Vega', identifier: '16.274.593-8', desc: 'Consulta general y gestión de convenios' },
+  { role: 'Delegada', name: 'Claudia Navarro', identifier: '17.890.123-1', desc: 'Consulta exclusiva de reportes institucionales' }
 ];
 
 export function LoginPage() {
@@ -37,7 +38,7 @@ export function LoginPage() {
   } = useForm({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
-      identifier: 'tesorera@vtf.cl',
+      identifier: '13.918.472-6',
       password: 'Admin123!'
     }
   });
@@ -58,8 +59,8 @@ export function LoginPage() {
     }
   };
 
-  const handleSelectDemo = (email) => {
-    setValue('identifier', email);
+  const handleSelectDemo = (identifier) => {
+    setValue('identifier', identifier);
     setValue('password', 'Admin123!');
     setAuthError(null);
   };
@@ -101,45 +102,60 @@ export function LoginPage() {
           }}
         >
           <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'var(--login-hero-card-bg)',
-                border: '1px solid var(--login-hero-card-border)',
-                padding: '0.35rem 0.75rem',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                letterSpacing: '0.03em',
-                marginBottom: '1.25rem'
-              }}
-            >
-              <span>Vía Transferencia de Fondos (VTF)</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', marginBottom: '1.25rem' }}>
+              <img
+                src="/logo-vtf.png"
+                alt="Logo Asociación VTF Temuco"
+                style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  backgroundColor: 'white',
+                  padding: '2px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)'
+                }}
+              />
+              <div>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: 'var(--login-hero-card-bg)',
+                    border: '1px solid var(--login-hero-card-border)',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.03em'
+                  }}
+                >
+                  <span>Vía Transferencia de Fondos</span>
+                </div>
+                <h1
+                  style={{
+                    fontSize: '1.5rem',
+                    fontWeight: 700,
+                    color: 'var(--login-hero-text)',
+                    lineHeight: 1.2,
+                    marginTop: '0.25rem'
+                  }}
+                >
+                  Asociación VTF Temuco
+                </h1>
+              </div>
             </div>
-
-            <h1
-              style={{
-                fontSize: '1.75rem',
-                fontWeight: 700,
-                color: 'var(--login-hero-text)',
-                lineHeight: 1.25,
-                marginBottom: '1rem'
-              }}
-            >
-              Asociación de Jardines VTF
-            </h1>
             <p
               style={{
                 fontSize: '0.875rem',
                 color: 'var(--login-hero-text-muted)',
                 lineHeight: 1.6,
-                marginBottom: '2rem'
+                marginBottom: '1.75rem'
               }}
             >
-              Plataforma centralizada de gestión administrativa, financiera y de transparencia
-              para 280 socias distribuidas en 23 jardines infantiles.
+              Plataforma oficial de gestión administrativa, tesorería transparente y convenios
+              para 280 socias de los 23 jardines infantiles de Temuco.
             </p>
 
             <div style={{ marginBottom: '1.5rem' }}>
@@ -153,14 +169,14 @@ export function LoginPage() {
                   marginBottom: '0.75rem'
                 }}
               >
-                Cuentas de Demostración por Rol (V1)
+                Acceso Rápido por Perfil y RUT (V1)
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {DEMO_ACCOUNTS.map((acc) => (
                   <button
-                    key={acc.email}
+                    key={acc.identifier}
                     type="button"
-                    onClick={() => handleSelectDemo(acc.email)}
+                    onClick={() => handleSelectDemo(acc.identifier)}
                     style={{
                       background: 'var(--login-hero-card-bg)',
                       border: '1px solid var(--login-hero-card-border)',
@@ -185,7 +201,10 @@ export function LoginPage() {
                   >
                     <div>
                       <div style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
-                        {acc.role} ({acc.email})
+                        {acc.role}: {acc.name}
+                      </div>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--sand-300)', fontWeight: 500 }}>
+                        RUT: {acc.identifier}
                       </div>
                       <div style={{ fontSize: '0.6875rem', color: 'var(--login-hero-text-muted)' }}>
                         {acc.desc}

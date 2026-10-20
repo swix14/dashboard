@@ -5,46 +5,46 @@ export const DEFAULT_PASSWORD_HASH = bcrypt.hashSync('Admin123!', 10);
 
 export const INITIAL_ROLES = [
   {
+    id: 'role-0-admin',
+    code: 'ADMIN',
+    name: 'Super Administrador',
+    description: 'Acceso total y administración de todo el sistema y permisos.'
+  },
+  {
     id: 'role-1-presidenta',
     code: 'PRESIDENTA',
     name: 'Presidenta',
-    description: 'Supervisión general, consulta de informes y rendiciones institucionales.'
+    description: 'Acceso a toda la app con modificación, excepto en Tesorería (solo lectura).'
   },
   {
     id: 'role-2-tesorera',
     code: 'TESORERA',
     name: 'Tesorera',
-    description: 'Acceso operativo financiero completo: cuotas, créditos, ingresos, egresos y pagos.'
+    description: 'Acceso operativo total a toda la app y gestión exclusiva de Tesorería.'
   },
   {
     id: 'role-3-secretaria',
     code: 'SECRETARIA',
     name: 'Secretaria',
-    description: 'Gestión administrativa de socias, jardines y estados administrativos.'
+    description: 'Acceso de solo lectura general, con permiso para agregar y modificar Socias.'
   },
   {
-    id: 'role-4-directora1',
-    code: 'PRIMERA_DIRECTORA',
-    name: 'Primera Directora',
-    description: 'Consulta general y apoyo administrativo autorizado.'
-  },
-  {
-    id: 'role-5-directora2',
-    code: 'SEGUNDA_DIRECTORA',
-    name: 'Segunda Directora',
-    description: 'Supervisión y visualización general de la asociación.'
+    id: 'role-4-directora',
+    code: 'DIRECTORA',
+    name: 'Directora',
+    description: 'Acceso de solo lectura general, con excepción en gestión de Convenios/Créditos.'
   },
   {
     id: 'role-6-delegada',
     code: 'DELEGADA',
     name: 'Delegada de Jardín',
-    description: 'Representante de jardín. Consulta exclusiva de datos generales y fondo común.'
+    description: 'Representante de jardín. Consulta exclusiva de módulo de Reportes.'
   },
   {
     id: 'role-7-socia',
     code: 'SOCIA',
     name: 'Socia',
-    description: 'Consulta institucional pública y estado general de la asociación.'
+    description: 'Consulta institucional pública y estado de cuota personal.'
   }
 ];
 
@@ -76,68 +76,68 @@ export const INITIAL_JARDINES = [
 
 export const INITIAL_USERS = [
   {
-    id: 'user-presidenta',
-    email: 'presidenta@vtf.cl',
-    rut: '12.345.678-5',
+    id: 'user-admin',
+    email: 'jferrada.pasten@gmail.com',
+    rut: '17.260.651-2',
     passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Patricia',
-    lastName: 'Gómez Alarcón',
+    firstName: 'Jhonny Marcelo',
+    lastName: 'Ferrada Pasten',
+    roleCode: 'ADMIN',
+    roleId: 'role-0-admin',
+    jardinId: null,
+    cargo: 'ADMINISTRADOR',
+    isActive: true
+  },
+  {
+    id: 'user-presidenta',
+    email: 'yerthie.sayago@vtf.cl',
+    rut: '15.421.368-7',
+    passwordHash: DEFAULT_PASSWORD_HASH,
+    firstName: 'Yerthie Johanna',
+    lastName: 'Sayago Gajardo',
     roleCode: 'PRESIDENTA',
     roleId: 'role-1-presidenta',
     jardinId: 'jar-1',
-    cargo: 'DIRECTORA',
+    cargo: 'PRESIDENTA',
     isActive: true
   },
   {
     id: 'user-tesorera',
     email: 'tesorera@vtf.cl',
-    rut: '14.567.890-2',
+    rut: '13.918.472-6',
     passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Rosa',
-    lastName: 'Pérez Contreras',
+    firstName: 'Alejandra Romanett',
+    lastName: 'Sias Novoa',
     roleCode: 'TESORERA',
     roleId: 'role-2-tesorera',
     jardinId: 'jar-2',
-    cargo: 'EDUCADORA',
+    cargo: 'TESORERA',
     isActive: true
   },
   {
     id: 'user-secretaria',
     email: 'secretaria@vtf.cl',
-    rut: '15.678.901-0',
+    rut: '14.832.195-4',
     passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Carmen',
-    lastName: 'Fuentes Valenzuela',
+    firstName: 'Nelly Ester',
+    lastName: 'Mella Burgos',
     roleCode: 'SECRETARIA',
     roleId: 'role-3-secretaria',
     jardinId: 'jar-3',
-    cargo: 'EDUCADORA',
+    cargo: 'SECRETARIA',
     isActive: true
   },
   {
-    id: 'user-directora1',
-    email: 'directora1@vtf.cl',
-    rut: '13.456.789-7',
+    id: 'user-directora',
+    email: 'directora@vtf.cl',
+    rut: '16.274.593-8',
     passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Mónica',
-    lastName: 'Silva Riquelme',
-    roleCode: 'PRIMERA_DIRECTORA',
-    roleId: 'role-4-directora1',
+    firstName: 'Victoria Catalina',
+    lastName: 'Abarza Vega',
+    roleCode: 'DIRECTORA',
+    roleId: 'role-4-directora',
     jardinId: 'jar-4',
     cargo: 'DIRECTORA',
-    isActive: true
-  },
-  {
-    id: 'user-directora2',
-    email: 'directora2@vtf.cl',
-    rut: '16.789.012-3',
-    passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Loreto',
-    lastName: 'Morales Soto',
-    roleCode: 'SEGUNDA_DIRECTORA',
-    roleId: 'role-5-directora2',
-    jardinId: 'jar-5',
-    cargo: 'TECNICO',
     isActive: true
   },
   {
@@ -150,7 +150,7 @@ export const INITIAL_USERS = [
     roleCode: 'DELEGADA',
     roleId: 'role-6-delegada',
     jardinId: 'jar-1',
-    cargo: 'EDUCADORA',
+    cargo: 'DELEGADA',
     isActive: true
   },
   {

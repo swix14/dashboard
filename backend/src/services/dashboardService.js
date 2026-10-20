@@ -25,56 +25,109 @@ export const DashboardService = {
     };
 
     // 1. Roles Administrativos / Directiva con acceso financiero y operativo
-    // (Tesorera, Presidenta, Secretaria, Primera Directora, Segunda Directora)
+    // (Admin, Presidenta, Tesorera, Secretaria, Directora)
     const isDirectiva = [
+      'ADMIN',
       'PRESIDENTA',
       'TESORERA',
       'SECRETARIA',
-      'PRIMERA_DIRECTORA',
-      'SEGUNDA_DIRECTORA'
+      'DIRECTORA'
     ].includes(roleCode);
 
     if (isDirectiva) {
       return {
         ...baseSummary,
         nivelAcceso: 'DIRECTIVA_ADMINISTRATIVA',
-        puedeGestionarFinanzas: roleCode === 'TESORERA',
-        puedeGestionarSocias: roleCode === 'SECRETARIA' || roleCode === 'PRESIDENTA',
+        puedeGestionarFinanzas: roleCode === 'TESORERA' || roleCode === 'ADMIN',
+        puedeGestionarSocias: roleCode === 'SECRETARIA' || roleCode === 'ADMIN' || roleCode === 'PRESIDENTA',
+        inicio: {
+          // Fila 1: KPIs Principales
+          sociasActivas: 276,
+          sociasSuspendidas: 4,
+          saldoTotal: 14580000,
+          saldoCenaAnual: 9260000,
+          saldoAsociacion: 5320000,
+
+          // Fila 2: Recuadros Medianos
+          ultimosPagosFederacion: [
+            { correlativo: 'FED-2026-005', fecha: '2026-10-02', monto: 280000, descripcion: 'Cuota Federación Octubre 2026', comprobante: 'comprobante_fed_oct_2026.pdf' },
+            { correlativo: 'FED-2026-004', fecha: '2026-09-02', monto: 280000, descripcion: 'Cuota Federación Septiembre 2026', comprobante: 'comprobante_fed_sep_2026.pdf' },
+            { correlativo: 'FED-2026-003', fecha: '2026-08-03', monto: 280000, descripcion: 'Cuota Federación Agosto 2026', comprobante: 'comprobante_fed_ago_2026.pdf' },
+            { correlativo: 'FED-2026-002', fecha: '2026-07-02', monto: 280000, descripcion: 'Cuota Federación Julio 2026', comprobante: 'comprobante_fed_jul_2026.pdf' },
+            { correlativo: 'FED-2026-001', fecha: '2026-06-02', monto: 280000, descripcion: 'Cuota Federación Junio 2026', comprobante: 'comprobante_fed_jun_2026.pdf' }
+          ],
+          proximasTareas: [
+            { id: 'task-1', titulo: 'Cierre Tesorería Mensual', fechaLimite: '31/10/2026', estado: 'Pendiente', urgencia: 'alta', descripcion: 'Consolidación de ingresos y egresos mes de Octubre' },
+            { id: 'task-2', titulo: 'Exportar Informe Mensual', fechaLimite: '02/11/2026', estado: 'Programada', urgencia: 'media', descripcion: 'Generación de informe contable mensual en Excel' },
+            { id: 'task-3', titulo: 'Deudas Morosas / No Realizados', fechaLimite: 'Vencida', estado: 'Atención', urgencia: 'alerta', descripcion: '3 socias con cuotas de convenio atrasadas' }
+          ],
+          alertas: {
+            sociasUltimaCuotaIsimundo: 6,
+            sociasUltimaCuotaSos: 3,
+            pagoFederacionAlDia: true,
+            pagoFederacionFecha: '02/10/2026'
+          },
+
+          // Fila 3: Gráficos Analíticos
+          graficos: {
+            recaudacionMensual: {
+              '2026': [
+                { mes: 'Ene', ingresos: 1120000, egresos: 350000 },
+                { mes: 'Feb', ingresos: 1120000, egresos: 280000 },
+                { mes: 'Mar', ingresos: 1250000, egresos: 420000 },
+                { mes: 'Abr', ingresos: 1190000, egresos: 310000 },
+                { mes: 'May', ingresos: 1180000, egresos: 290000 },
+                { mes: 'Jun', ingresos: 1210000, egresos: 380000 },
+                { mes: 'Jul', ingresos: 1150000, egresos: 330000 },
+                { mes: 'Ago', ingresos: 1200000, egresos: 360000 },
+                { mes: 'Sep', ingresos: 1280000, egresos: 540000 },
+                { mes: 'Oct', ingresos: 1048000, egresos: 280000 }
+              ],
+              '2025': [
+                { mes: 'Ene', ingresos: 980000, egresos: 250000 },
+                { mes: 'Feb', ingresos: 980000, egresos: 250000 },
+                { mes: 'Mar', ingresos: 1050000, egresos: 380000 },
+                { mes: 'Abr', ingresos: 1020000, egresos: 290000 },
+                { mes: 'May', ingresos: 1040000, egresos: 270000 },
+                { mes: 'Jun', ingresos: 1080000, egresos: 320000 },
+                { mes: 'Jul', ingresos: 1010000, egresos: 290000 },
+                { mes: 'Ago', ingresos: 1070000, egresos: 310000 },
+                { mes: 'Sep', ingresos: 1150000, egresos: 480000 },
+                { mes: 'Oct', ingresos: 1090000, egresos: 340000 },
+                { mes: 'Nov', ingresos: 1100000, egresos: 360000 },
+                { mes: 'Dic', ingresos: 1240000, egresos: 620000 }
+              ]
+            },
+            estadoSociasCreditos: {
+              activasConIsimundo: 38,
+              activasConSos: 24,
+              activasConDentalOptica: 19,
+              activasSinCredito: 195,
+              totalActivas: 276
+            }
+          }
+        },
         kpis: [
           {
             id: 'saldo-fondo',
-            label: 'Saldo Fondo Común',
+            label: 'Saldo Total',
             value: '$14.580.000',
-            change: '+12.4% vs mes anterior',
+            sublabel: 'Cena Anual + Asociación',
             type: 'positive'
           },
           {
             id: 'socias-activas',
-            label: 'Total Socias Activas',
+            label: 'Socias Activas',
             value: '276 / 280',
-            sublabel: '4 suspendidas temporalmente',
-            type: 'neutral'
-          },
-          {
-            id: 'cuotas-periodo',
-            label: 'Recaudación Cuotas Mes',
-            value: '$1.048.000',
-            sublabel: '262 cuotas pagadas (94%)',
+            sublabel: 'Padrón al día',
             type: 'positive'
           },
           {
-            id: 'pagos-pendientes',
-            label: 'Pagos por Verificar',
-            value: '8 pendientes',
-            sublabel: 'Comprobantes en cola de revisión',
+            id: 'socias-suspendidas',
+            label: 'Socias Suspendidas',
+            value: '4',
+            sublabel: 'Sin cobro de cuota',
             type: 'warning'
-          },
-          {
-            id: 'creditos-activos',
-            label: 'Créditos en Curso',
-            value: '34 activos',
-            sublabel: 'Convenios SOS, EasyMundo, Salud',
-            type: 'neutral'
           }
         ],
         movimientosRecientes: [

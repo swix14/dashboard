@@ -126,26 +126,23 @@ export function Sidebar({ isOpen, onClose }) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div
+            <img
+              src="/logo-vtf.png"
+              alt="Logo Asociación VTF Temuco"
               style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                backgroundColor: 'var(--primary-500)',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '1.125rem',
-                boxShadow: '0 4px 10px rgba(109, 89, 122, 0.35)'
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                backgroundColor: 'white',
+                padding: '2px',
+                border: '1px solid var(--border-light)',
+                boxShadow: '0 2px 8px rgba(109, 89, 122, 0.25)'
               }}
-            >
-              VTF
-            </div>
+            />
             <div>
-              <h1 style={{ fontSize: '0.9375rem', fontWeight: 700, lineHeight: 1.2 }}>
-                Asociación VTF
+              <h1 style={{ fontSize: '0.9375rem', fontWeight: 700, lineHeight: 1.2, color: 'var(--text-main)' }}>
+                Asociación VTF Temuco
               </h1>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Gestión Institucional
