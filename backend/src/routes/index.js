@@ -2,6 +2,7 @@ import { Router } from 'express';
 import authRoutes from './authRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
 import treasuryRoutes from './treasuryRoutes.js';
+import sociaRoutes from './sociaRoutes.js';
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.get('/health', (req, res) => {
 router.use('/auth', authRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/tesoreria', treasuryRoutes);
+router.use('/socias', sociaRoutes);
 
 export default router;

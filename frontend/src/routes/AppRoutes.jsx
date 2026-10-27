@@ -8,6 +8,7 @@ import { UnauthorizedPage } from '../pages/UnauthorizedPage.jsx';
 import { NotFoundPage } from '../pages/NotFoundPage.jsx';
 import { ModulePlaceholderPage } from '../pages/ModulePlaceholderPage.jsx';
 import { TreasuryPage } from '../pages/TreasuryPage.jsx';
+import { SociasPage } from '../pages/SociasPage.jsx';
 
 export function AppRoutes() {
   return (
@@ -36,17 +37,9 @@ export function AppRoutes() {
         <Route
           path="socias"
           element={
-            <ModulePlaceholderPage
-              title="Padrón de Socias y Gestión de Créditos"
-              version="Fase V3"
-              description="Administración de 280 socias (Activa / Suspendida), cuota fija de $4.000 CLP, créditos por convenio (Isimundo, S.O.S, Óptica, Dental) y verificación mensual de planilla Excel con SheetJS."
-              features={[
-                'Padrón de 280 socias en 23 jardines infantiles de Temuco',
-                'Estados: Activa / Suspendida (con control de no cobro indebido)',
-                'Columna CRÉDITO (SI / NO) con visualización de cuotas y saldos',
-                'Carga y validación masiva mensual de planillas Excel'
-              ]}
-            />
+            <ProtectedRoute allowedRoles={['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA']}>
+              <SociasPage />
+            </ProtectedRoute>
           }
         />
         <Route path="jardines" element={<Navigate to="/socias" replace />} />

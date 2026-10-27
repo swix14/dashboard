@@ -12,6 +12,13 @@ export function validateRut(rutString) {
   const cuerpo = cleanRut.slice(0, -1);
   const dv = cleanRut.slice(-1);
 
+  return dv === computeRutDv(cuerpo);
+}
+
+/**
+ * Calcula el dígito verificador (Módulo 11) para el cuerpo numérico de un RUT
+ */
+export function computeRutDv(cuerpo) {
   let suma = 0;
   let multiplo = 2;
 
@@ -20,15 +27,21 @@ export function validateRut(rutString) {
     multiplo = multiplo < 7 ? multiplo + 1 : 2;
   }
 
-  const resto = suma % 11;
-  const dvEsperado = 11 - resto;
+  const dvEsperado = 11 - (suma % 11);
+  if (dvEsperado === 11) return '0';
+  if (dvEsperado === 10) return 'K';
+  return dvEsperado.toString();
+}
 
-  let dvCalculado = '';
-  if (dvEsperado === 11) dvCalculado = '0';
-  else if (dvEsperado === 10) dvCalculado = 'K';
-  else dvCalculado = dvEsperado.toString();
-
-  return dv === dvCalculado;
+/**
+ * Formatea un RUT al estilo oficial con puntos y guion (Ej: 12.345.678-5)
+ */
+export function formatRutWithDots(rutString) {
+  if (!rutString) return '';
+  const clean = rutString.replace(/[^0-9kK]/g, '').toUpperCase();
+  if (clean.length < 2) return clean;
+  const cuerpo = clean.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${cuerpo}-${clean.slice(-1)}`;
 }
 
 export function formatRut(rutString) {

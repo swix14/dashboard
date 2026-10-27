@@ -60,16 +60,21 @@ graph TD
   * `ISI MUNDO COMISION`: Ingresos generados por el 2% de retorno de convenios.
 - **7 Recuadros de Información Visible:** Total Ingresos, Total Egresos, Saldo Total (`Asociación + Cena Anual`), Total Movimientos, Pagos a Federación, Saldo Asociación y Saldo Cena Anual.
 - **Regla Estricta de Egresos:** Prohibición absoluta de registrar egresos sin comprobante obligatorio adjunto.
+- **Subida Real de Comprobantes:** Todo egreso exige adjuntar el archivo de respaldo (PDF, JPG, PNG o WEBP, máx. 5 MB). El archivo se guarda en `backend/uploads/` con nombre aleatorio y se visualiza desde la tabla con el botón *Ver* (cada descarga queda en auditoría). Los movimientos históricos se muestran como *Respaldo físico*.
 - **Modal de Nuevo Movimiento:** Pestañas transaccionales diferenciadas para *Ingreso*, *Egreso* y *Pago Federación* con responsable automático de sesión.
 - **Permisos Específicos:** Vista de *Solo Lectura* automática para la Presidenta y modo operativo de registro para la Tesorera y el Admin.
 - **Filtros y Exportación:** Filtrado por tipo, centro de costo, método y fechas, con exportación completa a formato `.csv` compatible con Excel.
 
-### ⏳ V3 — Padrón de Socias y Gestión de Créditos
-- Administración completa del padrón de 280 socias con estados `Activa` y `Suspendida` (con bloqueo de cobro indebido a suspendidas).
-- Catálogo de los 23 jardines infantiles de Temuco con asignación de delegada y traslados.
-- Control de convenios y créditos: `ISIMUNDO`, `S.O.S`, `OPTICA` y `DENTAL`.
-- Columna interactiva **CRÉDITO (SI / NO)**: muestra resumen o documento modal de créditos vigentes y cuotas acumuladas (ej: cuotas 3/6).
-- Procesamiento y validación masiva de planillas Excel mensuales con SheetJS.
+### ✅ V3 — Padrón de Socias y Gestión de Créditos [COMPLETADA — pendiente carga Excel]
+- **Padrón de 280 socias** (276 activas + 4 suspendidas) con búsqueda por nombre o RUT y filtros por jardín, estado, cargo y crédito; paginación y exportación a `.csv`.
+- **Cuota social:** $4.000 CLP para socias activas; las suspendidas se muestran *Sin cobro* (bloqueo de cobro indebido).
+- **Columna CRÉDITO (SI / NO):** abre la ficha con los créditos vigentes y finalizados (`ISIMUNDO`, `S.O.S`, `OPTICA`, `DENTAL`), cuotas pagadas (ej: 3/6), valor cuota, saldo pendiente y comisión 2% Isi Mundo.
+- **Alta y edición de socias** con validación de RUT (módulo 11) y RUT único. Permitido a Admin, Presidenta, Tesorera y Secretaria; la Directora consulta en modo lectura.
+- **Traslados de jardín** con motivo obligatorio e historial; la delegada trasladada deja de representar a su jardín anterior.
+- **Catálogo de los 23 jardines** con socias activas y delegada electa.
+- Cada alta, edición y traslado queda en la bitácora de auditoría.
+- Opera en memoria igual que Tesorería, a la espera de la conexión con PostgreSQL.
+- ⏳ Pendiente: procesamiento y validación masiva de planillas Excel mensuales con SheetJS.
 
 ### ⏳ V4 — Gestión Documental y Subida Móvil
 - **3 Subsecciones Documentales:**
@@ -136,8 +141,20 @@ dashboard/
 
 ## 5. Instrucciones de Ejecución Local
 
+### Paso 0: Instalación (solo la primera vez)
+Requiere Node.js 20 o superior. PostgreSQL es opcional: sin base de datos el backend funciona en **modo memoria** con datos de demostración.
+```powershell
+cd backend
+npm install
+npx prisma generate
+copy .env.example .env
+cd ..\frontend
+npm install
+cd ..
+```
+
 ### Paso 1: Iniciar Servidores de Desarrollo
-En terminal PowerShell:
+En dos terminales PowerShell distintas, desde la carpeta `dashboard`:
 ```powershell
 # Levantar backend en puerto 4000
 npm run dev:backend
@@ -154,3 +171,4 @@ La aplicación estará disponible de inmediato en:
 ```powershell
 npm run test:backend
 ```
+Ejecuta las pruebas de autenticación (`authTest.js`), padrón de socias (`sociasTest.js`) y subida de comprobantes (`comprobantesTest.js`).

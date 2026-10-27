@@ -10,8 +10,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.js",
-    "test": "node test/authTest.js && node test/comprobantesTest.js",
+    "test": "node test/authTest.js && node test/sociasTest.js && node test/comprobantesTest.js",
     "test:auth": "node test/authTest.js",
+    "test:socias": "node test/sociasTest.js",
     "test:comprobantes": "node test/comprobantesTest.js"
   },
   "keywords": [

@@ -38,8 +38,8 @@ export function Sidebar({ isOpen, onClose }) {
       to: '/socias',
       label: 'Socias y Créditos',
       icon: Users,
-      badge: 'V3',
-      badgeVariant: 'neutral',
+      badge: 'V3 Activo',
+      badgeVariant: 'success',
       allowed: isDirectiva || isSecretaria
     },
     {
