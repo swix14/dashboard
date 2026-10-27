@@ -13,7 +13,7 @@ generator client {
 // ---------------------------------------------
 
 enum RoleCode {
-  SUPER_ADMIN
+  ADMIN
   PRESIDENTA
   TESORERA
   SECRETARIA
