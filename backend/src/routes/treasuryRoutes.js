@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { TreasuryController } from '../controllers/treasuryController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/roleMiddleware.js';
+import { uploadComprobante } from '../middlewares/uploadMiddleware.js';
 
 const router = Router();
 
@@ -21,10 +22,18 @@ router.get(
   TreasuryController.getMovements
 );
 
+router.get(
+  '/movimientos/:id/comprobante',
+  requireRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA'),
+  TreasuryController.downloadComprobante
+);
+
 // Creación de movimientos: EXCLUSIVO para Tesorera y Admin (Presidenta: SOLO VER)
+// Acepta multipart/form-data con el archivo del comprobante en el campo "comprobante"
 router.post(
   '/movimientos',
   requireRole('ADMIN', 'TESORERA'),
+  uploadComprobante('comprobante'),
   TreasuryController.createMovement
 );
 

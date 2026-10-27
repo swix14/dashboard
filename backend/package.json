@@ -10,7 +10,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.js",
-    "test:auth": "node test/authTest.js"
+    "test": "node test/authTest.js && node test/comprobantesTest.js",
+    "test:auth": "node test/authTest.js",
+    "test:comprobantes": "node test/comprobantesTest.js"
   },
   "keywords": [
     "vtf",
@@ -30,6 +32,7 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "multer": "^2.5.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {

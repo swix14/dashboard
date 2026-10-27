@@ -18,10 +18,31 @@ export const TreasuryApiService = {
   },
 
   /**
-   * Registra un nuevo movimiento en la Tesorería
+   * Registra un nuevo movimiento en la Tesorería.
+   * Se envía como multipart/form-data para incluir el archivo del comprobante.
    */
-  async createMovement(movementData) {
-    const res = await api.post('/tesoreria/movimientos', movementData);
+  async createMovement({ archivoComprobante, ...movementData }) {
+    const form = new FormData();
+    Object.entries(movementData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) form.append(key, value);
+    });
+    if (archivoComprobante) form.append('comprobante', archivoComprobante);
+
+    const res = await api.post('/tesoreria/movimientos', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000
+    });
     return res.data.data;
+  },
+
+  /**
+   * Descarga el archivo del comprobante de un movimiento como Blob
+   */
+  async getComprobante(movementId) {
+    const res = await api.get(`/tesoreria/movimientos/${movementId}/comprobante`, {
+      responseType: 'blob',
+      timeout: 30000
+    });
+    return res.data;
   }
 };

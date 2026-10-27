@@ -252,6 +252,13 @@ export const TreasuryService = {
   },
 
   /**
+   * Obtiene un movimiento por su identificador
+   */
+  async getMovementById(id) {
+    return treasuryMovements.find((m) => m.id === id) || null;
+  },
+
+  /**
    * Registra un nuevo movimiento en la Tesorería con validación estricta
    */
   async createMovement({
@@ -263,7 +270,8 @@ export const TreasuryService = {
     monto,
     metodo,
     responsable,
-    comprobante
+    comprobante,
+    comprobanteArchivo
   }) {
     const cleanTipo = tipo.toUpperCase();
     const cleanMonto = Math.round(Number(monto));
@@ -311,6 +319,8 @@ export const TreasuryService = {
       monto: cleanMonto,
       responsable: responsable || 'Alejandra Romanett Sias Novoa',
       comprobante: comprobante ? comprobante.trim() : null,
+      // Metadatos del archivo físico guardado en backend/uploads (null en registros históricos)
+      comprobanteArchivo: comprobanteArchivo || null,
       createdAt: new Date().toISOString()
     };
 

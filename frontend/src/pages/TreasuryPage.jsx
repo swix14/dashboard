@@ -32,6 +32,26 @@ const formatFullDate = (dateStr) => {
   return dateStr;
 };
 
+// Debe coincidir con las reglas del backend (uploadMiddleware.js)
+const COMPROBANTE_MAX_MB = 5;
+const COMPROBANTE_TIPOS = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+
+const formatFileSize = (bytes) =>
+  bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+// Con responseType 'blob' el mensaje de error del backend también llega como Blob
+const readBlobErrorMessage = async (err) => {
+  const data = err.response?.data;
+  if (data instanceof Blob) {
+    try {
+      return JSON.parse(await data.text()).message;
+    } catch {
+      return null;
+    }
+  }
+  return data?.message;
+};
+
 export function TreasuryPage() {
   const { user, isTesorera, isAdmin } = useAuth();
   const canModify = isTesorera || isAdmin;
@@ -59,10 +79,11 @@ export function TreasuryPage() {
     descripcion: '',
     centroCosto: 'ASOCIACION',
     categoria: 'ASOCIACION',
-    comprobanteNombre: ''
+    archivoComprobante: null
   });
   const [formError, setFormError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [openingReceiptId, setOpeningReceiptId] = useState(null);
 
   // Carga inicial y por filtros
   const loadTreasuryData = async () => {
@@ -134,10 +155,10 @@ export function TreasuryPage() {
       return;
     }
 
-    // Regla crítica: en EGRESO o FEDERACION el comprobante es obligatorio
+    // Regla crítica: en EGRESO o FEDERACION el archivo del comprobante es obligatorio
     const isEgresoType = modalTab === 'EGRESO' || modalTab === 'FEDERACION';
-    if (isEgresoType && !formData.comprobanteNombre.trim()) {
-      setFormError('El comprobante de egreso es estrictamente OBLIGATORIO (adjunte archivo o nombre del respaldo).');
+    if (isEgresoType && !formData.archivoComprobante) {
+      setFormError('El comprobante de egreso es estrictamente OBLIGATORIO: adjunte el archivo (PDF o imagen).');
       return;
     }
 
@@ -165,7 +186,7 @@ export function TreasuryPage() {
         categoria: payloadCategoria,
         monto: numMonto,
         metodo: formData.metodo,
-        comprobante: formData.comprobanteNombre.trim() || null
+        archivoComprobante: formData.archivoComprobante
       });
 
       setIsModalOpen(false);
@@ -176,13 +197,54 @@ export function TreasuryPage() {
         descripcion: '',
         centroCosto: 'ASOCIACION',
         categoria: 'ASOCIACION',
-        comprobanteNombre: ''
+        archivoComprobante: null
       });
       loadTreasuryData();
     } catch (err) {
       setFormError(err.response?.data?.message || err.message || 'Error al registrar movimiento');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Selección y validación local del archivo de comprobante
+  const handleFileSelected = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // Permite volver a elegir el mismo archivo
+    if (!file) return;
+
+    if (!COMPROBANTE_TIPOS.includes(file.type)) {
+      setFormError('Formato de comprobante no permitido. Use PDF, JPG, PNG o WEBP.');
+      return;
+    }
+    if (file.size > COMPROBANTE_MAX_MB * 1024 * 1024) {
+      setFormError(`El comprobante supera el tamaño máximo de ${COMPROBANTE_MAX_MB} MB.`);
+      return;
+    }
+
+    setFormError(null);
+    setFormData((prev) => ({ ...prev, archivoComprobante: file }));
+  };
+
+  // Abre el comprobante en una pestaña nueva (PDF e imágenes se visualizan en el navegador)
+  const handleOpenComprobante = async (mov) => {
+    // La pestaña se abre antes de la descarga para que el navegador no la bloquee como popup
+    const previewWindow = window.open('', '_blank');
+    try {
+      setOpeningReceiptId(mov.id);
+      const blob = await TreasuryApiService.getComprobante(mov.id);
+      const url = URL.createObjectURL(blob);
+      if (previewWindow) {
+        previewWindow.location.href = url;
+      } else {
+        window.location.assign(url);
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      previewWindow?.close();
+      alert((await readBlobErrorMessage(err)) || 'No fue posible abrir el comprobante.');
+    } finally {
+      setOpeningReceiptId(null);
     }
   };
 
@@ -683,10 +745,12 @@ export function TreasuryPage() {
                         {isIngreso ? '+' : '-'}${mov.monto?.toLocaleString('es-CL')}
                       </td>
                       <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        {mov.comprobante ? (
+                        {mov.comprobanteArchivo ? (
                           <button
                             type="button"
-                            onClick={() => alert(`Visualización de Comprobante:\n\nArchivo: ${mov.comprobante}\nMovimiento: ${mov.correlativo}\nMonto: $${mov.monto.toLocaleString('es-CL')}\nResponsable: ${mov.responsable}\n\nEstado: Verificado y respaldado formalmente en el sistema.`)}
+                            title={`${mov.comprobante} (${formatFileSize(mov.comprobanteArchivo.size)})`}
+                            disabled={openingReceiptId === mov.id}
+                            onClick={() => handleOpenComprobante(mov)}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -701,8 +765,19 @@ export function TreasuryPage() {
                               cursor: 'pointer'
                             }}
                           >
-                            <FileText size={13} /> Ver ({mov.comprobante.endsWith('.pdf') ? 'PDF' : 'Doc'})
+                            <FileText size={13} />
+                            {openingReceiptId === mov.id
+                              ? 'Abriendo...'
+                              : `Ver (${mov.comprobanteArchivo.mimeType === 'application/pdf' ? 'PDF' : 'Imagen'})`}
                           </button>
+                        ) : mov.comprobante ? (
+                          // Registros históricos: el respaldo existe en papel, sin archivo digital en el sistema
+                          <span
+                            title={`Respaldo físico: ${mov.comprobante}`}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)' }}
+                          >
+                            <FileText size={13} /> Respaldo físico
+                          </span>
                         ) : (
                           <span style={{ fontSize: '0.75rem', color: 'var(--error-text)', fontWeight: 600 }}>
                             {mov.tipo === 'EGRESO' ? 'Falta Respaldo' : 'N/A'}
@@ -1004,15 +1079,44 @@ export function TreasuryPage() {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    placeholder={modalTab === 'INGRESO' ? 'Nombre o referencia del comprobante (opcional)' : 'Nombre del archivo o boleta (Ej: boleta_098.pdf)'}
-                    value={formData.comprobanteNombre}
-                    onChange={(e) => setFormData({ ...formData, comprobanteNombre: e.target.value })}
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
+                  <div
                     className="vtf-input"
-                    style={{ flex: 1 }}
-                  />
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      backgroundColor: 'var(--bg-surface-subtle)'
+                    }}
+                  >
+                    {formData.archivoComprobante ? (
+                      <>
+                        <FileText size={15} style={{ flexShrink: 0, color: 'var(--primary-600)' }} />
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                          {formData.archivoComprobante.name}
+                        </span>
+                        <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                          {formatFileSize(formData.archivoComprobante.size)}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Quitar archivo"
+                          onClick={() => setFormData({ ...formData, archivoComprobante: null })}
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}
+                        >
+                          <X size={15} />
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
+                        {modalTab === 'INGRESO'
+                          ? 'Sin archivo (opcional para ingresos)'
+                          : `Adjunte PDF, JPG, PNG o WEBP (máx. ${COMPROBANTE_MAX_MB} MB)`}
+                      </span>
+                    )}
+                  </div>
                   <label
                     style={{
                       padding: '0.5rem 0.875rem',
@@ -1032,13 +1136,9 @@ export function TreasuryPage() {
                     <Upload size={14} /> Adjuntar
                     <input
                       type="file"
+                      accept={COMPROBANTE_TIPOS.join(',')}
                       style={{ display: 'none' }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setFormData({ ...formData, comprobanteNombre: file.name });
-                        }
-                      }}
+                      onChange={handleFileSelected}
                     />
                   </label>
                 </div>
