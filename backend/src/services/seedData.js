@@ -6,7 +6,7 @@ export const DEFAULT_PASSWORD_HASH = bcrypt.hashSync('Admin123!', 10);
 export const INITIAL_ROLES = [
   {
     id: 'role-0-admin',
-    code: 'ADMIN',
+    code: 'SUPER_ADMIN',
     name: 'Super Administrador',
     description: 'Acceso total y administración de todo el sistema y permisos.'
   },

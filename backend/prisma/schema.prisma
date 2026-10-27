@@ -13,9 +13,11 @@ generator client {
 // ---------------------------------------------
 
 enum RoleCode {
+  SUPER_ADMIN
   PRESIDENTA
   TESORERA
   SECRETARIA
+  DIRECTORA
   PRIMERA_DIRECTORA
   SEGUNDA_DIRECTORA
   DELEGADA
@@ -51,6 +53,13 @@ enum EstadoPago {
 enum TipoMovimiento {
   INGRESO
   EGRESO
+}
+
+enum CentroCosto {
+  ASOCIACION
+  CENA_ANUAL
+  FEDERACION
+  ISI_MUNDO_COMISION
 }
 
 // ---------------------------------------------
@@ -111,7 +120,9 @@ model Jardin {
   code        String            @unique
   address     String?
   isActive    Boolean           @default(true)
-  socias      Socia[]
+  delegadaId   String?           @unique
+  delegada     Socia?            @relation("DelegadaJardin", fields: [delegadaId], references: [id])
+  socias      Socia[]           @relation("SociasJardin")
   historial   HistorialJardin[] @relation("JardinNuevo")
   historialAnt HistorialJardin[] @relation("JardinAnterior")
   createdAt   DateTime          @default(now())
@@ -127,8 +138,9 @@ model Socia {
   lastName          String
   cargo             CargoSocia
   estado            EstadoSocia       @default(ACTIVA)
-  jardinId          String
-  jardin            Jardin            @relation(fields: [jardinId], references: [id])
+  jardinId           String
+  jardin             Jardin            @relation("SociasJardin", fields: [jardinId], references: [id])
+  jardinQueRepresenta Jardin?          @relation("DelegadaJardin")
   fechaIncorporacion DateTime         @default(now())
   user              User?
   cuotas            Cuota[]
@@ -229,6 +241,7 @@ model Comprobante {
 model MovimientoFinanciero {
   id            String         @id @default(uuid())
   type          TipoMovimiento
+  costCenter    CentroCosto     @default(ASOCIACION)
   category      String
   amount        Decimal
   description   String
