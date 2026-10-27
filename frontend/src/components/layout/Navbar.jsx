@@ -19,8 +19,9 @@ export function Navbar({ onToggleSidebar }) {
 
   return (
     <header
+      className="vtf-navbar"
       style={{
-        height: '64px',
+        height: '72px',
         backgroundColor: 'var(--bg-surface)',
         borderBottom: '1px solid var(--border-light)',
         display: 'flex',
@@ -49,6 +50,7 @@ export function Navbar({ onToggleSidebar }) {
             style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
           />
           <span
+            className="navbar-brand-name"
             style={{
               fontSize: '0.875rem',
               fontWeight: 700,
@@ -147,13 +149,13 @@ export function Navbar({ onToggleSidebar }) {
               height: '32px',
               borderRadius: '50%',
               backgroundColor: 'var(--primary-500)',
-              color: 'white',
+              color: 'var(--on-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 700,
               fontSize: '0.8125rem',
-              boxShadow: '0 2px 6px rgba(109, 89, 122, 0.3)'
+              boxShadow: 'var(--shadow-sm)'
             }}
           >
             {user?.firstName ? user.firstName.charAt(0) : <User size={16} />}

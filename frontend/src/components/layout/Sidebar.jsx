@@ -89,7 +89,7 @@ export function Sidebar({ isOpen, onClose }) {
         className={`vtf-sidebar ${isOpen ? 'open' : ''}`}
         style={{
           width: '270px',
-          backgroundColor: 'var(--bg-surface)',
+          backgroundColor: 'var(--sidebar-bg)',
           borderRight: '1px solid var(--border-light)',
           display: 'flex',
           flexDirection: 'column',
@@ -119,7 +119,7 @@ export function Sidebar({ isOpen, onClose }) {
                 backgroundColor: 'white',
                 padding: '2px',
                 border: '1px solid var(--border-light)',
-                boxShadow: '0 2px 8px rgba(109, 89, 122, 0.25)'
+                boxShadow: 'var(--shadow-sm)'
               }}
             />
             <div>
@@ -135,6 +135,7 @@ export function Sidebar({ isOpen, onClose }) {
           <button
             onClick={onClose}
             className="mobile-close-btn"
+            aria-label="Cerrar menú"
             style={{
               background: 'transparent',
               border: 'none',

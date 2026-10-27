@@ -1,185 +1,151 @@
-/* ==========================================================================
-   SISTEMA DE DISEÑO INSTITUCIONAL — ASOCIACIÓN DE JARDINES VTF
-   Dirección de arte: Fintech Institucional, Paleta HSL Suave y Cálida
-   ========================================================================== */
-
+/* SIGAV visual identity — same light palette as the Next.js application.
+   Existing components keep their original token names and behavior. */
 :root {
-  /* Paleta Primaria Institucional (Morado Suave) */
-  --primary-50: hsl(276, 45%, 96%);
-  --primary-100: hsl(276, 42%, 91%);
-  --primary-200: hsl(276, 38%, 80%);
-  --primary-300: hsl(276, 35%, 68%);
-  --primary-400: hsl(276, 32%, 55%);
-  --primary-500: hsl(276, 35%, 45%); /* Color de marca principal */
-  --primary-600: hsl(276, 38%, 38%);
-  --primary-700: hsl(276, 42%, 30%);
-  --primary-800: hsl(276, 46%, 23%);
-  --primary-900: hsl(276, 50%, 16%);
-
-  /* Paleta Secundaria Acento (Rosado Suave) */
-  --accent-pink-50: hsl(345, 55%, 97%);
-  --accent-pink-100: hsl(345, 50%, 93%);
-  --accent-pink-300: hsl(345, 46%, 78%);
-  --accent-pink-500: hsl(345, 45%, 62%); /* Rosado institucional suave */
-  --accent-pink-600: hsl(345, 48%, 52%);
-
-  /* Paleta Terciaria (Café Claro / Arena Cálida) */
-  --sand-50: hsl(34, 45%, 97%);
-  --sand-100: hsl(34, 42%, 93%);
-  --sand-200: hsl(32, 38%, 86%);
-  --sand-300: hsl(32, 35%, 76%); /* Café claro suave */
-  --sand-500: hsl(30, 32%, 58%);
-  --sand-700: hsl(28, 30%, 40%);
-
-  /* Superficies y Neutros */
-  --bg-page: hsl(220, 20%, 98%);
-  --bg-surface: hsl(0, 0%, 100%);
-  --bg-surface-elevated: hsl(0, 0%, 100%);
-  --bg-surface-subtle: hsl(220, 16%, 96%);
-
-  /* Texto y Contraste */
-  --text-main: hsl(222, 28%, 18%);
-  --text-muted: hsl(220, 14%, 46%);
-  --text-subtle: hsl(220, 12%, 60%);
-  --text-inverse: hsl(0, 0%, 100%);
-
-  /* Bordes */
-  --border-light: hsl(220, 16%, 90%);
-  --border-subtle: hsl(220, 18%, 94%);
-  --border-focus: hsl(276, 35%, 45%);
-
-  /* Estados Funcionales */
-  --success-bg: hsl(145, 45%, 94%);
-  --success-text: hsl(150, 60%, 25%);
-  --success-border: hsl(145, 40%, 82%);
-
-  --warning-bg: hsl(40, 85%, 95%);
-  --warning-text: hsl(35, 80%, 28%);
-  --warning-border: hsl(40, 70%, 82%);
-
-  --error-bg: hsl(0, 75%, 96%);
-  --error-text: hsl(0, 65%, 40%);
-  --error-border: hsl(0, 60%, 86%);
-
-  --info-bg: hsl(210, 80%, 96%);
-  --info-text: hsl(215, 70%, 35%);
-  --info-border: hsl(210, 70%, 86%);
-
-  /* Tipografías */
-  --font-family-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-family-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
-
-  /* Sombras Multicapa Refinadas */
-  --shadow-xs: 0 1px 2px rgba(18, 24, 38, 0.04);
-  --shadow-sm: 0 2px 4px rgba(18, 24, 38, 0.04), 0 1px 2px rgba(18, 24, 38, 0.03);
-  --shadow-md: 0 4px 12px rgba(18, 24, 38, 0.06), 0 2px 4px rgba(18, 24, 38, 0.03);
-  --shadow-lg: 0 12px 28px rgba(18, 24, 38, 0.08), 0 4px 8px rgba(18, 24, 38, 0.04);
-  --shadow-card: 0 0 0 1px var(--border-light), 0 2px 8px rgba(18, 24, 38, 0.04);
-
-  /* Radios */
-  --radius-sm: 6px;
+  --sigav-bg: #faf7f3;
+  --sigav-ink: #352c3a;
+  --sigav-muted: #6d6471;
+  --sigav-rose: #f1dce2;
+  --sigav-purple: #725682;
+  --sigav-line: #e5dfe5;
+  --sigav-soft: #eee7f2;
+  --primary-50: #f8f3fa;
+  --primary-100: var(--sigav-soft);
+  --primary-200: #e5d6e7;
+  --primary-300: #c7bbc9;
+  --primary-400: #9166a1;
+  --primary-500: var(--sigav-purple);
+  --primary-600: #654972;
+  --primary-700: #503c5c;
+  --primary-800: #44324d;
+  --primary-900: var(--sigav-ink);
+  --accent-pink-50: #faf1f4;
+  --accent-pink-100: var(--sigav-rose);
+  --accent-pink-300: #d8b6c3;
+  --accent-pink-500: #a76880;
+  --accent-pink-600: #8f526a;
+  --sand-50: var(--sigav-bg);
+  --sand-100: #f7eedf;
+  --sand-200: #e6d4b1;
+  --sand-300: #d4bea1;
+  --sand-500: #a58d71;
+  --sand-700: #715b45;
+  --bg-page: var(--sigav-bg);
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-surface-subtle: #f7f2f6;
+  --sidebar-bg: #f0e7ec;
+  --sidebar-hover: #e5d6e7;
+  --text-main: var(--sigav-ink);
+  --text-muted: var(--sigav-muted);
+  --text-subtle: #756979;
+  --text-inverse: #ffffff;
+  --on-primary: #ffffff;
+  --border-light: var(--sigav-line);
+  --border-subtle: #eee8ed;
+  --border-input: #c7bbc9;
+  --border-focus: var(--sigav-purple);
+  --success-bg: #edf5ee;
+  --success-text: #37694f;
+  --success-border: #c3dcc9;
+  --warning-bg: #f7eedf;
+  --warning-text: #795722;
+  --warning-border: #e6d4b1;
+  --error-bg: #fcecef;
+  --error-text: #a52a37;
+  --error-border: #edc5cc;
+  --info-bg: var(--sigav-soft);
+  --info-text: #503c5c;
+  --info-border: #d9cbe1;
+  --font-family-sans: Arial, Helvetica, sans-serif;
+  --font-family-display: Arial, Helvetica, sans-serif;
+  --shadow-xs: 0 1px 2px #72568205;
+  --shadow-sm: 0 2px 8px #72568206;
+  --shadow-md: 0 6px 18px #7256820c;
+  --shadow-lg: 0 12px 40px #7256820c;
+  --shadow-card: 0 2px 8px #72568206;
+  --radius-sm: 9px;
   --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
-  /* Panel Institucional de Acceso (Login Hero) */
-  --login-hero-bg: hsl(276, 44%, 26%);
-  --login-hero-border: hsl(276, 40%, 20%);
-  --login-hero-text: hsl(0, 0%, 100%);
-  --login-hero-text-muted: hsla(0, 0%, 100%, 0.82);
-  --login-hero-card-bg: rgba(255, 255, 255, 0.08);
-  --login-hero-card-border: rgba(255, 255, 255, 0.15);
-  --login-hero-card-hover: rgba(255, 255, 255, 0.16);
-
-  /* Esquema nativo */
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+  --login-hero-bg: var(--sidebar-bg);
+  --login-hero-border: var(--sigav-line);
+  --login-hero-text: #503c5c;
+  --login-hero-text-muted: var(--sigav-muted);
+  --login-hero-accent: var(--sigav-purple);
+  --login-hero-card-bg: #ffffff;
+  --login-hero-card-border: var(--sigav-line);
+  --login-hero-card-hover: var(--sigav-soft);
+  --login-columns: repeat(2, minmax(0, 1fr));
   color-scheme: light;
-
-  /* Transiciones */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 150ms ease;
+  --transition-normal: 220ms ease;
 }
 
-/* ==========================================================================
-   TEMA OSCURO INSTITUCIONAL — Paleta Dark Slate Navy con Acentos Morados
-   ========================================================================== */
+/* Optional dark theme retains the same plum, rose and warm neutral family. */
 [data-theme="dark"] {
   color-scheme: dark;
-
-  /* Paleta Primaria Institucional Adaptada a Fondo Oscuro */
-  --primary-50: hsl(276, 35%, 15%);
-  --primary-100: hsl(276, 35%, 22%);
-  --primary-200: hsl(276, 32%, 30%);
-  --primary-300: hsl(276, 35%, 45%);
-  --primary-400: hsl(276, 42%, 55%);
-  --primary-500: hsl(276, 50%, 62%); /* Color de marca más brillante para alto contraste */
-  --primary-600: hsl(276, 45%, 52%);
-  --primary-700: hsl(276, 45%, 78%);
-  --primary-800: hsl(276, 46%, 86%);
-  --primary-900: hsl(276, 50%, 93%);
-
-  /* Paleta Secundaria Acento (Rosado Suave) */
-  --accent-pink-50: hsl(345, 45%, 16%);
-  --accent-pink-100: hsl(345, 42%, 22%);
-  --accent-pink-300: hsl(345, 44%, 40%);
-  --accent-pink-500: hsl(345, 60%, 68%);
-  --accent-pink-600: hsl(345, 55%, 60%);
-
-  /* Paleta Terciaria (Café Claro / Arena Cálida) */
-  --sand-50: hsl(34, 25%, 14%);
-  --sand-100: hsl(34, 25%, 18%);
-  --sand-200: hsl(32, 22%, 26%);
-  --sand-300: hsl(32, 30%, 48%);
-  --sand-500: hsl(30, 40%, 68%);
-  --sand-700: hsl(34, 50%, 78%);
-
-  /* Superficies y Neutros */
-  --bg-page: hsl(224, 25%, 9%);             /* Dark Slate Navy Profundo */
-  --bg-surface: hsl(224, 22%, 13%);          /* Tarjetas y Paneles */
-  --bg-surface-elevated: hsl(224, 20%, 17%);    /* Modales y Menús */
-  --bg-surface-subtle: hsl(224, 18%, 18%);      /* Hover, Cabeceras e Inputs */
-
-  /* Texto y Contraste */
-  --text-main: hsl(220, 20%, 94%);
-  --text-muted: hsl(220, 14%, 68%);
-  --text-subtle: hsl(220, 12%, 50%);
-  --text-inverse: hsl(222, 28%, 12%);
-
-  /* Bordes */
-  --border-light: hsl(224, 16%, 22%);
-  --border-subtle: hsl(224, 16%, 17%);
-  --border-focus: hsl(276, 50%, 62%);
-
-  /* Estados Funcionales */
-  --success-bg: hsl(145, 40%, 14%);
-  --success-text: hsl(145, 65%, 66%);
-  --success-border: hsl(145, 35%, 25%);
-
-  --warning-bg: hsl(40, 50%, 15%);
-  --warning-text: hsl(40, 80%, 70%);
-  --warning-border: hsl(40, 40%, 25%);
-
-  --error-bg: hsl(0, 45%, 15%);
-  --error-text: hsl(0, 75%, 72%);
-  --error-border: hsl(0, 40%, 26%);
-
-  --info-bg: hsl(215, 45%, 15%);
-  --info-text: hsl(215, 75%, 72%);
-  --info-border: hsl(215, 40%, 26%);
-
-  /* Sombras Multicapa Refinadas para Fondo Oscuro */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 14px 35px rgba(0, 0, 0, 0.6), 0 4px 10px rgba(0, 0, 0, 0.3);
-  --shadow-card: 0 0 0 1px var(--border-light), 0 4px 14px rgba(0, 0, 0, 0.35);
-
-  /* Panel Institucional de Acceso en Dark Mode (Mismo morado profundo sobrio, sin brillo excesivo) */
-  --login-hero-bg: hsl(276, 38%, 15%);
-  --login-hero-border: hsl(276, 32%, 24%);
-  --login-hero-text: hsl(220, 20%, 95%);
-  --login-hero-text-muted: hsl(220, 14%, 74%);
-  --login-hero-card-bg: rgba(255, 255, 255, 0.04);
-  --login-hero-card-border: rgba(255, 255, 255, 0.1);
-  --login-hero-card-hover: rgba(255, 255, 255, 0.08);
+  --primary-50: #32263a;
+  --primary-100: #403149;
+  --primary-200: #584361;
+  --primary-300: #7b5e88;
+  --primary-400: #b594c4;
+  --primary-500: #c1a3ce;
+  --primary-600: #d0b8db;
+  --primary-700: #e0cde8;
+  --primary-800: #eee3f3;
+  --primary-900: #f5eef8;
+  --accent-pink-50: #35262f;
+  --accent-pink-100: #47313d;
+  --accent-pink-300: #a67b8e;
+  --accent-pink-500: #d6a8ba;
+  --accent-pink-600: #e3bfcd;
+  --sand-50: #2c2523;
+  --sand-100: #39302a;
+  --sand-200: #584838;
+  --sand-300: #b59a7c;
+  --sand-500: #cfb598;
+  --sand-700: #e4cfb7;
+  --bg-page: #211c25;
+  --bg-surface: #2b2430;
+  --bg-surface-elevated: #352c3b;
+  --bg-surface-subtle: #352c3b;
+  --sidebar-bg: #302636;
+  --sidebar-hover: #44354b;
+  --text-main: #f0e8f3;
+  --text-muted: #c4b6cc;
+  --text-subtle: #bcaec3;
+  --text-inverse: #211c25;
+  --on-primary: #211c25;
+  --border-light: #514359;
+  --border-subtle: #43364a;
+  --border-input: #80698c;
+  --border-focus: #c1a3ce;
+  --success-bg: #23372c;
+  --success-text: #b0d7ba;
+  --success-border: #476b52;
+  --warning-bg: #3c3021;
+  --warning-text: #e5cca4;
+  --warning-border: #78613f;
+  --error-bg: #402731;
+  --error-text: #f0b9c2;
+  --error-border: #815060;
+  --info-bg: #403149;
+  --info-text: #e0cde8;
+  --info-border: #71577e;
+  --shadow-xs: 0 1px 2px #100b1420;
+  --shadow-sm: 0 2px 8px #100b1420;
+  --shadow-md: 0 6px 18px #100b1430;
+  --shadow-lg: 0 12px 40px #100b1430;
+  --shadow-card: 0 2px 8px #100b1420;
+  --login-hero-bg: var(--sidebar-bg);
+  --login-hero-border: var(--border-light);
+  --login-hero-text: var(--text-main);
+  --login-hero-text-muted: var(--text-muted);
+  --login-hero-accent: var(--primary-500);
+  --login-hero-card-bg: var(--bg-surface);
+  --login-hero-card-border: var(--border-light);
+  --login-hero-card-hover: var(--primary-100);
 }
 
 /* Reset y Base */
@@ -455,3 +421,66 @@ button, input, select, textarea {
 .vtf-table tr:hover td {
   background: var(--bg-surface-subtle);
 }
+
+/* SIGAV component finishing; existing layouts and interactions are retained. */
+h1, h2, h3, h4, h5, h6 { font-weight: 700; letter-spacing: normal; }
+.content-body { max-width: 1440px; padding: 2rem; }
+.vtf-card { border-radius: 16px; box-shadow: var(--shadow-card); }
+.vtf-btn { min-height: 44px; border-radius: 10px; }
+.vtf-btn-primary { color: var(--on-primary); box-shadow: none; }
+.vtf-btn-primary:hover { box-shadow: none; }
+.vtf-btn-outline, .vtf-btn-secondary { color: var(--primary-700); border-color: var(--border-input); }
+.vtf-input, select, textarea { border-color: var(--border-input); border-radius: 9px; }
+.vtf-input { min-height: 44px; }
+.vtf-label { font-size: .9rem; }
+.vtf-table th { background: var(--primary-100); color: var(--text-main); text-transform: none; letter-spacing: normal; }
+.vtf-table td { border-bottom-color: var(--border-light); }
+.vtf-sidebar { flex-shrink: 0; }
+.vtf-sidebar nav a:hover { background-color: var(--sidebar-hover) !important; }
+.vtf-sidebar nav a > div { min-width: 0; }
+.vtf-sidebar nav a > div > span { overflow-wrap: normal; }
+.vtf-sidebar nav a > span { flex-shrink: 0; margin-left: .35rem; }
+.vtf-navbar { min-width: 0; }
+.vtf-navbar .navbar-search-container input { border-radius: 9px !important; }
+.login-hero, .login-form-panel { min-width: 0; }
+.login-demo-account { width: 100%; }
+.login-demo-account > div { min-width: 0; }
+.login-demo-account svg { flex-shrink: 0; margin-left: 8px; }
+.login-demo-account:focus-visible { outline-offset: 3px; }
+.login-form-panel { box-shadow: var(--shadow-lg) !important; }
+input[type="checkbox"] { accent-color: var(--primary-500); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--border-focus); outline-offset: 3px;
+}
+@media (min-width: 1024px) { .vtf-sidebar { position: sticky; top: 0; height: 100dvh; } }
+@media (max-width: 760px) {
+  :root { --login-columns: minmax(0, 1fr); }
+  .content-body { padding: 1.375rem 1.125rem; }
+  .login-page { padding: 1.25rem .875rem !important; }
+  .login-layout { gap: 1.25rem !important; }
+  .login-hero, .login-form-panel { padding: 1.625rem !important; }
+  .vtf-navbar { padding: 0 1rem !important; gap: .5rem !important; }
+  .vtf-navbar .navbar-search-container { display: none !important; }
+}
+@media (max-width: 639px) {
+  .navbar-brand-name, .user-details-text { display: none; }
+  .vtf-navbar .user-profile-badge { padding: .25rem !important; border: 0 !important; background: transparent !important; }
+  .vtf-navbar > div { gap: .5rem !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* Dashboard grids fit their container, including narrow mobile viewports. */
+:root {
+  --dashboard-kpi-columns: repeat(3, minmax(0, 1fr));
+  --dashboard-detail-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  --dashboard-chart-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr));
+  --metric-size: clamp(1.5rem, 2.4vw, 1.8rem);
+}
+@media(max-width:1279px) { .navbar-brand-name { display: none; } }
+@media(max-width:760px) { :root { --dashboard-kpi-columns: minmax(0, 1fr); --metric-size: 1.8rem; } }
+
+.dashboard-welcome > div:first-child > div { min-width: 0; }
+.dashboard-welcome > div:first-child > img { flex-shrink: 0; }
+@media(max-width:760px) { .dashboard-welcome { padding: 1.5rem !important; } .dashboard-welcome > div:first-child { gap: .875rem !important; } }

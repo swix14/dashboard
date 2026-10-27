@@ -410,7 +410,7 @@ export function TreasuryPage() {
           }}
         >
           {/* 1. RECUADRO INGRESOS */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid var(--success-border)', background: 'linear-gradient(to bottom right, var(--bg-surface), var(--success-bg))' }}>
+          <div className="vtf-card" style={{ borderLeft: '4px solid var(--success-border)', background: 'var(--bg-surface)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--success-text)' }}>
                 Total Ingresos
@@ -428,7 +428,7 @@ export function TreasuryPage() {
           </div>
 
           {/* 2. RECUADRO EGRESOS */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid var(--accent-pink-500)', background: 'linear-gradient(to bottom right, var(--bg-surface), var(--accent-pink-50))' }}>
+          <div className="vtf-card" style={{ borderLeft: '4px solid var(--accent-pink-500)', background: 'var(--bg-surface)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-pink-600)' }}>
                 Total Egresos
@@ -446,7 +446,7 @@ export function TreasuryPage() {
           </div>
 
           {/* 3. RECUADRO SALDO TOTAL */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid var(--primary-500)', background: 'linear-gradient(to bottom right, var(--bg-surface), var(--primary-50))' }}>
+          <div className="vtf-card" style={{ borderLeft: '4px solid var(--primary-500)', background: 'var(--bg-surface)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary-700)' }}>
                 Saldo Total Disponible
@@ -482,12 +482,12 @@ export function TreasuryPage() {
           </div>
 
           {/* 5. RECUADRO FEDERACIÓN */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid #3b82f6' }}>
+          <div className="vtf-card" style={{ borderLeft: '4px solid var(--primary-400)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#1d4ed8' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--info-text)' }}>
                 Pagos a Federación
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--info-bg)', color: 'var(--primary-500)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Building size={18} />
               </div>
             </div>
@@ -709,7 +709,7 @@ export function TreasuryPage() {
                                 : mov.centroCosto === 'CENA ANUAL'
                                 ? 'var(--accent-pink-50)'
                                 : mov.centroCosto === 'FEDERACION'
-                                ? '#eff6ff'
+                                ? 'var(--info-bg)'
                                 : 'var(--sand-50)',
                             color:
                               mov.centroCosto === 'ASOCIACION'
@@ -717,7 +717,7 @@ export function TreasuryPage() {
                                 : mov.centroCosto === 'CENA ANUAL'
                                 ? 'var(--accent-pink-700)'
                                 : mov.centroCosto === 'FEDERACION'
-                                ? '#1e40af'
+                                ? 'var(--info-text)'
                                 : 'var(--sand-800)'
                           }}
                         >
@@ -916,10 +916,10 @@ export function TreasuryPage() {
                   padding: '0.875rem 0.5rem',
                   border: 'none',
                   background: modalTab === 'FEDERACION' ? 'var(--bg-surface)' : 'transparent',
-                  borderBottom: modalTab === 'FEDERACION' ? '3px solid #3b82f6' : '3px solid transparent',
+                  borderBottom: modalTab === 'FEDERACION' ? '3px solid var(--primary-400)' : '3px solid transparent',
                   fontWeight: 700,
                   fontSize: '0.8125rem',
-                  color: modalTab === 'FEDERACION' ? '#1d4ed8' : 'var(--text-muted)',
+                  color: modalTab === 'FEDERACION' ? 'var(--info-text)' : 'var(--text-muted)',
                   cursor: 'pointer'
                 }}
               >
@@ -1022,11 +1022,11 @@ export function TreasuryPage() {
                 <div
                   style={{
                     padding: '0.75rem 1rem',
-                    backgroundColor: '#eff6ff',
-                    border: '1px solid #bfdbfe',
+                    backgroundColor: 'var(--info-bg)',
+                    border: '1px solid var(--info-border)',
                     borderRadius: 'var(--radius-md)',
                     fontSize: '0.75rem',
-                    color: '#1e40af'
+                    color: 'var(--info-text)'
                   }}
                 >
                   <strong>Centro de Costo Fijo:</strong> FEDERACIÓN. Esta sección es exclusiva para registrar pagos del aporte gremial nacional.

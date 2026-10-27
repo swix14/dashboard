@@ -67,6 +67,7 @@ export function LoginPage() {
 
   return (
     <div
+      className="login-page"
       style={{
         minHeight: '100vh',
         backgroundColor: 'var(--bg-page)',
@@ -77,17 +78,19 @@ export function LoginPage() {
       }}
     >
       <div
+        className="login-layout"
         style={{
           width: '100%',
           maxWidth: '1000px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gridTemplateColumns: 'var(--login-columns)',
           gap: '2rem',
           alignItems: 'stretch'
         }}
       >
         {/* Columna Izquierda: Información Institucional y Selector Rápido */}
         <div
+          className="login-hero"
           style={{
             backgroundColor: 'var(--login-hero-bg)',
             color: 'var(--login-hero-text)',
@@ -113,7 +116,7 @@ export function LoginPage() {
                   objectFit: 'cover',
                   backgroundColor: 'white',
                   padding: '2px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)'
+                  boxShadow: 'var(--shadow-sm)'
                 }}
               />
               <div>
@@ -164,7 +167,7 @@ export function LoginPage() {
                   fontSize: '0.75rem',
                   fontWeight: 700,
                   textTransform: 'uppercase',
-                  color: 'var(--sand-300)',
+                  color: 'var(--login-hero-accent)',
                   letterSpacing: '0.05em',
                   marginBottom: '0.75rem'
                 }}
@@ -175,6 +178,7 @@ export function LoginPage() {
                 {DEMO_ACCOUNTS.map((acc) => (
                   <button
                     key={acc.identifier}
+                    className="login-demo-account"
                     type="button"
                     onClick={() => handleSelectDemo(acc.identifier)}
                     style={{
@@ -192,7 +196,7 @@ export function LoginPage() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--login-hero-card-hover)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.28)';
+                      e.currentTarget.style.borderColor = 'var(--border-focus)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--login-hero-card-bg)';
@@ -203,7 +207,7 @@ export function LoginPage() {
                       <div style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
                         {acc.role}: {acc.name}
                       </div>
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--sand-300)', fontWeight: 500 }}>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--login-hero-accent)', fontWeight: 500 }}>
                         RUT: {acc.identifier}
                       </div>
                       <div style={{ fontSize: '0.6875rem', color: 'var(--login-hero-text-muted)' }}>
@@ -235,6 +239,7 @@ export function LoginPage() {
 
         {/* Columna Derecha: Formulario de Login */}
         <div
+          className="login-form-panel"
           style={{
             backgroundColor: 'var(--bg-surface)',
             borderRadius: 'var(--radius-xl)',

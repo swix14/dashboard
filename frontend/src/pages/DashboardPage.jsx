@@ -92,6 +92,7 @@ export function DashboardPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Banner de Bienvenida Institucional */}
       <div
+        className="dashboard-welcome"
         style={{
           backgroundColor: 'var(--bg-surface)',
           border: '1px solid var(--border-light)',
@@ -105,7 +106,7 @@ export function DashboardPage() {
           boxShadow: 'var(--shadow-sm)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', minWidth: 0, flex: '1 1 300px' }}>
           <img
             src="/logo-vtf.png"
             alt="Logo VTF Temuco"
@@ -119,7 +120,7 @@ export function DashboardPage() {
             }}
           />
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.375rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.375rem', flexWrap: 'wrap' }}>
               <Badge variant="info" icon={ShieldCheck}>
                 {user?.role?.name || user?.role?.code}
               </Badge>
@@ -170,7 +171,7 @@ export function DashboardPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gridTemplateColumns: 'var(--dashboard-kpi-columns)',
           gap: '1.5rem'
         }}
       >
@@ -205,7 +206,7 @@ export function DashboardPage() {
                 <UserCheck size={20} />
               </div>
             </div>
-            <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 'var(--metric-size)', fontWeight: 700, color: 'var(--primary-500)', fontVariantNumeric: 'tabular-nums' }}>
               {inicioData.sociasActivas ?? 276}
             </div>
           </div>
@@ -248,7 +249,7 @@ export function DashboardPage() {
                 <UserX size={20} />
               </div>
             </div>
-            <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 'var(--metric-size)', fontWeight: 700, color: 'var(--primary-500)', fontVariantNumeric: 'tabular-nums' }}>
               {inicioData.sociasSuspendidas ?? 4}
             </div>
           </div>
@@ -269,7 +270,7 @@ export function DashboardPage() {
             justifyContent: 'space-between',
             borderLeft: '4px solid var(--accent-pink-500)',
             position: 'relative',
-            background: 'linear-gradient(to bottom right, var(--bg-surface), var(--accent-pink-50))'
+            background: 'var(--bg-surface)'
           }}
         >
           <div>
@@ -292,7 +293,7 @@ export function DashboardPage() {
                 <Wallet size={20} />
               </div>
             </div>
-            <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 'var(--metric-size)', fontWeight: 700, color: 'var(--primary-500)', fontVariantNumeric: 'tabular-nums' }}>
               ${(inicioData.saldoTotal ?? 14580000).toLocaleString('es-CL')}
             </div>
           </div>
@@ -318,7 +319,7 @@ export function DashboardPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gridTemplateColumns: 'var(--dashboard-detail-columns)',
           gap: '1.5rem'
         }}
       >
@@ -499,7 +500,7 @@ export function DashboardPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+          gridTemplateColumns: 'var(--dashboard-chart-columns)',
           gap: '1.5rem'
         }}
       >
