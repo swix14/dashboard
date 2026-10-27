@@ -2,6 +2,8 @@
 
 Sistema web institucional responsive para la gestión administrativa, contable, financiera y de transparencia de la **Asociación de Jardines VTF Temuco** (Vía Transferencia de Fondos).
 
+**Rama de trabajo:** `develop-deus` · [Instalación y ejecución completa](#5-ejecución-local-completa) · [Tema visual SIGAV](docs/TEMA_SIGAV.md)
+
 ---
 
 ## 1. Contexto Institucional
@@ -44,7 +46,7 @@ graph TD
 ```
 
 ### ✅ V1 — Inicio Institucional y Autenticación Real [COMPLETADA]
-- **Identidad Oficial:** Integración del logo oficial de la Asociación VTF Temuco y sistema de diseño HSL institucional (morado suave, rosado suave, arena cálida y neutros).
+- **Identidad Oficial:** Integración del logo oficial de la Asociación VTF Temuco y tema visual SIGAV (morado #725682, palo rosa, fondo beige cálido y superficies blancas).
 - **Autenticación RBAC:** Soporte de acceso mediante **RUT chileno** (módulo 11) o correo institucional, con perfiles reales precargados.
 - **Navbar Institucional:** Buscador global (*"Buscar en sistema..."*) y tarjeta de perfil activo con avatar, cargo y rol.
 - **Dashboard de Inicio:**
@@ -139,36 +141,247 @@ dashboard/
 
 ---
 
-## 5. Instrucciones de Ejecución Local
+## 5. Ejecución local completa
 
-### Paso 0: Instalación (solo la primera vez)
-Requiere Node.js 20 o superior. PostgreSQL es opcional: sin base de datos el backend funciona en **modo memoria** con datos de demostración.
+Este repositorio contiene **dos aplicaciones** que deben estar ejecutándose al mismo tiempo:
+
+| Aplicación | Tecnología | Dirección predeterminada |
+| :--- | :--- | :--- |
+| Frontend | React + Vite | [http://localhost:5173](http://localhost:5173) |
+| Backend / API | Express + Node.js | [http://localhost:4000/api/health](http://localhost:4000/api/health) |
+| PostgreSQL | Opcional para la demostración | El host/puerto configurado en `backend/.env` |
+
+### 5.1. Requisitos
+
+- Git.
+- Node.js y npm. El arranque y la compilación se comprobaron con Node.js 24; puedes consultar tus versiones con `node --version` y `npm.cmd --version`.
+- Dos terminales PowerShell abiertas en la carpeta raíz `dashboard`.
+- Internet durante la instalación de dependencias.
+- PostgreSQL únicamente si vas a probar la conexión a base de datos de la sección 5.8.
+
+Los ejemplos siguientes usan **PowerShell de Windows**. En Linux/macOS, utiliza `npm` y `npx` en lugar de `npm.cmd` y `npx.cmd`, y adapta los comandos de carpetas.
+
+### 5.2. Descargar la rama correcta
+
 ```powershell
-cd backend
-npm install
-npx prisma generate
-copy .env.example .env
-cd ..\frontend
-npm install
-cd ..
+git clone --branch develop-deus https://github.com/swix14/dashboard.git
+Set-Location dashboard
 ```
 
-### Paso 1: Iniciar Servidores de Desarrollo
-En dos terminales PowerShell distintas, desde la carpeta `dashboard`:
-```powershell
-# Levantar backend en puerto 4000
-npm run dev:backend
+Si ya tienes el repositorio clonado:
 
-# Levantar frontend en puerto 5173
-npm run dev:frontend
+```powershell
+Set-Location -LiteralPath 'C:\ruta\a\dashboard'
+git fetch origin
+git switch develop-deus
+git pull --ff-only origin develop-deus
 ```
 
-La aplicación estará disponible de inmediato en:
-- **Frontend:** `http://localhost:5173`
-- **Backend Health:** `http://localhost:4000/api/health`
+Sustituye `C:\ruta\a\dashboard` por la carpeta real. Si Git informa cambios locales o ramas divergentes, revísalos antes de actualizar; estos comandos no fuerzan ni descartan trabajo.
 
-### Paso 2: Ejecutar Pruebas Automatizadas
+### 5.3. Instalar dependencias
+
+Desde la raíz `dashboard`:
+
 ```powershell
-npm run test:backend
+npm.cmd --prefix backend ci
+npm.cmd --prefix frontend ci
 ```
-Ejecuta las pruebas de autenticación (`authTest.js`), padrón de socias (`sociasTest.js`) y subida de comprobantes (`comprobantesTest.js`).
+
+`ci` utiliza los `package-lock.json` versionados. La raíz solo contiene scripts de coordinación; las dependencias se instalan dentro de `backend` y `frontend`.
+
+### 5.4. Preparar el entorno de demostración
+
+Para abrir las pantallas y probar los flujos actuales puedes utilizar el **modo memoria**, sin instalar PostgreSQL. Crea `backend/.env` con una clave JWT aleatoria; el siguiente comando no sobrescribe un archivo existente ni muestra la clave:
+
+```powershell
+if (-not (Test-Path -LiteralPath '.\backend\.env')) {
+  node -e "const fs=require('node:fs'); const crypto=require('node:crypto'); const lines=['PORT=4000','NODE_ENV=development','DATABASE_URL=','JWT_SECRET='+crypto.randomBytes(32).toString('hex'),'JWT_EXPIRES_IN=8h','CORS_ORIGIN=http://localhost:5173']; fs.writeFileSync('backend/.env',lines.join('\n')+'\n',{flag:'wx'});"
+}
+```
+
+Después genera el cliente Prisma, incluso si vas a trabajar en memoria:
+
+```powershell
+npm.cmd --prefix backend run prisma:generate
+```
+
+Variables utilizadas por el backend:
+
+| Variable | Uso |
+| :--- | :--- |
+| `PORT` | Puerto de la API; predeterminado `4000` |
+| `NODE_ENV` | `development` para ejecución local |
+| `DATABASE_URL` | Vacía para la demo en memoria, o conexión PostgreSQL privada |
+| `JWT_SECRET` | Secreto aleatorio de firma de sesión; no compartir ni versionar |
+| `JWT_EXPIRES_IN` | Vigencia del token; ejemplo `8h` |
+| `CORS_ORIGIN` | Origen del frontend, por ejemplo `http://localhost:5173` |
+| `UPLOADS_DIR` | Opcional; por defecto `backend/uploads` |
+
+El archivo `backend/.env.example` también muestra las variables disponibles, pero contiene valores de demostración: sustituye sus credenciales y secreto si lo usas como plantilla. `.env` y los archivos subidos están excluidos de Git.
+
+**Alcance del modo memoria:** las cuentas y datos iniciales se cargan desde el código. Las altas, movimientos y cambios guardados en memoria se pierden al reiniciar el backend. Los archivos de comprobantes se guardan en disco, pero sus referencias en memoria pueden perderse al reiniciar. Utiliza datos de prueba.
+
+### 5.5. Iniciar TODO el proyecto
+
+Abre **dos terminales**, ambas en la carpeta raíz `dashboard`.
+
+**Terminal 1 — backend:**
+
+```powershell
+npm.cmd run dev:backend
+```
+
+Mantén esta terminal abierta. La API debe indicar que escucha en el puerto `4000`; si no hay PostgreSQL disponible, mostrará el mensaje de modo memoria.
+
+**Terminal 2 — frontend:**
+
+```powershell
+npm.cmd --prefix frontend run dev -- --host localhost --strictPort
+```
+
+`--strictPort` evita que Vite cambie de puerto silenciosamente si el `5173` está ocupado. El parámetro `--host localhost` limita esta vista previa al equipo local.
+
+Abre **[http://localhost:5173](http://localhost:5173)** en el navegador. El frontend utiliza la API `http://localhost:4000/api` de forma predeterminada. El frontend por sí solo puede mostrar el acceso, pero necesita el backend para autenticar y consultar datos.
+
+También existe el script raíz `npm.cmd run dev:frontend`, que utiliza la configuración de host de `frontend/vite.config.js`. Para la vista previa local se recomienda el comando explícito anterior.
+
+### 5.6. Verificar e ingresar
+
+Con ambos servidores iniciados:
+
+```powershell
+Invoke-RestMethod -Uri 'http://localhost:4000/api/health'
+```
+
+La respuesta debe incluir `status: ok`. Este endpoint confirma que la API responde; **no comprueba la persistencia de los módulos ni la conexión PostgreSQL**.
+
+En la pantalla de acceso puedes seleccionar uno de los perfiles de demostración para completar sus campos y luego pulsar **Ingresar al Sistema**. La clave demo de esta versión es `Admin123!`; las cuentas y sus identificadores están descritos en la sección 2 y en el selector del login.
+
+Estas credenciales corresponden al prototipo de este repositorio. No utilizar sus cuentas de ejemplo ni la contraseña compartida en una instalación institucional.
+
+### 5.7. Detener, reiniciar y seguir desarrollando
+
+- `Ctrl+C` en cada terminal detiene su servidor.
+- Para reiniciar, vuelve a ejecutar los dos comandos de la sección 5.5.
+- Después de apagar el computador, abre dos terminales en `dashboard` y repite esos comandos. No hace falta instalar dependencias cada vez.
+- Los cambios de frontend se reflejan mediante Vite. El backend usa `node --watch`; modificar su código puede reiniciarlo y borrar los cambios que solo existan en memoria.
+- Si cambias `JWT_SECRET`, cierra sesión e ingresa nuevamente para renovar el token.
+
+### 5.8. PostgreSQL opcional y estado real de la persistencia
+
+El proyecto incluye esquema y migraciones Prisma. Sin embargo, **configurar una base de datos no convierte toda la demostración en un sistema persistente**: la autenticación y auditoría tienen integración con Prisma; los servicios actuales de Socias, Tesorería y las métricas utilizan datos de demostración en memoria.
+
+Para preparar una base de **desarrollo nueva y vacía**:
+
+1. Instala/inicia PostgreSQL y crea una base dedicada, por ejemplo `vtf_gestion_dev`, con un usuario autorizado para esa base.
+2. Configura la conexión privada en `backend/.env`. Sustituye los marcadores por tus datos; codifica los caracteres especiales de la contraseña en la URL:
+
+```dotenv
+DATABASE_URL="postgresql://USUARIO:CLAVE@localhost:5432/vtf_gestion_dev?schema=public"
+```
+
+3. Aplica las migraciones versionadas desde `backend`:
+
+```powershell
+Push-Location backend
+npx.cmd prisma migrate deploy
+npm.cmd run prisma:generate
+npm.cmd run prisma:seed
+Pop-Location
+```
+
+4. Reinicia el backend y revisa su mensaje de conexión. Puedes consultar el estado de migraciones con:
+
+```powershell
+Push-Location backend
+npx.cmd prisma migrate status
+Pop-Location
+```
+
+El seed actual sincroniza roles, jardines y tipos de crédito; **no crea por sí mismo el padrón completo ni todas las cuentas en PostgreSQL**. El acceso de demostración puede continuar utilizando las cuentas en memoria.
+
+El script `prisma:migrate` ejecuta `prisma migrate dev`: está destinado a desarrollar nuevas migraciones, puede requerir una base sombra y puede proponer un reset. Para aplicar las migraciones existentes a una base nueva, utiliza `migrate deploy` como se indica arriba. No ejecutes resets ni seeds sobre datos institucionales sin revisar previamente el efecto y contar con respaldo.
+
+### 5.9. Compilar y previsualizar el frontend
+
+Desde la raíz:
+
+```powershell
+npm.cmd run build:frontend
+npm.cmd --prefix frontend run preview -- --host localhost --port 4173 --strictPort
+```
+
+La compilación queda en `frontend/dist`. La previsualización se abre en [http://localhost:4173](http://localhost:4173) y **sigue necesitando el backend en el puerto 4000**. `vite preview` es una previsualización local, no una configuración de despliegue institucional.
+
+Para ejecutar el backend sin observación de archivos:
+
+```powershell
+npm.cmd --prefix backend run start
+```
+
+Utiliza `start` en lugar de `dev:backend`, no simultáneamente en el mismo puerto.
+
+### 5.10. Pruebas disponibles
+
+Desde la raíz:
+
+```powershell
+npm.cmd run test:backend
+```
+
+O por grupo:
+
+```powershell
+npm.cmd --prefix backend run test:auth
+npm.cmd --prefix backend run test:socias
+npm.cmd --prefix backend run test:comprobantes
+```
+
+Las pruebas levantan sus propios servidores en puertos efímeros. Ejecútalas con configuración de desarrollo y datos de prueba; el grupo de comprobantes escribe archivos temporales en el directorio de subidas. Estos scripts existen en el repositorio; documentarlos no significa que toda funcionalidad o configuración PostgreSQL esté validada para producción.
+
+### 5.11. Cambiar puertos o URL de la API
+
+- Backend: cambia `PORT` en `backend/.env` y reinicia.
+- Frontend: agrega `--port 5174` al comando Vite si necesitas otro puerto.
+- Si cambia la dirección de la API, crea `frontend/.env.local`:
+
+```dotenv
+VITE_API_URL=http://localhost:4001/api
+```
+
+El valor debe incluir `/api`. Reinicia Vite después de editar el archivo. Para generar un build con otra URL, configura esa variable **antes** de compilar: Vite la incorpora durante el build.
+
+### 5.12. Solución de problemas
+
+| Síntoma | Qué revisar |
+| :--- | :--- |
+| `npm`/`node` no reconocido | Instalar Node.js con npm y reabrir PowerShell para actualizar PATH |
+| `npm.ps1` bloqueado | Utilizar `npm.cmd`, sin desactivar políticas del equipo |
+| npm instalado fuera del PATH | Sustituir `npm.cmd` por `& 'C:\Program Files\nodejs\npm.cmd'` si esa es tu instalación |
+| `EADDRINUSE` o puerto ocupado | Ya hay un servidor en ese puerto; detener solo la instancia propia o configurar otro puerto |
+| Pantalla de acceso carga, pero no inicia sesión | Verificar backend `4000/api/health`, URL `VITE_API_URL` y credenciales demo |
+| Cliente Prisma no generado | Ejecutar `npm.cmd --prefix backend run prisma:generate` |
+| Error de conexión PostgreSQL | Para demo, dejar `DATABASE_URL` vacía; para PostgreSQL, comprobar servicio, usuario, puerto y migraciones |
+| Error de permisos en `uploads` | Comprobar permiso de escritura en `backend/uploads` o en `UPLOADS_DIR` |
+| Prisma no puede reemplazar su DLL en Windows | Detener el backend que esté utilizando el cliente antes de regenerarlo y luego reiniciar |
+| Los cambios de socias o movimientos desaparecen | Revisar si pertenecían al modo memoria; es una limitación actual, no una copia persistida en PostgreSQL |
+| Estilo anterior después de actualizar la rama | Actualizar el navegador; los archivos actuales del tema se describen en `docs/TEMA_SIGAV.md` |
+
+### 5.13. Resumen de scripts
+
+| Comando desde `dashboard` | Función |
+| :--- | :--- |
+| `npm.cmd run dev:backend` | Backend con reinicio automático |
+| `npm.cmd run dev:frontend` | Frontend con configuración Vite del repositorio |
+| `npm.cmd run build:frontend` | Compilación del frontend |
+| `npm.cmd run test:backend` | Grupos de pruebas del backend |
+| `npm.cmd --prefix backend run start` | Backend sin `--watch` |
+| `npm.cmd --prefix backend run prisma:generate` | Generar cliente Prisma |
+| `npm.cmd --prefix backend run prisma:migrate` | Desarrollo de migraciones, mediante `migrate dev` |
+| `npm.cmd --prefix backend run prisma:seed` | Sincronizar catálogos iniciales |
+| `npm.cmd --prefix frontend run preview` | Previsualizar el frontend compilado |
+
+No existe un script raíz `npm run dev` que arranque ambos servicios. Utiliza las dos terminales de la sección 5.5.
+
+Para consultar los cambios de identidad visual de esta rama: [Tema SIGAV](docs/TEMA_SIGAV.md).
