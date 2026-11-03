@@ -200,3 +200,4 @@ Antes de entregar los accesos definitivos a las socias y directiva:
 - [ ] Verificar que el candado HTTPS esté activo en ambos dominios (`https://tu-dominio.cl` y `https://api.tu-dominio.cl`).
 - [ ] Realizar una prueba de ingreso como socia (`/socia/login`) con cambio de clave obligatorio.
 - [ ] Realizar una prueba de registro de egreso en Tesorería adjuntando un comprobante PDF.
+
