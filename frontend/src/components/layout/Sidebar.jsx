@@ -22,48 +22,36 @@ export function Sidebar({ isOpen, onClose }) {
       to: '/dashboard',
       label: 'Inicio Institucional',
       icon: LayoutDashboard,
-      badge: 'V1 Activo',
-      badgeVariant: 'success',
       allowed: true
     },
     {
       to: '/tesoreria',
       label: 'Tesorería y Fondos',
       icon: DollarSign,
-      badge: 'V2 Activo',
-      badgeVariant: 'success',
       allowed: isDirectiva || isTesorera
     },
     {
       to: '/socias',
       label: 'Socias y Créditos',
       icon: Users,
-      badge: 'V3 Activo',
-      badgeVariant: 'success',
       allowed: isDirectiva || isSecretaria
     },
     {
       to: '/documentos',
       label: 'Gestión Documental',
       icon: FolderOpen,
-      badge: 'V4',
-      badgeVariant: 'neutral',
       allowed: isDirectiva || isTesorera
     },
     {
       to: '/reportes',
       label: 'Reportes y Delegadas',
       icon: FileSpreadsheet,
-      badge: 'V5',
-      badgeVariant: 'neutral',
       allowed: true
     },
     {
       to: '/auditoria',
       label: 'Bitácora de Auditoría',
       icon: ShieldAlert,
-      badge: 'V6',
-      badgeVariant: 'neutral',
       allowed: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode)
     }
   ];
