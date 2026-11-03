@@ -14,8 +14,7 @@
     "gestion",
     "react",
     "express",
-    "prisma",
-    "postgresql"
+    "mysql"
   ],
   "author": "Asociación VTF",
   "license": "ISC"

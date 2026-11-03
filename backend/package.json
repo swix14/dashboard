@@ -7,9 +7,6 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "node prisma/seed.js",
     "test": "node test/authTest.js && node test/sociasTest.js && node test/comprobantesTest.js",
     "test:auth": "node test/authTest.js",
     "test:socias": "node test/sociasTest.js",
@@ -19,14 +16,11 @@
     "vtf",
     "gestion",
     "express",
-    "prisma",
-    "mysql",
-    "postgresql"
+    "mysql"
   ],
   "author": "Asociación VTF",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^6.4.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -37,8 +31,5 @@
     "multer": "^2.5.0",
     "mysql2": "^3.12.0",
     "zod": "^3.24.2"
-  },
-  "devDependencies": {
-    "prisma": "^6.4.1"
   }
 }

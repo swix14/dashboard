@@ -126,7 +126,7 @@ graph TD
 dashboard/
 ├── backend/
 │   ├── src/
-│   │   ├── config/          # Configuración de entorno y conexión MySQL/Prisma
+│   │   ├── config/          # Configuración de entorno y pool MySQL
 │   │   ├── controllers/     # Controladores REST desacoplados
 │   │   ├── middlewares/     # Seguridad JWT, RBAC, auditoría y carga Multer
 │   │   ├── routes/          # Rutas expuestas por la API RESTful
