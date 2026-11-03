@@ -2,7 +2,7 @@
 
 Sistema web institucional responsive para la gestión administrativa, contable, financiera y de transparencia de la **Asociación de Jardines VTF Temuco** (Vía Transferencia de Fondos).
 
-**Rama de trabajo:** `develop-deus` · [Instalación y ejecución completa](#5-ejecución-local-completa) · [Tema visual SIGAV](docs/TEMA_SIGAV.md)
+**Versión definitiva:** Unificación consolidada de `develop-deus` (Frontend SIGAV & Padrón V3) y `feat/mysql-xampp` (MySQL XAMPP & BD 277 socias) · [Instalación y ejecución completa](#5-ejecución-local-completa) · [Tema visual SIGAV](docs/TEMA_SIGAV.md)
 
 ---
 
@@ -105,20 +105,27 @@ graph TD
 dashboard/
 ├── backend/
 │   ├── src/
-│   │   ├── config/          # Variables de entorno y cliente Prisma
-│   │   ├── controllers/     # AuthController, DashboardController, TreasuryController
-│   │   ├── middlewares/     # authMiddleware, roleMiddleware, errorMiddleware
-│   │   ├── routes/          # authRoutes, dashboardRoutes, treasuryRoutes, index
-│   │   ├── services/        # AuthService, AuditService, DashboardService, TreasuryService, seedData
+│   │   ├── config/          # Variables de entorno y pool MySQL / Prisma
+│   │   ├── controllers/     # AuthController, DashboardController, TreasuryController, SociaController
+│   │   ├── middlewares/     # authMiddleware, roleMiddleware, errorMiddleware, uploadMiddleware
+│   │   ├── routes/          # authRoutes, dashboardRoutes, treasuryRoutes, sociaRoutes, index
+│   │   ├── services/        # AuthService, AuditService, DashboardService, TreasuryService, SociaService
 │   │   ├── utils/           # rutValidator, helpers
-│   │   ├── validators/      # authValidator, treasuryValidator (Zod)
+│   │   ├── validators/      # authValidator, treasuryValidator, sociaValidator (Zod)
 │   │   └── server.js        # Punto de entrada Express
 │   ├── prisma/
 │   │   ├── schema.prisma    # Esquema relacional PostgreSQL
 │   │   └── seed.js          # Poblado de base de datos
 │   ├── test/
-│   │   └── authTest.js      # Pruebas automatizadas de autenticación y RBAC
+│   │   ├── authTest.js      # Pruebas de autenticación y RBAC
+│   │   ├── sociasTest.js    # Pruebas de padrón, cuotas y traslados V3
+│   │   └── comprobantesTest.js # Pruebas de subida y descarga de comprobantes
 │   └── package.json
+├── database/                # Scripts SQL para MySQL XAMPP (JARDINES_VTF)
+│   ├── database.sql         # Esquema DDL, tablas relacionales, vistas
+│   ├── admin.sql            # Directiva y delegadas con roles
+│   ├── data.sql             # Padrón continuo de socias (1 al 277) y convenios
+│   └── patch_xampp.sql      # Parches de compatibilidad XAMPP
 ├── frontend/
 │   ├── public/
 │   │   └── logo-vtf.png     # Logo oficial de la Asociación VTF Temuco
@@ -268,40 +275,36 @@ Estas credenciales corresponden al prototipo de este repositorio. No utilizar su
 - Los cambios de frontend se reflejan mediante Vite. El backend usa `node --watch`; modificar su código puede reiniciarlo y borrar los cambios que solo existan en memoria.
 - Si cambias `JWT_SECRET`, cierra sesión e ingresa nuevamente para renovar el token.
 
-### 5.8. PostgreSQL opcional y estado real de la persistencia
+### 5.8. Base de datos MySQL (XAMPP), Persistencia Dual y Contingencia
 
-El proyecto incluye esquema y migraciones Prisma. Sin embargo, **configurar una base de datos no convierte toda la demostración en un sistema persistente**: la autenticación y auditoría tienen integración con Prisma; los servicios actuales de Socias, Tesorería y las métricas utilizan datos de demostración en memoria.
+El sistema implementa una **arquitectura híbrida de persistencia** con detección no bloqueante:
 
-Para preparar una base de **desarrollo nueva y vacía**:
+#### A) Modo MySQL con XAMPP (Persistencia real con 277 socias)
+1. Inicia **Apache** y **MySQL** desde el panel de control de XAMPP.
+2. Abre phpMyAdmin en `http://localhost/phpmyadmin`.
+3. Importa los scripts SQL ubicados en la carpeta `database/` en el siguiente orden estricto:
+   - `database/database.sql`: Crea la base de datos `JARDINES_VTF`, tablas (`socias`, `administradores`, `convenios`, `creditos`, `cuotas_credito`, `liquidaciones_mensuales`, `movimientos_tesoreria`, `auditoria`) y vistas.
+   - `database/admin.sql`: Carga inicial de usuarios de directiva y delegadas con roles estandarizados (`Super_Admin`, `Tesorera`, `Presidenta`, `Secretaria`, `Directora`, `Delegada`).
+   - `database/data.sql`: Carga masiva del padrón continuo de **277 socias** consecutivas (ID 1 al 277), convenios y créditos activos.
+   - `database/patch_xampp.sql`: Parche opcional de compatibilidad de fechas e índices para XAMPP.
+4. Configura las variables en `backend/.env`:
+   ```dotenv
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_USER=root
+   DB_PASSWORD=
+   DB_NAME=jardines_vtf
+   ```
+5. Al iniciar el backend, se conectará automáticamente mediante el pool `mysql2/promise` mostrando:
+   `✓ Conexión exitosa a MySQL XAMPP: jardines_vtf@localhost:3306`
 
-1. Instala/inicia PostgreSQL y crea una base dedicada, por ejemplo `vtf_gestion_dev`, con un usuario autorizado para esa base.
-2. Configura la conexión privada en `backend/.env`. Sustituye los marcadores por tus datos; codifica los caracteres especiales de la contraseña en la URL:
+#### B) Modo Contingencia en Memoria (Zero-Config)
+Si no dispones de XAMPP o el servicio MySQL no está iniciado, el backend detecta automáticamente la indisponibilidad de forma no bloqueante y activa el **Modo Contingencia** con los 280 registros semilla en memoria:
+`ℹ MySQL XAMPP no disponible. Modo contingencia activo.`
+Esto permite probar, auditar y ejecutar la suite de pruebas completa sin requerir un servidor de base de datos levantado.
 
-```dotenv
-DATABASE_URL="postgresql://USUARIO:CLAVE@localhost:5432/vtf_gestion_dev?schema=public"
-```
-
-3. Aplica las migraciones versionadas desde `backend`:
-
-```powershell
-Push-Location backend
-npx.cmd prisma migrate deploy
-npm.cmd run prisma:generate
-npm.cmd run prisma:seed
-Pop-Location
-```
-
-4. Reinicia el backend y revisa su mensaje de conexión. Puedes consultar el estado de migraciones con:
-
-```powershell
-Push-Location backend
-npx.cmd prisma migrate status
-Pop-Location
-```
-
-El seed actual sincroniza roles, jardines y tipos de crédito; **no crea por sí mismo el padrón completo ni todas las cuentas en PostgreSQL**. El acceso de demostración puede continuar utilizando las cuentas en memoria.
-
-El script `prisma:migrate` ejecuta `prisma migrate dev`: está destinado a desarrollar nuevas migraciones, puede requerir una base sombra y puede proponer un reset. Para aplicar las migraciones existentes a una base nueva, utiliza `migrate deploy` como se indica arriba. No ejecutes resets ni seeds sobre datos institucionales sin revisar previamente el efecto y contar con respaldo.
+#### C) Soporte Relacional Prisma / PostgreSQL (Opcional)
+Adicionalmente, el proyecto conserva el esquema `backend/prisma/schema.prisma` y sus migraciones para entornos PostgreSQL mediante `DATABASE_URL` y `npx prisma migrate deploy`.
 
 ### 5.9. Compilar y previsualizar el frontend
 

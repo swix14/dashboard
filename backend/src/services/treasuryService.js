@@ -1,5 +1,7 @@
 /**
  * Servicio de Tesorería — Asociación VTF Temuco
+ * Conectado a MySQL XAMPP (tabla movimientos_tesoreria) con contingencia transparente en memoria.
+ * 
  * Reglas de negocio:
  * - Centros de Costo: ASOCIACION, CENA ANUAL, FEDERACION, ISI MUNDO COMISION.
  * - Los ingresos se asignan a ASOCIACION, CENA ANUAL o ISI MUNDO COMISION.
@@ -8,8 +10,9 @@
  * - Comprobante de egreso es estrictamente obligatorio.
  * - Saldo Total Disponible = Saldo Centro Asociación + Saldo Centro Cena Anual.
  */
+import { isDatabaseReady, query } from '../config/db.js';
 
-// Movimientos iniciales históricos de la tesorería de la Asociación
+// Movimientos iniciales históricos de la tesorería de la Asociación (fallback y contingencia)
 let treasuryMovements = [
   {
     id: 'mov-001',
@@ -23,6 +26,7 @@ let treasuryMovements = [
     monto: 280000,
     responsable: 'Alejandra Romanett Sias Novoa',
     comprobante: 'comprobante_fed_jun_2026.pdf',
+    comprobanteArchivo: null,
     createdAt: '2026-06-02T10:30:00Z'
   },
   {
@@ -37,6 +41,7 @@ let treasuryMovements = [
     monto: 280000,
     responsable: 'Alejandra Romanett Sias Novoa',
     comprobante: 'comprobante_fed_jul_2026.pdf',
+    comprobanteArchivo: null,
     createdAt: '2026-07-02T11:15:00Z'
   },
   {
@@ -51,6 +56,7 @@ let treasuryMovements = [
     monto: 280000,
     responsable: 'Alejandra Romanett Sias Novoa',
     comprobante: 'comprobante_fed_ago_2026.pdf',
+    comprobanteArchivo: null,
     createdAt: '2026-08-03T09:45:00Z'
   },
   {
@@ -65,6 +71,7 @@ let treasuryMovements = [
     monto: 280000,
     responsable: 'Alejandra Romanett Sias Novoa',
     comprobante: 'comprobante_fed_sep_2026.pdf',
+    comprobanteArchivo: null,
     createdAt: '2026-09-02T10:00:00Z'
   },
   {
@@ -79,6 +86,7 @@ let treasuryMovements = [
     monto: 280000,
     responsable: 'Alejandra Romanett Sias Novoa',
     comprobante: 'comprobante_fed_oct_2026.pdf',
+    comprobanteArchivo: null,
     createdAt: '2026-10-02T12:00:00Z'
   },
   {
@@ -93,6 +101,7 @@ let treasuryMovements = [
     monto: 54200,
     responsable: 'Alejandra Romanett Sias Novoa',
     comprobante: 'liquidacion_comision_isimundo_oct2026.pdf',
+    comprobanteArchivo: null,
     createdAt: '2026-10-04T15:20:00Z'
   },
   {
@@ -107,6 +116,7 @@ let treasuryMovements = [
     monto: 524000,
     responsable: 'Alejandra Romanett Sias Novoa',
     comprobante: 'comprobante_recaudacion_cena_oct2026.pdf',
+    comprobanteArchivo: null,
     createdAt: '2026-10-05T09:00:00Z'
   },
   {
@@ -121,6 +131,7 @@ let treasuryMovements = [
     monto: 262000,
     responsable: 'Alejandra Romanett Sias Novoa',
     comprobante: 'comprobante_recaudacion_asoc_oct2026.pdf',
+    comprobanteArchivo: null,
     createdAt: '2026-10-05T09:05:00Z'
   },
   {
@@ -135,6 +146,7 @@ let treasuryMovements = [
     monto: 120000,
     responsable: 'Alejandra Romanett Sias Novoa',
     comprobante: 'comprobante_transferencia_sos_0810.pdf',
+    comprobanteArchivo: null,
     createdAt: '2026-10-08T16:40:00Z'
   },
   {
@@ -148,12 +160,13 @@ let treasuryMovements = [
     metodo: 'Efectivo',
     monto: 45000,
     responsable: 'Alejandra Romanett Sias Novoa',
-    comprobante: 'boleta_electronica_libreria_1210.pdf',
-    createdAt: '2026-10-12T14:10:00Z'
+    comprobante: 'boleta_papeleria_12102026.pdf',
+    comprobanteArchivo: null,
+    createdAt: '2026-10-12T11:30:00Z'
   }
 ];
 
-// Saldo base histórico consolidado acumulado en años anteriores
+// Saldos base históricos iniciales
 const SALDO_BASE_ASOCIACION = 5103000;
 const SALDO_BASE_CENA_ANUAL = 8856000;
 
@@ -162,17 +175,33 @@ export const TreasuryService = {
    * Obtiene el resumen financiero calculado en tiempo real
    */
   async getSummary() {
+    let list = treasuryMovements;
+
+    if (isDatabaseReady()) {
+      try {
+        const rows = await query(
+          `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
+                  centro_costo as centroCosto, categoria, descripcion, metodo,
+                  monto, responsable, comprobante, created_at as createdAt
+           FROM movimientos_tesoreria`
+        );
+        if (rows && rows.length > 0) {
+          list = rows;
+        }
+      } catch (err) {
+        console.warn('Error leyendo resumen de tesorería desde MySQL, usando memoria:', err.message);
+      }
+    }
+
     let totalIngresos = 0;
     let totalEgresos = 0;
     let totalPagadoFederacion = 0;
-
     let ingresosAsociacion = 0;
     let egresosAsociacion = 0;
-
     let ingresosCenaAnual = 0;
     let egresosCenaAnual = 0;
 
-    for (const mov of treasuryMovements) {
+    for (const mov of list) {
       const monto = Number(mov.monto) || 0;
 
       if (mov.tipo === 'INGRESO') {
@@ -202,7 +231,7 @@ export const TreasuryService = {
       totalIngresos,
       totalEgresos,
       saldoTotal,
-      totalMovimientos: treasuryMovements.length,
+      totalMovimientos: list.length,
       totalPagadoFederacion,
       saldoAsociacion,
       saldoCenaAnual,
@@ -219,6 +248,58 @@ export const TreasuryService = {
    * Obtiene los movimientos con filtrado multidimensional
    */
   async getMovements(filters = {}) {
+    if (isDatabaseReady()) {
+      try {
+        let sql = `
+          SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
+                 centro_costo as centroCosto, categoria, descripcion, metodo,
+                 monto, responsable, comprobante, created_at as createdAt
+          FROM movimientos_tesoreria
+          WHERE 1=1
+        `;
+        const params = [];
+
+        if (filters.tipo && filters.tipo !== 'TODOS') {
+          sql += ` AND tipo = ?`;
+          params.push(filters.tipo.toUpperCase());
+        }
+
+        if (filters.centroCosto && filters.centroCosto !== 'TODOS') {
+          sql += ` AND centro_costo = ?`;
+          params.push(filters.centroCosto.toUpperCase());
+        }
+
+        if (filters.metodo && filters.metodo !== 'TODOS') {
+          sql += ` AND LOWER(metodo) LIKE ?`;
+          params.push(`%${filters.metodo.toLowerCase()}%`);
+        }
+
+        if (filters.fechaDesde) {
+          sql += ` AND fecha >= ?`;
+          params.push(filters.fechaDesde);
+        }
+
+        if (filters.fechaHasta) {
+          sql += ` AND fecha <= ?`;
+          params.push(filters.fechaHasta);
+        }
+
+        if (filters.fechaExacta) {
+          sql += ` AND fecha = ?`;
+          params.push(filters.fechaExacta);
+        }
+
+        sql += ` ORDER BY fecha DESC, id DESC`;
+
+        const rows = await query(sql, params);
+        if (rows && rows.length > 0) {
+          return rows;
+        }
+      } catch (err) {
+        console.warn('Error obteniendo movimientos desde MySQL, usando memoria:', err.message);
+      }
+    }
+
     let list = [...treasuryMovements];
 
     if (filters.tipo && filters.tipo !== 'TODOS') {
@@ -255,7 +336,25 @@ export const TreasuryService = {
    * Obtiene un movimiento por su identificador
    */
   async getMovementById(id) {
-    return treasuryMovements.find((m) => m.id === id) || null;
+    if (isDatabaseReady()) {
+      try {
+        const rows = await query(
+          `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
+                  centro_costo as centroCosto, categoria, descripcion, metodo,
+                  monto, responsable, comprobante, created_at as createdAt
+           FROM movimientos_tesoreria
+           WHERE id = ? OR correlativo = ?`,
+          [id, id]
+        );
+        if (rows && rows.length > 0) {
+          return rows[0];
+        }
+      } catch (err) {
+        console.warn('Error buscando movimiento por ID en MySQL:', err.message);
+      }
+    }
+
+    return treasuryMovements.find((m) => String(m.id) === String(id) || m.correlativo === id) || null;
   },
 
   /**
@@ -304,21 +403,75 @@ export const TreasuryService = {
       }
     }
 
+    let nextCorrelativo = '';
+    const cleanFecha = fecha || new Date().toISOString().split('T')[0];
+    const cleanDesc = descripcion.trim();
+    const cleanMetodo = metodo || 'Transferencia Bancaria';
+    const cleanResp = responsable || 'Alejandra Romanett Sias Novoa';
+    const cleanComp = comprobante ? comprobante.trim() : null;
+
+    if (isDatabaseReady()) {
+      try {
+        const countRes = await query(`SELECT COUNT(*) as total FROM movimientos_tesoreria`);
+        const total = (countRes[0]?.total || 0) + 1;
+        nextCorrelativo = `MOV-2026-${String(total).padStart(3, '0')}`;
+
+        const insertRes = await query(
+          `INSERT INTO movimientos_tesoreria 
+           (correlativo, fecha, tipo, centro_costo, categoria, descripcion, metodo, monto, responsable, comprobante)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            nextCorrelativo,
+            cleanFecha,
+            cleanTipo,
+            resolvedCentroCosto,
+            resolvedCategoria || resolvedCentroCosto,
+            cleanDesc,
+            cleanMetodo,
+            cleanMonto,
+            cleanResp,
+            cleanComp
+          ]
+        );
+
+        const newDbMovement = {
+          id: insertRes.insertId,
+          correlativo: nextCorrelativo,
+          fecha: cleanFecha,
+          tipo: cleanTipo,
+          centroCosto: resolvedCentroCosto,
+          categoria: resolvedCategoria || resolvedCentroCosto,
+          descripcion: cleanDesc,
+          metodo: cleanMetodo,
+          monto: cleanMonto,
+          responsable: cleanResp,
+          comprobante: cleanComp,
+          comprobanteArchivo: comprobanteArchivo || null,
+          createdAt: new Date().toISOString()
+        };
+
+        treasuryMovements.unshift(newDbMovement);
+        return newDbMovement;
+      } catch (err) {
+        console.warn('Error insertando movimiento en MySQL, usando memoria:', err.message);
+      }
+    }
+
     const nextIndex = treasuryMovements.length + 1;
-    const nextCorrelativo = `MOV-2026-${String(nextIndex).padStart(3, '0')}`;
+    nextCorrelativo = `MOV-2026-${String(nextIndex).padStart(3, '0')}`;
 
     const newMovement = {
       id: `mov-${Date.now()}`,
       correlativo: nextCorrelativo,
-      fecha: fecha || new Date().toISOString().split('T')[0],
+      fecha: cleanFecha,
       tipo: cleanTipo,
       centroCosto: resolvedCentroCosto,
       categoria: resolvedCategoria || resolvedCentroCosto,
-      descripcion: descripcion.trim(),
-      metodo: metodo || 'Transferencia Bancaria',
+      descripcion: cleanDesc,
+      metodo: cleanMetodo,
       monto: cleanMonto,
-      responsable: responsable || 'Alejandra Romanett Sias Novoa',
-      comprobante: comprobante ? comprobante.trim() : null,
+      responsable: cleanResp,
+      comprobante: cleanComp,
       // Metadatos del archivo físico guardado en backend/uploads (null en registros históricos)
       comprobanteArchivo: comprobanteArchivo || null,
       createdAt: new Date().toISOString()

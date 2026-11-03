@@ -1,4 +1,6 @@
+import { isDatabaseReady, query } from '../config/db.js';
 import { INITIAL_JARDINES } from './seedData.js';
+import { TreasuryService } from './treasuryService.js';
 
 export const DashboardService = {
   /**
@@ -7,15 +9,76 @@ export const DashboardService = {
   async getMetricsByRole(user) {
     const roleCode = user.role?.code || user.role;
 
-    // Métricas globales de la asociación
+    // Métricas base dinámicas o por defecto
+    let totalSocias = 277;
+    let totalJardines = 23;
+    let ultimosPagosFederacion = [
+      { correlativo: 'FED-2026-005', fecha: '2026-10-02', monto: 280000, descripcion: 'Cuota Federación Octubre 2026', comprobante: 'comprobante_fed_oct_2026.pdf' },
+      { correlativo: 'FED-2026-004', fecha: '2026-09-02', monto: 280000, descripcion: 'Cuota Federación Septiembre 2026', comprobante: 'comprobante_fed_sep_2026.pdf' },
+      { correlativo: 'FED-2026-003', fecha: '2026-08-03', monto: 280000, descripcion: 'Cuota Federación Agosto 2026', comprobante: 'comprobante_fed_ago_2026.pdf' },
+      { correlativo: 'FED-2026-002', fecha: '2026-07-02', monto: 280000, descripcion: 'Cuota Federación Julio 2026', comprobante: 'comprobante_fed_jul_2026.pdf' },
+      { correlativo: 'FED-2026-001', fecha: '2026-06-02', monto: 280000, descripcion: 'Cuota Federación Junio 2026', comprobante: 'comprobante_fed_jun_2026.pdf' }
+    ];
+
+    let creditosStats = {
+      activasConIsimundo: 38,
+      activasConSos: 24,
+      activasConDentalOptica: 19,
+      activasSinCredito: 196,
+      totalActivas: 277
+    };
+
+    // Obtener saldos reales de tesorería
+    const treasurySummary = await TreasuryService.getSummary();
+
+    if (isDatabaseReady()) {
+      try {
+        const [sociaCount] = await query(`SELECT COUNT(*) as total, COUNT(DISTINCT jardin) as totalJardines FROM socias`);
+        if (sociaCount?.total) {
+          totalSocias = Number(sociaCount.total);
+          totalJardines = Number(sociaCount.totalJardines) || 23;
+        }
+
+        const fedRows = await query(
+          `SELECT correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, monto, descripcion, comprobante
+           FROM movimientos_tesoreria
+           WHERE centro_costo = 'FEDERACION'
+           ORDER BY fecha DESC
+           LIMIT 5`
+        );
+        if (fedRows.length > 0) {
+          ultimosPagosFederacion = fedRows;
+        }
+
+        // Estadísticas de créditos reales en MySQL
+        const [isiRes] = await query(`SELECT COUNT(*) as c FROM creditos WHERE convenio_id = 2 AND estado = 'vigente'`);
+        const [sosRes] = await query(`SELECT COUNT(*) as c FROM creditos WHERE convenio_id = 1 AND estado = 'vigente'`);
+        const [otrosRes] = await query(`SELECT COUNT(*) as c FROM creditos WHERE convenio_id IN (3, 4, 5) AND estado = 'vigente'`);
+
+        const cIsi = Number(isiRes?.c || 38);
+        const cSos = Number(sosRes?.c || 24);
+        const cOtros = Number(otrosRes?.c || 19);
+
+        creditosStats = {
+          activasConIsimundo: cIsi,
+          activasConSos: cSos,
+          activasConDentalOptica: cOtros,
+          activasSinCredito: Math.max(0, totalSocias - (cIsi + cSos + cOtros)),
+          totalActivas: totalSocias
+        };
+      } catch (err) {
+        console.warn('Error calculando métricas avanzadas MySQL, usando valores calculados:', err.message);
+      }
+    }
+
     const baseSummary = {
       asociacion: 'Asociación de Jardines VTF',
-      totalJardines: INITIAL_JARDINES.length,
-      totalSocias: 280,
-      totalDelegadas: 23,
-      fondoComunSaldo: 14580000, // $14.580.000 CLP
-      totalIngresosPeriodo: 4850000,
-      totalEgresosPeriodo: 2120000,
+      totalJardines,
+      totalSocias,
+      totalDelegadas: totalJardines,
+      fondoComunSaldo: treasurySummary.saldoTotal,
+      totalIngresosPeriodo: treasurySummary.totalIngresos,
+      totalEgresosPeriodo: treasurySummary.totalEgresos,
       valorCuotaMensual: 4000,
       distribucionCuota: {
         federacion: 1000,
@@ -25,9 +88,9 @@ export const DashboardService = {
     };
 
     // 1. Roles Administrativos / Directiva con acceso financiero y operativo
-    // (Admin, Presidenta, Tesorera, Secretaria, Directora)
     const isDirectiva = [
       'ADMIN',
+      'SUPER_ADMIN',
       'PRESIDENTA',
       'TESORERA',
       'SECRETARIA',
@@ -38,24 +101,18 @@ export const DashboardService = {
       return {
         ...baseSummary,
         nivelAcceso: 'DIRECTIVA_ADMINISTRATIVA',
-        puedeGestionarFinanzas: roleCode === 'TESORERA' || roleCode === 'ADMIN',
-        puedeGestionarSocias: roleCode === 'SECRETARIA' || roleCode === 'ADMIN' || roleCode === 'PRESIDENTA',
+        puedeGestionarFinanzas: roleCode === 'TESORERA' || roleCode === 'ADMIN' || roleCode === 'SUPER_ADMIN',
+        puedeGestionarSocias: roleCode === 'SECRETARIA' || roleCode === 'ADMIN' || roleCode === 'SUPER_ADMIN' || roleCode === 'PRESIDENTA',
         inicio: {
           // Fila 1: KPIs Principales
-          sociasActivas: 276,
+          sociasActivas: totalSocias - 4,
           sociasSuspendidas: 4,
-          saldoTotal: 14580000,
-          saldoCenaAnual: 9260000,
-          saldoAsociacion: 5320000,
+          saldoTotal: treasurySummary.saldoTotal,
+          saldoCenaAnual: treasurySummary.saldoCenaAnual,
+          saldoAsociacion: treasurySummary.saldoAsociacion,
 
           // Fila 2: Recuadros Medianos
-          ultimosPagosFederacion: [
-            { correlativo: 'FED-2026-005', fecha: '2026-10-02', monto: 280000, descripcion: 'Cuota Federación Octubre 2026', comprobante: 'comprobante_fed_oct_2026.pdf' },
-            { correlativo: 'FED-2026-004', fecha: '2026-09-02', monto: 280000, descripcion: 'Cuota Federación Septiembre 2026', comprobante: 'comprobante_fed_sep_2026.pdf' },
-            { correlativo: 'FED-2026-003', fecha: '2026-08-03', monto: 280000, descripcion: 'Cuota Federación Agosto 2026', comprobante: 'comprobante_fed_ago_2026.pdf' },
-            { correlativo: 'FED-2026-002', fecha: '2026-07-02', monto: 280000, descripcion: 'Cuota Federación Julio 2026', comprobante: 'comprobante_fed_jul_2026.pdf' },
-            { correlativo: 'FED-2026-001', fecha: '2026-06-02', monto: 280000, descripcion: 'Cuota Federación Junio 2026', comprobante: 'comprobante_fed_jun_2026.pdf' }
-          ],
+          ultimosPagosFederacion,
           proximasTareas: [
             { id: 'task-1', titulo: 'Cierre Tesorería Mensual', fechaLimite: '31/10/2026', estado: 'Pendiente', urgencia: 'alta', descripcion: 'Consolidación de ingresos y egresos mes de Octubre' },
             { id: 'task-2', titulo: 'Exportar Informe Mensual', fechaLimite: '02/11/2026', estado: 'Programada', urgencia: 'media', descripcion: 'Generación de informe contable mensual en Excel' },
@@ -65,7 +122,7 @@ export const DashboardService = {
             sociasUltimaCuotaIsimundo: 6,
             sociasUltimaCuotaSos: 3,
             pagoFederacionAlDia: true,
-            pagoFederacionFecha: '02/10/2026'
+            pagoFederacionFecha: ultimosPagosFederacion[0]?.fecha || '02/10/2026'
           },
 
           // Fila 3: Gráficos Analíticos
@@ -98,28 +155,22 @@ export const DashboardService = {
                 { mes: 'Dic', ingresos: 1240000, egresos: 620000 }
               ]
             },
-            estadoSociasCreditos: {
-              activasConIsimundo: 38,
-              activasConSos: 24,
-              activasConDentalOptica: 19,
-              activasSinCredito: 195,
-              totalActivas: 276
-            }
+            estadoSociasCreditos: creditosStats
           }
         },
         kpis: [
           {
             id: 'saldo-fondo',
             label: 'Saldo Total',
-            value: '$14.580.000',
+            value: `$${treasurySummary.saldoTotal.toLocaleString('es-CL')}`,
             sublabel: 'Cena Anual + Asociación',
             type: 'positive'
           },
           {
             id: 'socias-activas',
-            label: 'Socias Activas',
-            value: '276 / 280',
-            sublabel: 'Padrón al día',
+            label: 'Socias Registradas',
+            value: `${totalSocias - 4} / ${totalSocias}`,
+            sublabel: 'Padrón en base de datos',
             type: 'positive'
           },
           {
@@ -129,49 +180,6 @@ export const DashboardService = {
             sublabel: 'Sin cobro de cuota',
             type: 'warning'
           }
-        ],
-        movimientosRecientes: [
-          {
-            id: 'mov-1',
-            fecha: '2026-10-06',
-            tipo: 'INGRESO',
-            categoria: 'Cuotas Mensuales',
-            monto: 1048000,
-            descripcion: 'Recaudación masiva cuotas Octubre 2026',
-            comprobante: true
-          },
-          {
-            id: 'mov-2',
-            fecha: '2026-10-04',
-            tipo: 'INGRESO',
-            categoria: 'Comisión EasyMundo',
-            monto: 54200,
-            descripcion: 'Comisión 2% convenio EasyMundo',
-            comprobante: true
-          },
-          {
-            id: 'mov-3',
-            fecha: '2026-10-02',
-            tipo: 'EGRESO',
-            categoria: 'Aporte Federación',
-            monto: 280000,
-            descripcion: 'Transferencia aporte nacional federación',
-            comprobante: true
-          },
-          {
-            id: 'mov-4',
-            fecha: '2026-09-28',
-            tipo: 'EGRESO',
-            categoria: 'Gastos Operacionales',
-            monto: 85000,
-            descripcion: 'Insumos de oficina y hosting anual',
-            comprobante: true
-          }
-        ],
-        distribucionFondo: [
-          { name: 'Fondo Cena Anual ($2.000/socia)', porcentaje: 50, monto: 7290000 },
-          { name: 'Fondo Asociación ($1.000/socia)', porcentaje: 25, monto: 3645000 },
-          { name: 'Fondo Reserva / Federación', porcentaje: 25, monto: 3645000 }
         ]
       };
     }
@@ -186,14 +194,14 @@ export const DashboardService = {
           {
             id: 'fondo-comun',
             label: 'Saldo Fondo Común Asociación',
-            value: '$14.580.000',
+            value: `$${treasurySummary.saldoTotal.toLocaleString('es-CL')}`,
             sublabel: 'Auditoría pública al día',
             type: 'positive'
           },
           {
             id: 'jardines-activos',
             label: 'Jardines en la Asociación',
-            value: '23 jardines',
+            value: `${totalJardines} jardines`,
             sublabel: 'Representación activa',
             type: 'neutral'
           },
@@ -208,7 +216,7 @@ export const DashboardService = {
         resumenTransparencia: {
           comunicados: [
             'Proceso de rendición semestral aprobado por el comité de directiva.',
-            'Recordatorio: La comisión EasyMundo 2% se integra al fondo de bienestar común.',
+            'Recordatorio: La comisión Isi Mundo 2% se integra al fondo de bienestar común.',
             'Próxima asamblea de delegadas programada para fin de mes.'
           ]
         }
