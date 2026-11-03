@@ -180,6 +180,8 @@ export function SociaFormModal({ formMode, editing, jardines, onClose, onSuccess
               <option value="DIRECTORA">Directora</option>
               <option value="EDUCADORA">Educadora</option>
               <option value="TECNICO">Técnico</option>
+              <option value="ASISTENTE">Asistente</option>
+              <option value="AUXILIAR">Auxiliar</option>
             </select>
           </div>
           <div>

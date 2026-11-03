@@ -5,7 +5,13 @@ import { Badge } from '../common/Badge.jsx';
 import { Button } from '../common/Button.jsx';
 import { formatCurrencyCLP, formatDateCLP } from '../../utils/formatters.js';
 
-const CARGO_LABELS = { DIRECTORA: 'Directora', EDUCADORA: 'Educadora', TECNICO: 'Técnico' };
+const CARGO_LABELS = {
+  DIRECTORA: 'Directora',
+  EDUCADORA: 'Educadora',
+  TECNICO: 'Técnico',
+  ASISTENTE: 'Asistente',
+  AUXILIAR: 'Auxiliar'
+};
 const DIRECTIVA_LABELS = {
   PRESIDENTA: 'Presidenta',
   TESORERA: 'Tesorera',

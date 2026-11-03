@@ -29,13 +29,34 @@ import { formatCurrencyCLP } from '../utils/formatters.js';
 
 const PAGE_SIZE = 20;
 
-const CARGO_LABELS = { DIRECTORA: 'Directora', EDUCADORA: 'Educadora', TECNICO: 'Técnico' };
-const CREDITO_LABELS = { ISIMUNDO: 'Isi Mundo', 'S.O.S': 'S.O.S', OPTICA: 'Óptica', DENTAL: 'Dental' };
+const CARGO_LABELS = {
+  DIRECTORA: 'Directora',
+  EDUCADORA: 'Educadora',
+  TECNICO: 'Técnico',
+  ASISTENTE: 'Asistente',
+  AUXILIAR: 'Auxiliar'
+};
+const CREDITO_LABELS = {
+  ISIMUNDO: 'Isi Mundo',
+  'S.O.S': 'S.O.S',
+  SOS: 'S.O.S',
+  OPTICA: 'Óptica',
+  'ÓPTICA': 'Óptica',
+  DENTAL: 'Dental'
+};
 const DIRECTIVA_LABELS = {
   PRESIDENTA: 'Presidenta',
   TESORERA: 'Tesorera',
   SECRETARIA: 'Secretaria',
   DIRECTORA: 'Directora Directiva'
+};
+
+const labelStyle = {
+  display: 'block',
+  fontSize: '0.75rem',
+  fontWeight: 700,
+  color: 'var(--text-muted)',
+  marginBottom: '0.375rem'
 };
 
 function KpiCard({ label, value, hint, icon: Icon, accent }) {
@@ -178,7 +199,7 @@ export function SociasPage() {
       s.rut,
       `"${s.firstName}"`,
       `"${s.lastName}"`,
-      CARGO_LABELS[s.cargo],
+      CARGO_LABELS[s.cargo] || s.cargo || 'Sin cargo',
       `"${s.jardin?.name || ''}"`,
       s.estado,
       s.cuotaMensual,
@@ -276,7 +297,11 @@ export function SociasPage() {
         <KpiCard
           label="Total Socias"
           value={summary?.totalSocias ?? '—'}
-          hint={summary ? `${summary.porCargo.DIRECTORA} directoras · ${summary.porCargo.EDUCADORA} educadoras · ${summary.porCargo.TECNICO} técnicos` : ''}
+          hint={
+            summary?.porCargo
+              ? `${summary.porCargo.DIRECTORA || 0} directoras · ${summary.porCargo.EDUCADORA || 0} educadoras · ${summary.porCargo.TECNICO || 0} técnicos`
+              : ''
+          }
           icon={Users}
           accent="var(--primary-500)"
         />
@@ -440,7 +465,7 @@ export function SociasPage() {
                             {s.esDelegada && <Badge variant="info">Delegada</Badge>}
                           </div>
                         </td>
-                        <td style={{ whiteSpace: 'nowrap' }}>{CARGO_LABELS[s.cargo]}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{CARGO_LABELS[s.cargo] || s.cargo || 'Sin cargo'}</td>
                         <td style={{ fontSize: '0.8125rem' }}>
                           <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>{s.jardin?.code}</span>{' '}
                           {s.jardin?.name?.replace('Jardín ', '')}
@@ -475,7 +500,7 @@ export function SociasPage() {
                             >
                               SI ·{' '}
                               {s.creditosActivos
-                                .map((c) => `${CREDITO_LABELS[c.tipo]} ${c.cuotasPagadas}/${c.totalCuotas}`)
+                                .map((c) => `${CREDITO_LABELS[c.tipo] || c.tipo} ${c.cuotasPagadas}/${c.totalCuotas}`)
                                 .join(', ')}
                             </button>
                           ) : (
