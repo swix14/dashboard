@@ -3,9 +3,12 @@
 
 -- Para dropear la base de datos (solo usenlo para pruebas y no para
 -- la base de datos real porfa)
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
 DROP DATABASE IF EXISTS `JARDINES_VTF`;
 
-CREATE DATABASE IF NOT EXISTS `JARDINES_VTF`;
+CREATE DATABASE IF NOT EXISTS `JARDINES_VTF` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 USE `JARDINES_VTF`;
 

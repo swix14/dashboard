@@ -153,3 +153,4 @@ export const SociaAuthService = {
     return { success: true, message: 'Contraseña actualizada exitosamente.' };
   }
 };
+

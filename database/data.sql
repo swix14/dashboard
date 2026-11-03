@@ -1,7 +1,10 @@
 -- ============================================================================
--- SISTEMA DE GESTI??N ASOCIACI??N DE JARDINES VTF TEMUCO
+-- SISTEMA DE GESTIÓN ASOCIACIÓN DE JARDINES VTF TEMUCO
 -- SCRIPT DE POBLADO DE DATOS LIMPIO Y CONSECUTIVO (data.sql)
 -- ============================================================================
+
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
 
 USE `JARDINES_VTF`;
 
@@ -16,7 +19,7 @@ INSERT INTO `convenios` (`id`, `nombre`, `descripcion`, `activo`) VALUES
 (5, 'Abogada', 'Convenio asesoría legal / Abogada', 1);
 
 -- ============================================================================
--- 2. PADR??N UNIFICADO DE SOCIAS (277 REGISTROS CONSECUTIVOS DEL ID 1 AL 277)
+-- 2. PADRÓN UNIFICADO DE SOCIAS (277 REGISTROS CONSECUTIVOS DEL ID 1 AL 277)
 -- ============================================================================
 INSERT INTO `socias` (`id`, `rut`, `apellido_paterno`, `apellido_materno`, `nombres`, `cargo`, `celular`, `correo`, `jardin`) VALUES
 (1, '20.081.109-7', 'ABARZA', 'VEGA', 'VICTORIA CATALINA', 'TECNICO', '+569-98027138', NULL, 'Los Folkloristas'),
@@ -298,7 +301,7 @@ INSERT INTO `socias` (`id`, `rut`, `apellido_paterno`, `apellido_materno`, `nomb
 (277, '19.198.120-0', 'ZUÑIGA', 'TORRES', 'MARLY IVONE', 'ASISTENTE', '+569-83044394', NULL, 'Villa Los Ríos');
 
 -- ============================================================================
--- 3. CARGA DE CR??DITOS OTORGADOS (151 REGISTROS)
+-- 3. CARGA DE CRÉDITOS OTORGADOS (151 REGISTROS)
 -- ============================================================================
 INSERT INTO `creditos` (`id`, `socia_id`, `convenio_id`, `numero_credito`, `monto_total`, `monto_cuota`, `total_cuotas`, `cuotas_pagadas`, `fecha_otorgamiento`, `fecha_termino`, `estado`) VALUES
 (1, (SELECT id FROM socias WHERE rut='16.825.023-1'), 1, NULL, 149999, 25000, 4, 2, '2026-09-01', '2026-12-01', 'vigente'),
@@ -1054,7 +1057,7 @@ INSERT INTO `liquidaciones_mensuales` (`socia_id`, `mes`, `anio`, `cuota_asociac
 ((SELECT id FROM socias WHERE rut='19.198.120-0'), 10, 2026, 4000, 72351, 'generada');
 
 -- ============================================================================
--- 6. MOVIMIENTOS HIST??RICOS DE TESORER??A (10 REGISTROS)
+-- 6. MOVIMIENTOS HISTÓRICOS DE TESORERÍA (10 REGISTROS)
 -- ============================================================================
 INSERT INTO `movimientos_tesoreria` (`id`, `correlativo`, `fecha`, `tipo`, `centro_costo`, `categoria`, `descripcion`, `metodo`, `monto`, `responsable`, `comprobante`, `created_at`) VALUES
 (1, 'MOV-2026-001', '2026-06-02', 'EGRESO', 'FEDERACION', 'PAGO FEDERACION', 'Aporte gremial nacional mes de Junio 2026', 'Transferencia Bancaria', 280000, 'Tesorera General VTF', 'comprobante_fed_jun_2026.pdf', '2026-06-02 10:30:00'),

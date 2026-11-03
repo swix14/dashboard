@@ -87,3 +87,4 @@ export const NoticiasService = {
     return newNoticia;
   }
 };
+
