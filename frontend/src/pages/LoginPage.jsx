@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Lock, Mail, ShieldAlert, ArrowRight } from 'lucide-react';
+import { Lock, Mail, ShieldAlert, ArrowRight, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { Button } from '../components/common/Button.jsx';
@@ -234,6 +234,48 @@ export function LoginPage() {
             Ingresar al Sistema
           </Button>
         </form>
+
+        {/* Acceso Diferenciado para Socias de la Asociación */}
+        <div style={{ marginTop: '1.25rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              margin: '1.25rem 0 1rem 0',
+              color: 'var(--text-muted)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              letterSpacing: '0.04em'
+            }}
+          >
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-subtle)' }} />
+            <span style={{ padding: '0 0.75rem', textTransform: 'uppercase' }}>
+              ¿Eres Socia de la Asociación?
+            </span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-subtle)' }} />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/socia/login')}
+            icon={Users}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              borderColor: 'var(--primary-300)',
+              color: 'var(--primary-700)',
+              fontWeight: 600,
+              backgroundColor: 'var(--sigav-soft, rgba(114, 86, 130, 0.06))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            Acceso Socias
+          </Button>
+        </div>
 
         <div
           style={{

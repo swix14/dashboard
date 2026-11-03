@@ -3,6 +3,7 @@ import authRoutes from './authRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
 import treasuryRoutes from './treasuryRoutes.js';
 import sociaRoutes from './sociaRoutes.js';
+import sociaPortalRoutes from './sociaPortalRoutes.js';
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use('/auth', authRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/tesoreria', treasuryRoutes);
 router.use('/socias', sociaRoutes);
+router.use('/socia', sociaPortalRoutes);
 
 export default router;

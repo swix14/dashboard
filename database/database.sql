@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS `socias` (
     `cargo` VARCHAR(50),
     `celular` VARCHAR(20),
     `correo` VARCHAR(100),
+    `password` VARCHAR(255) NULL,
+    `primer_ingreso` TINYINT(1) DEFAULT 1,
     `jardin` VARCHAR(150)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
@@ -142,4 +144,34 @@ CREATE TABLE IF NOT EXISTS `auditoria` (
     INDEX `idx_auditoria_usuario` (`usuario_id`),
     INDEX `idx_auditoria_accion` (`accion`),
     INDEX `idx_auditoria_fecha` (`created_at`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 8. Tabla de Noticias y Comunicados Gremiales
+CREATE TABLE IF NOT EXISTS `noticias` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `titulo` VARCHAR(200) NOT NULL,
+    `contenido` TEXT NOT NULL,
+    `categoria` ENUM('FEDERACION', 'CONVENIO', 'COMUNICADO', 'BENEFICIO') DEFAULT 'COMUNICADO',
+    `fecha_publicacion` DATE NOT NULL,
+    `destacado` TINYINT(1) DEFAULT 0,
+    `autor` VARCHAR(100) DEFAULT 'Directiva VTF',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 9. Tabla de Buzón de Socias (Sugerencias, Reclamos, Felicitaciones, Consultas)
+CREATE TABLE IF NOT EXISTS `buzon_mensajes` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `socia_id` INT NULL,
+    `socia_rut` VARCHAR(15) NOT NULL,
+    `socia_nombre` VARCHAR(150) NOT NULL,
+    `socia_jardin` VARCHAR(150) NOT NULL,
+    `tipo` ENUM('FELICITACION', 'RECLAMO', 'SUGERENCIA', 'CONSULTA', 'OTRO') NOT NULL,
+    `asunto` VARCHAR(200) NOT NULL,
+    `mensaje` TEXT NOT NULL,
+    `archivo_adjunto` VARCHAR(255) NULL,
+    `estado` ENUM('PENDIENTE', 'LEIDO', 'RESPONDIDO') DEFAULT 'PENDIENTE',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_buzon_rut` (`socia_rut`),
+    INDEX `idx_buzon_tipo` (`tipo`),
+    INDEX `idx_buzon_fecha` (`created_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;

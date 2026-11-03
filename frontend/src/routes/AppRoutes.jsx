@@ -1,8 +1,11 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { ProtectedRoute } from './ProtectedRoute.jsx';
 import { MainLayout } from '../components/layout/MainLayout.jsx';
 import { LoginPage } from '../pages/LoginPage.jsx';
+import { SociaLoginPage } from '../pages/SociaLoginPage.jsx';
+import { SociaPortalPage } from '../pages/SociaPortalPage.jsx';
 import { DashboardPage } from '../pages/DashboardPage.jsx';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage.jsx';
 import { NotFoundPage } from '../pages/NotFoundPage.jsx';
@@ -11,21 +14,35 @@ import { TreasuryPage } from '../pages/TreasuryPage.jsx';
 import { SociasPage } from '../pages/SociasPage.jsx';
 
 export function AppRoutes() {
+  const { isSocia } = useAuth();
+
   return (
     <Routes>
       {/* Rutas Públicas */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/socia/login" element={<SociaLoginPage />} />
+      <Route path="/socia" element={<Navigate to="/socia/portal" replace />} />
 
-      {/* Rutas Protegidas en Layout Principal */}
+      {/* Portal Exclusivo de Socias (Protegido para Socias y Directiva) */}
+      <Route
+        path="/socia/portal"
+        element={
+          <ProtectedRoute allowedRoles={['SOCIA', 'ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA']}>
+            <SociaPortalPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Rutas Protegidas en Layout Principal (Directiva / Administradores) */}
       <Route
         path="/"
         element={
           <ProtectedRoute>
-            <MainLayout />
+            {isSocia ? <Navigate to="/socia/portal" replace /> : <MainLayout />}
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route index element={<Navigate to={isSocia ? '/socia/portal' : '/dashboard'} replace />} />
         {/* V1 — Inicio Institucional */}
         <Route path="dashboard" element={<DashboardPage />} />
 

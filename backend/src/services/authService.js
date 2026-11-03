@@ -181,6 +181,48 @@ export const AuthService = {
   async getProfile(userId) {
     let user = null;
 
+    if (String(userId).startsWith('socia-')) {
+      const rawId = String(userId).replace('socia-', '');
+      if (isDatabaseReady()) {
+        try {
+          const rows = await query(
+            `SELECT id, rut, nombres, apellido_paterno, apellido_materno, cargo, jardin, primer_ingreso
+             FROM socias
+             WHERE id = ?`,
+            [rawId]
+          );
+          if (rows.length > 0) {
+            const row = rows[0];
+            return {
+              id: `socia-${row.id}`,
+              sociaId: row.id,
+              rut: row.rut,
+              firstName: row.nombres,
+              lastName: `${row.apellido_paterno || ''} ${row.apellido_materno || ''}`.trim(),
+              role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
+              cargo: row.cargo,
+              jardin: row.jardin,
+              primerIngreso: Boolean(row.primer_ingreso)
+            };
+          }
+        } catch (err) {
+          console.warn('Error en getProfile socia MySQL:', err.message);
+        }
+      }
+
+      return {
+        id: `socia-${rawId}`,
+        sociaId: rawId,
+        rut: 'RUT Socia',
+        firstName: 'Socia',
+        lastName: 'VTF',
+        role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
+        cargo: 'Socia',
+        jardin: 'Jardín VTF',
+        primerIngreso: false
+      };
+    }
+
     if (isDatabaseReady() && String(userId).startsWith('admin-')) {
       const rawId = userId.replace('admin-', '');
       try {

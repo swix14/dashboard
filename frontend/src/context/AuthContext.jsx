@@ -35,15 +35,18 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []);
 
+  const setAuthenticatedSession = (receivedToken, receivedUser) => {
+    localStorage.setItem('vtf_token', receivedToken);
+    localStorage.setItem('vtf_user', JSON.stringify(receivedUser));
+    setToken(receivedToken);
+    setUser(receivedUser);
+  };
+
   const login = async (identifier, password) => {
     const res = await api.post('/auth/login', { identifier, password });
     const { token: receivedToken, user: receivedUser } = res.data.data;
 
-    localStorage.setItem('vtf_token', receivedToken);
-    localStorage.setItem('vtf_user', JSON.stringify(receivedUser));
-
-    setToken(receivedToken);
-    setUser(receivedUser);
+    setAuthenticatedSession(receivedToken, receivedUser);
     return receivedUser;
   };
 
@@ -81,6 +84,7 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!token && !!user,
     isLoading,
     login,
+    setAuthenticatedSession,
     logout,
     hasRole,
     isDirectiva,

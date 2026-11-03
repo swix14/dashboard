@@ -347,7 +347,14 @@ export const TreasuryService = {
           [id, id]
         );
         if (rows && rows.length > 0) {
-          return rows[0];
+          const row = rows[0];
+          const inMem = treasuryMovements.find(
+            (m) => String(m.id) === String(id) || m.correlativo === id
+          );
+          if (inMem?.comprobanteArchivo) {
+            row.comprobanteArchivo = inMem.comprobanteArchivo;
+          }
+          return row;
         }
       } catch (err) {
         console.warn('Error buscando movimiento por ID en MySQL:', err.message);

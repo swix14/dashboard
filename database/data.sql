@@ -1067,3 +1067,12 @@ INSERT INTO `movimientos_tesoreria` (`id`, `correlativo`, `fecha`, `tipo`, `cent
 (8, 'MOV-2026-008', '2026-10-05', 'INGRESO', 'ASOCIACION', 'ASOCIACION', 'Recaudación cuota gremial asociación ($1.000 x 262 socias)', 'Descuento Planilla', 262000, 'Tesorera General VTF', 'comprobante_recaudacion_asoc_oct2026.pdf', '2026-10-05 09:05:00'),
 (9, 'MOV-2026-009', '2026-10-08', 'EGRESO', 'CENA ANUAL', 'S.O.S', 'Crédito de emergencia S.O.S aprobado para socia de Jardín Campanita', 'Transferencia Bancaria', 120000, 'Tesorera General VTF', 'comprobante_transferencia_sos_0810.pdf', '2026-10-08 16:40:00'),
 (10, 'MOV-2026-010', '2026-10-12', 'EGRESO', 'ASOCIACION', 'OTROS', 'Adquisición de insumos de papelería e impresiones para asamblea general', 'Efectivo', 45000, 'Tesorera General VTF', 'boleta_papeleria_12102026.pdf', '2026-10-12 11:30:00');
+
+-- ============================================================================
+-- 7. NOTICIAS Y COMUNICADOS GREMIALES INICIALES
+-- ============================================================================
+INSERT INTO `noticias` (`id`, `titulo`, `contenido`, `categoria`, `fecha_publicacion`, `destacado`, `autor`) VALUES
+(1, 'Aporte Gremial Federación Octubre 2026 al Día', 'Informamos a todas nuestras socias que el aporte gremial nacional correspondiente al mes de Octubre de 2026 ha sido transferido satisfactoriamente a la Federación Nacional VTF por un monto de $280.000 CLP con comprobante respaldado en Tesorería.', 'FEDERACION', '2026-10-02', 1, 'Tesorera General VTF'),
+(2, 'Liquidación de Créditos y Convenio Isi Mundo', 'Se ha completado la conciliación y liquidación del convenio Isi Mundo con el abono del 2% de comisión a los fondos de la Asociación. Las socias con cuotas vigentes mantienen sus estados actualizados.', 'CONVENIO', '2026-10-04', 0, 'Directiva VTF'),
+(3, 'Comunicado Gremial: Concesión de Día Libre y Asamblea', 'Estimadas socias: Recordamos los acuerdos alcanzados para el ejercicio del día libre institucional y los puntos de tabla para la próxima asamblea general extraordinaria.', 'COMUNICADO', '2026-10-10', 1, 'Presidencia VTF');
+
