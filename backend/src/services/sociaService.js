@@ -9,6 +9,7 @@
  *
  * Nota: opera en memoria (igual que Tesorería) hasta que se conecte la base de datos.
  */
+import { isDatabaseReady, query } from '../config/db.js';
 import { INITIAL_JARDINES } from './seedData.js';
 import { INITIAL_SOCIAS, CUOTA_SOCIAL_MENSUAL } from './sociasSeedData.js';
 import { formatRutWithDots } from '../utils/rutValidator.js';
@@ -201,6 +202,21 @@ export const SociaService = {
     };
 
     socias.push(socia);
+
+    // Sincronización persistente en MySQL si la base de datos está disponible
+    if (isDatabaseReady()) {
+      try {
+        const jardinObj = findJardin(jardinId);
+        await query(
+          `INSERT INTO socias (rut, apellido_paterno, apellido_materno, nombres, cargo, jardin)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [socia.rut, socia.lastName, '', socia.firstName, socia.cargo, jardinObj?.name || '']
+        );
+      } catch (dbErr) {
+        console.warn('Advertencia: no se pudo sincronizar inserción en MySQL (socias):', dbErr.message);
+      }
+    }
+
     return toDetail(socia);
   },
 
@@ -250,6 +266,19 @@ export const SociaService = {
       if (socia.esDelegada) {
         socia.esDelegada = false;
         cambios.esDelegada = { anterior: true, nuevo: false };
+      }
+    }
+
+    // Sincronización persistente en MySQL si la base de datos está disponible
+    if (isDatabaseReady()) {
+      try {
+        const jardinObj = findJardin(socia.jardinId);
+        await query(
+          `UPDATE socias SET apellido_paterno = ?, nombres = ?, cargo = ?, jardin = ? WHERE rut = ?`,
+          [socia.lastName, socia.firstName, socia.cargo, jardinObj?.name || '', socia.rut]
+        );
+      } catch (dbErr) {
+        console.warn('Advertencia: no se pudo sincronizar actualización en MySQL (socias):', dbErr.message);
       }
     }
 

@@ -14,15 +14,7 @@ import { api } from '../services/api.js';
 import { Card } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
-
-const formatFullDate = (dateStr) => {
-  if (!dateStr) return '';
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return dateStr;
-};
+import { formatCurrencyCLP, formatDateCLP } from '../utils/formatters.js';
 
 export function DashboardPage() {
   const { user, isDirectiva } = useAuth();
@@ -156,7 +148,7 @@ export function DashboardPage() {
               Cuota Social Mensual
             </div>
             <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--primary-800)' }}>
-              ${data.valorCuotaMensual?.toLocaleString('es-CL')} CLP
+              {formatCurrencyCLP(data.valorCuotaMensual)}
             </div>
           </div>
         </div>
@@ -294,17 +286,17 @@ export function DashboardPage() {
               </div>
             </div>
             <div style={{ fontSize: 'var(--metric-size)', fontWeight: 700, color: 'var(--primary-500)', fontVariantNumeric: 'tabular-nums' }}>
-              ${(inicioData.saldoTotal ?? 14580000).toLocaleString('es-CL')}
+              {formatCurrencyCLP(inicioData.saldoTotal ?? 14580000)}
             </div>
           </div>
           <div style={{ marginTop: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
               <span>Cena Anual:</span>
-              <strong style={{ color: 'var(--text-main)' }}>${(inicioData.saldoCenaAnual ?? 9260000).toLocaleString('es-CL')}</strong>
+              <strong style={{ color: 'var(--text-main)' }}>{formatCurrencyCLP(inicioData.saldoCenaAnual ?? 9260000)}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Asociación:</span>
-              <strong style={{ color: 'var(--text-main)' }}>${(inicioData.saldoAsociacion ?? 5320000).toLocaleString('es-CL')}</strong>
+              <strong style={{ color: 'var(--text-main)' }}>{formatCurrencyCLP(inicioData.saldoAsociacion ?? 5320000)}</strong>
             </div>
           </div>
         </div>
@@ -348,7 +340,7 @@ export function DashboardPage() {
                       {pago.correlativo}
                     </span>
                     <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
-                      {formatFullDate(pago.fecha)}
+                      {formatDateCLP(pago.fecha)}
                     </span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
@@ -357,7 +349,7 @@ export function DashboardPage() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-                    ${pago.monto?.toLocaleString('es-CL')}
+                    {formatCurrencyCLP(pago.monto)}
                   </div>
                   <span
                     style={{
@@ -564,7 +556,7 @@ export function DashboardPage() {
                       justifyContent: 'flex-end',
                       position: 'relative'
                     }}
-                    title={`${d.mes}: Ingresos $${d.ingresos.toLocaleString('es-CL')} / Egresos $${d.egresos.toLocaleString('es-CL')}`}
+                    title={`${d.mes}: Ingresos ${formatCurrencyCLP(d.ingresos)} / Egresos ${formatCurrencyCLP(d.egresos)}`}
                   >
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', width: '100%', justifyContent: 'center' }}>
                       {/* Barra Ingreso */}

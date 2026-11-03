@@ -22,22 +22,8 @@ import { TreasuryApiService } from '../services/treasuryService.js';
 import { Card } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
-
-const formatFullDate = (dateStr) => {
-  if (!dateStr) return '';
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return dateStr;
-};
-
-// Debe coincidir con las reglas del backend (uploadMiddleware.js)
-const COMPROBANTE_MAX_MB = 5;
-const COMPROBANTE_TIPOS = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-
-const formatFileSize = (bytes) =>
-  bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+import { NewMovementModal } from '../components/treasury/NewMovementModal.jsx';
+import { formatCurrencyCLP, formatDateCLP, formatFileSize } from '../utils/formatters.js';
 
 // Con responseType 'blob' el mensaje de error del backend también llega como Blob
 const readBlobErrorMessage = async (err) => {
@@ -71,18 +57,6 @@ export function TreasuryPage() {
 
   // Modal Nuevo Movimiento
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState('INGRESO'); // INGRESO | EGRESO | FEDERACION
-  const [formData, setFormData] = useState({
-    fecha: new Date().toISOString().split('T')[0],
-    monto: '',
-    metodo: 'Transferencia Bancaria',
-    descripcion: '',
-    centroCosto: 'ASOCIACION',
-    categoria: 'ASOCIACION',
-    archivoComprobante: null
-  });
-  const [formError, setFormError] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [openingReceiptId, setOpeningReceiptId] = useState(null);
 
   // Carga inicial y por filtros
@@ -112,119 +86,6 @@ export function TreasuryPage() {
   useEffect(() => {
     loadTreasuryData();
   }, [filterTipo, filterCentroCosto, filterMetodo, filterFechaDesde, filterFechaHasta]);
-
-  // Manejo de cambio de pestaña en modal
-  const handleTabChange = (tab) => {
-    setModalTab(tab);
-    setFormError(null);
-    if (tab === 'INGRESO') {
-      setFormData((prev) => ({
-        ...prev,
-        centroCosto: 'ASOCIACION',
-        categoria: 'ASOCIACION'
-      }));
-    } else if (tab === 'EGRESO') {
-      setFormData((prev) => ({
-        ...prev,
-        centroCosto: 'CENA ANUAL',
-        categoria: 'S.O.S'
-      }));
-    } else if (tab === 'FEDERACION') {
-      setFormData((prev) => ({
-        ...prev,
-        centroCosto: 'FEDERACION',
-        categoria: 'PAGO FEDERACION',
-        descripcion: 'Cuota Federación Nacional VTF'
-      }));
-    }
-  };
-
-  // Enviar nuevo movimiento
-  const handleCreateMovement = async (e) => {
-    e.preventDefault();
-    setFormError(null);
-
-    const numMonto = Number(formData.monto);
-    if (!numMonto || numMonto <= 0) {
-      setFormError('El monto debe ser un valor numérico mayor a cero.');
-      return;
-    }
-
-    if (!formData.descripcion.trim()) {
-      setFormError('La descripción del movimiento es obligatoria.');
-      return;
-    }
-
-    // Regla crítica: en EGRESO o FEDERACION el archivo del comprobante es obligatorio
-    const isEgresoType = modalTab === 'EGRESO' || modalTab === 'FEDERACION';
-    if (isEgresoType && !formData.archivoComprobante) {
-      setFormError('El comprobante de egreso es estrictamente OBLIGATORIO: adjunte el archivo (PDF o imagen).');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      let payloadCentroCosto = formData.centroCosto;
-      let payloadCategoria = formData.categoria;
-
-      if (modalTab === 'FEDERACION') {
-        payloadCentroCosto = 'FEDERACION';
-        payloadCategoria = 'PAGO FEDERACION';
-      } else if (modalTab === 'EGRESO') {
-        if (formData.categoria === 'S.O.S' || formData.categoria === 'CENA') {
-          payloadCentroCosto = 'CENA ANUAL';
-        } else {
-          payloadCentroCosto = 'ASOCIACION';
-        }
-      }
-
-      await TreasuryApiService.createMovement({
-        tipo: modalTab === 'INGRESO' ? 'INGRESO' : 'EGRESO',
-        fecha: formData.fecha,
-        descripcion: formData.descripcion,
-        centroCosto: payloadCentroCosto,
-        categoria: payloadCategoria,
-        monto: numMonto,
-        metodo: formData.metodo,
-        archivoComprobante: formData.archivoComprobante
-      });
-
-      setIsModalOpen(false);
-      setFormData({
-        fecha: new Date().toISOString().split('T')[0],
-        monto: '',
-        metodo: 'Transferencia Bancaria',
-        descripcion: '',
-        centroCosto: 'ASOCIACION',
-        categoria: 'ASOCIACION',
-        archivoComprobante: null
-      });
-      loadTreasuryData();
-    } catch (err) {
-      setFormError(err.response?.data?.message || err.message || 'Error al registrar movimiento');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Selección y validación local del archivo de comprobante
-  const handleFileSelected = (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = ''; // Permite volver a elegir el mismo archivo
-    if (!file) return;
-
-    if (!COMPROBANTE_TIPOS.includes(file.type)) {
-      setFormError('Formato de comprobante no permitido. Use PDF, JPG, PNG o WEBP.');
-      return;
-    }
-    if (file.size > COMPROBANTE_MAX_MB * 1024 * 1024) {
-      setFormError(`El comprobante supera el tamaño máximo de ${COMPROBANTE_MAX_MB} MB.`);
-      return;
-    }
-
-    setFormError(null);
-    setFormData((prev) => ({ ...prev, archivoComprobante: file }));
-  };
 
   // Abre el comprobante en una pestaña nueva (PDF e imágenes se visualizan en el navegador)
   const handleOpenComprobante = async (mov) => {
@@ -420,7 +281,7 @@ export function TreasuryPage() {
               </div>
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              ${summary?.totalIngresos?.toLocaleString('es-CL')}
+              {formatCurrencyCLP(summary?.totalIngresos)}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
               Cuotas, cenas y comisión 2%
@@ -438,7 +299,7 @@ export function TreasuryPage() {
               </div>
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              ${summary?.totalEgresos?.toLocaleString('es-CL')}
+              {formatCurrencyCLP(summary?.totalEgresos)}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
               Pagos con respaldo verificado
@@ -456,7 +317,7 @@ export function TreasuryPage() {
               </div>
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              ${summary?.saldoTotal?.toLocaleString('es-CL')}
+              {formatCurrencyCLP(summary?.saldoTotal)}
             </div>
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-800)', marginTop: '0.375rem' }}>
               Suma: Asociación + Cena Anual
@@ -492,7 +353,7 @@ export function TreasuryPage() {
               </div>
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              ${summary?.totalPagadoFederacion?.toLocaleString('es-CL')}
+              {formatCurrencyCLP(summary?.totalPagadoFederacion)}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
               Aportes gremiales al día (Solo Egresos)
@@ -508,7 +369,7 @@ export function TreasuryPage() {
               <Badge variant="neutral">C. Costo</Badge>
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              ${summary?.saldoAsociacion?.toLocaleString('es-CL')}
+              {formatCurrencyCLP(summary?.saldoAsociacion)}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
               Gastos operacionales y bienestar
@@ -524,7 +385,7 @@ export function TreasuryPage() {
               <Badge variant="neutral">C. Costo</Badge>
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              ${summary?.saldoCenaAnual?.toLocaleString('es-CL')}
+              {formatCurrencyCLP(summary?.saldoCenaAnual)}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
               Fondo evento fin de año y S.O.S
@@ -689,7 +550,7 @@ export function TreasuryPage() {
                         {mov.correlativo}
                       </td>
                       <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
-                        {formatFullDate(mov.fecha)}
+                        {formatDateCLP(mov.fecha)}
                       </td>
                       <td>
                         <Badge variant={isIngreso ? 'success' : 'neutral'}>
@@ -742,7 +603,7 @@ export function TreasuryPage() {
                           color: isIngreso ? 'var(--success-text)' : 'var(--text-main)'
                         }}
                       >
-                        {isIngreso ? '+' : '-'}${mov.monto?.toLocaleString('es-CL')}
+                        {isIngreso ? '+' : '-'}{formatCurrencyCLP(mov.monto)}
                       </td>
                       <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         {mov.comprobanteArchivo ? (
@@ -793,383 +654,13 @@ export function TreasuryPage() {
         </div>
       </Card>
 
-      {/* =========================================================================
-          MODAL TRANSACCIONAL: NUEVO MOVIMIENTO
-          Pestañas: Ingreso, Egreso, Pago Federación
-          - Ingreso: ASOCIACION, CENA ANUAL, ISI MUNDO COMISION
-          - Egreso: S.O.S (Cena Anual), CENA (Cena Anual), OTROS (Asociación)
-          - Pago Federación: Centro de Costo Fijo FEDERACION (Solo Egreso)
-          - Comprobante de Egreso Obligatorio
-         ========================================================================= */}
-      {isModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(18, 24, 38, 0.6)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-            padding: '1rem'
-          }}
-        >
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '560px',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-light)',
-              borderRadius: 'var(--radius-xl)',
-              boxShadow: 'var(--shadow-lg)',
-              overflow: 'hidden',
-              animation: 'fadeIn 0.2s ease-out'
-            }}
-          >
-            {/* Modal Header */}
-            <div
-              style={{
-                padding: '1.25rem 1.5rem',
-                borderBottom: '1px solid var(--border-light)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: 'var(--bg-surface-subtle)'
-              }}
-            >
-              <div>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                  Registrar Nuevo Movimiento
-                </h3>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Operador: {user?.firstName} {user?.lastName} ({user?.cargo || 'Tesorera'})
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                  padding: '0.25rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Pestañas de Tipo de Movimiento */}
-            <div
-              style={{
-                display: 'flex',
-                borderBottom: '1px solid var(--border-light)',
-                backgroundColor: 'var(--bg-page)'
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => handleTabChange('INGRESO')}
-                style={{
-                  flex: 1,
-                  padding: '0.875rem 0.5rem',
-                  border: 'none',
-                  background: modalTab === 'INGRESO' ? 'var(--bg-surface)' : 'transparent',
-                  borderBottom: modalTab === 'INGRESO' ? '3px solid var(--success-border)' : '3px solid transparent',
-                  fontWeight: 700,
-                  fontSize: '0.8125rem',
-                  color: modalTab === 'INGRESO' ? 'var(--success-text)' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                + Ingreso a Fondo
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleTabChange('EGRESO')}
-                style={{
-                  flex: 1,
-                  padding: '0.875rem 0.5rem',
-                  border: 'none',
-                  background: modalTab === 'EGRESO' ? 'var(--bg-surface)' : 'transparent',
-                  borderBottom: modalTab === 'EGRESO' ? '3px solid var(--accent-pink-500)' : '3px solid transparent',
-                  fontWeight: 700,
-                  fontSize: '0.8125rem',
-                  color: modalTab === 'EGRESO' ? 'var(--accent-pink-600)' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                - Egreso / Gasto
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleTabChange('FEDERACION')}
-                style={{
-                  flex: 1,
-                  padding: '0.875rem 0.5rem',
-                  border: 'none',
-                  background: modalTab === 'FEDERACION' ? 'var(--bg-surface)' : 'transparent',
-                  borderBottom: modalTab === 'FEDERACION' ? '3px solid var(--primary-400)' : '3px solid transparent',
-                  fontWeight: 700,
-                  fontSize: '0.8125rem',
-                  color: modalTab === 'FEDERACION' ? 'var(--info-text)' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                Aporte Federación
-              </button>
-            </div>
-
-            {/* Formulario */}
-            <form onSubmit={handleCreateMovement} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {formError && (
-                <div
-                  style={{
-                    padding: '0.75rem 1rem',
-                    backgroundColor: 'var(--error-bg)',
-                    border: '1px solid var(--error-border)',
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--error-text)',
-                    fontSize: '0.8125rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              {/* Fila Fecha y Monto */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
-                    Fecha del Movimiento
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.fecha}
-                    onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-                    className="vtf-input"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
-                    Monto (CLP)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    placeholder="Ej: 280000"
-                    value={formData.monto}
-                    onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-                    className="vtf-input"
-                  />
-                </div>
-              </div>
-
-              {/* Categoría y Centro de Costo según Pestaña */}
-              {modalTab === 'INGRESO' && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
-                    Categoría de Ingreso (Afecta Centro de Costo)
-                  </label>
-                  <select
-                    value={formData.centroCosto}
-                    onChange={(e) => setFormData({ ...formData, centroCosto: e.target.value, categoria: e.target.value })}
-                    className="vtf-input"
-                  >
-                    <option value="ASOCIACION">ASOCIACIÓN (Cuota Social Asociación)</option>
-                    <option value="CENA ANUAL">CENA ANUAL (Cuota Fondo Cena)</option>
-                    <option value="ISI MUNDO COMISION">ISI MUNDO COMISIÓN (2% Retorno Convenio)</option>
-                  </select>
-                </div>
-              )}
-
-              {modalTab === 'EGRESO' && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
-                    Categoría de Egreso (Centro de Costo Vinculado)
-                  </label>
-                  <select
-                    value={formData.categoria}
-                    onChange={(e) => {
-                      const cat = e.target.value;
-                      const cc = (cat === 'S.O.S' || cat === 'CENA') ? 'CENA ANUAL' : 'ASOCIACION';
-                      setFormData({ ...formData, categoria: cat, centroCosto: cc });
-                    }}
-                    className="vtf-input"
-                  >
-                    <option value="S.O.S">S.O.S (Afecta Centro de Costo Cena Anual)</option>
-                    <option value="CENA">CENA (Afecta Centro de Costo Cena Anual)</option>
-                    <option value="OTROS">OTROS (Afecta Centro de Costo Asociación)</option>
-                  </select>
-                </div>
-              )}
-
-              {modalTab === 'FEDERACION' && (
-                <div
-                  style={{
-                    padding: '0.75rem 1rem',
-                    backgroundColor: 'var(--info-bg)',
-                    border: '1px solid var(--info-border)',
-                    borderRadius: 'var(--radius-md)',
-                    fontSize: '0.75rem',
-                    color: 'var(--info-text)'
-                  }}
-                >
-                  <strong>Centro de Costo Fijo:</strong> FEDERACIÓN. Esta sección es exclusiva para registrar pagos del aporte gremial nacional.
-                </div>
-              )}
-
-              {/* Método de Pago */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
-                  Método de Pago
-                </label>
-                <select
-                  value={formData.metodo}
-                  onChange={(e) => setFormData({ ...formData, metodo: e.target.value })}
-                  className="vtf-input"
-                >
-                  <option value="Transferencia Bancaria">Transferencia Bancaria</option>
-                  <option value="Descuento Planilla">Descuento Planilla</option>
-                  <option value="Efectivo">Efectivo</option>
-                  <option value="Cheque">Cheque</option>
-                </select>
-              </div>
-
-              {/* Descripción */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
-                  Descripción Detallada
-                </label>
-                <textarea
-                  rows="2"
-                  required
-                  placeholder="Detalle el motivo, destinatario o concepto del movimiento..."
-                  value={formData.descripcion}
-                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  className="vtf-input"
-                  style={{ resize: 'vertical' }}
-                />
-              </div>
-
-              {/* Comprobante de Respaldo */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.375rem' }}>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                    Comprobante de Respaldo
-                  </label>
-                  {modalTab !== 'INGRESO' && (
-                    <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--error-text)' }}>
-                      * OBLIGATORIO PARA EGRESOS
-                    </span>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
-                  <div
-                    className="vtf-input"
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      backgroundColor: 'var(--bg-surface-subtle)'
-                    }}
-                  >
-                    {formData.archivoComprobante ? (
-                      <>
-                        <FileText size={15} style={{ flexShrink: 0, color: 'var(--primary-600)' }} />
-                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                          {formData.archivoComprobante.name}
-                        </span>
-                        <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                          {formatFileSize(formData.archivoComprobante.size)}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label="Quitar archivo"
-                          onClick={() => setFormData({ ...formData, archivoComprobante: null })}
-                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}
-                        >
-                          <X size={15} />
-                        </button>
-                      </>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-                        {modalTab === 'INGRESO'
-                          ? 'Sin archivo (opcional para ingresos)'
-                          : `Adjunte PDF, JPG, PNG o WEBP (máx. ${COMPROBANTE_MAX_MB} MB)`}
-                      </span>
-                    )}
-                  </div>
-                  <label
-                    style={{
-                      padding: '0.5rem 0.875rem',
-                      backgroundColor: 'var(--sand-100)',
-                      border: '1px solid var(--sand-300)',
-                      borderRadius: 'var(--radius-md)',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      color: 'var(--sand-700)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <Upload size={14} /> Adjuntar
-                    <input
-                      type="file"
-                      accept={COMPROBANTE_TIPOS.join(',')}
-                      style={{ display: 'none' }}
-                      onChange={handleFileSelected}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Responsable según sesión */}
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '0.25rem' }}>
-                <strong>Responsable de Registro:</strong> {user?.firstName} {user?.lastName} ({user?.cargo || 'Tesorera'})
-              </div>
-
-              {/* Botones de Acción */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.75rem' }}>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Registrando...' : 'Confirmar y Guardar'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modal Modular de Nuevo Movimiento */}
+      <NewMovementModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={loadTreasuryData}
+        user={user}
+      />
     </div>
   );
 }

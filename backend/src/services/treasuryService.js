@@ -24,7 +24,7 @@ let treasuryMovements = [
     descripcion: 'Aporte gremial nacional mes de Junio 2026',
     metodo: 'Transferencia Bancaria',
     monto: 280000,
-    responsable: 'Alejandra Romanett Sias Novoa',
+    responsable: 'Tesorera General VTF',
     comprobante: 'comprobante_fed_jun_2026.pdf',
     comprobanteArchivo: null,
     createdAt: '2026-06-02T10:30:00Z'
@@ -39,7 +39,7 @@ let treasuryMovements = [
     descripcion: 'Aporte gremial nacional mes de Julio 2026',
     metodo: 'Transferencia Bancaria',
     monto: 280000,
-    responsable: 'Alejandra Romanett Sias Novoa',
+    responsable: 'Tesorera General VTF',
     comprobante: 'comprobante_fed_jul_2026.pdf',
     comprobanteArchivo: null,
     createdAt: '2026-07-02T11:15:00Z'
@@ -54,7 +54,7 @@ let treasuryMovements = [
     descripcion: 'Aporte gremial nacional mes de Agosto 2026',
     metodo: 'Transferencia Bancaria',
     monto: 280000,
-    responsable: 'Alejandra Romanett Sias Novoa',
+    responsable: 'Tesorera General VTF',
     comprobante: 'comprobante_fed_ago_2026.pdf',
     comprobanteArchivo: null,
     createdAt: '2026-08-03T09:45:00Z'
@@ -69,7 +69,7 @@ let treasuryMovements = [
     descripcion: 'Aporte gremial nacional mes de Septiembre 2026',
     metodo: 'Transferencia Bancaria',
     monto: 280000,
-    responsable: 'Alejandra Romanett Sias Novoa',
+    responsable: 'Tesorera General VTF',
     comprobante: 'comprobante_fed_sep_2026.pdf',
     comprobanteArchivo: null,
     createdAt: '2026-09-02T10:00:00Z'
@@ -84,7 +84,7 @@ let treasuryMovements = [
     descripcion: 'Aporte gremial nacional mes de Octubre 2026',
     metodo: 'Transferencia Bancaria',
     monto: 280000,
-    responsable: 'Alejandra Romanett Sias Novoa',
+    responsable: 'Tesorera General VTF',
     comprobante: 'comprobante_fed_oct_2026.pdf',
     comprobanteArchivo: null,
     createdAt: '2026-10-02T12:00:00Z'
@@ -99,7 +99,7 @@ let treasuryMovements = [
     descripcion: 'Comisión 2% liquidación convenio compras Isi Mundo',
     metodo: 'Transferencia Bancaria',
     monto: 54200,
-    responsable: 'Alejandra Romanett Sias Novoa',
+    responsable: 'Tesorera General VTF',
     comprobante: 'liquidacion_comision_isimundo_oct2026.pdf',
     comprobanteArchivo: null,
     createdAt: '2026-10-04T15:20:00Z'
@@ -114,7 +114,7 @@ let treasuryMovements = [
     descripcion: 'Recaudación fondo cuota cena anual ($2.000 x 262 socias)',
     metodo: 'Descuento Planilla',
     monto: 524000,
-    responsable: 'Alejandra Romanett Sias Novoa',
+    responsable: 'Tesorera General VTF',
     comprobante: 'comprobante_recaudacion_cena_oct2026.pdf',
     comprobanteArchivo: null,
     createdAt: '2026-10-05T09:00:00Z'
@@ -129,7 +129,7 @@ let treasuryMovements = [
     descripcion: 'Recaudación cuota gremial asociación ($1.000 x 262 socias)',
     metodo: 'Descuento Planilla',
     monto: 262000,
-    responsable: 'Alejandra Romanett Sias Novoa',
+    responsable: 'Tesorera General VTF',
     comprobante: 'comprobante_recaudacion_asoc_oct2026.pdf',
     comprobanteArchivo: null,
     createdAt: '2026-10-05T09:05:00Z'
@@ -144,7 +144,7 @@ let treasuryMovements = [
     descripcion: 'Crédito de emergencia S.O.S aprobado para socia de Jardín Campanita',
     metodo: 'Transferencia Bancaria',
     monto: 120000,
-    responsable: 'Alejandra Romanett Sias Novoa',
+    responsable: 'Tesorera General VTF',
     comprobante: 'comprobante_transferencia_sos_0810.pdf',
     comprobanteArchivo: null,
     createdAt: '2026-10-08T16:40:00Z'
@@ -159,7 +159,7 @@ let treasuryMovements = [
     descripcion: 'Adquisición de insumos de papelería e impresiones para asamblea general',
     metodo: 'Efectivo',
     monto: 45000,
-    responsable: 'Alejandra Romanett Sias Novoa',
+    responsable: 'Tesorera General VTF',
     comprobante: 'boleta_papeleria_12102026.pdf',
     comprobanteArchivo: null,
     createdAt: '2026-10-12T11:30:00Z'
@@ -407,7 +407,7 @@ export const TreasuryService = {
     const cleanFecha = fecha || new Date().toISOString().split('T')[0];
     const cleanDesc = descripcion.trim();
     const cleanMetodo = metodo || 'Transferencia Bancaria';
-    const cleanResp = responsable || 'Alejandra Romanett Sias Novoa';
+    const cleanResp = responsable || 'Tesorera General VTF';
     const cleanComp = comprobante ? comprobante.trim() : null;
 
     if (isDatabaseReady()) {

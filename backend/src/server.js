@@ -8,16 +8,32 @@ import { errorMiddleware } from './middlewares/errorMiddleware.js';
 
 const app = express();
 
+// Configuración segura de orígenes permitidos (CORS)
+const allowedOrigins = [
+  env.CORS_ORIGIN,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000'
+].filter(Boolean);
+
 // Middlewares de seguridad y observabilidad
 app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Permitir peticiones sin origen (como Postman/curl o apps móviles) y orígenes de Vite
-      if (!origin || origin.startsWith('http://localhost:')) {
+      // Permitir peticiones sin origen (como Postman/curl o tareas de servidor)
+      if (!origin) {
         return callback(null, true);
       }
-      return callback(null, true);
+      // Permitir orígenes de desarrollo local
+      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        return callback(null, true);
+      }
+      // Validar contra la lista blanca configurada en entorno
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Acceso bloqueado por política CORS: origen ${origin} no autorizado.`));
     },
     credentials: true
   })

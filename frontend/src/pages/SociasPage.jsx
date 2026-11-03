@@ -23,7 +23,9 @@ import { SociaApiService } from '../services/sociaService.js';
 import { Card } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
-import { validateRut, formatRut } from '../utils/rut.js';
+import { SociaDetailModal } from '../components/socias/SociaDetailModal.jsx';
+import { SociaFormModal } from '../components/socias/SociaFormModal.jsx';
+import { formatCurrencyCLP } from '../utils/formatters.js';
 
 const PAGE_SIZE = 20;
 
@@ -35,102 +37,6 @@ const DIRECTIVA_LABELS = {
   SECRETARIA: 'Secretaria',
   DIRECTORA: 'Directora Directiva'
 };
-
-const EMPTY_FORM = {
-  rut: '',
-  firstName: '',
-  lastName: '',
-  cargo: 'EDUCADORA',
-  estado: 'ACTIVA',
-  jardinId: '',
-  motivoTraslado: ''
-};
-
-const formatCLP = (value) => `$${(value || 0).toLocaleString('es-CL')}`;
-
-const formatDate = (iso) => {
-  if (!iso) return '';
-  const [year, month, day] = iso.slice(0, 10).split('-');
-  return `${day}/${month}/${year}`;
-};
-
-const labelStyle = {
-  display: 'block',
-  fontSize: '0.75rem',
-  fontWeight: 700,
-  color: 'var(--text-muted)',
-  marginBottom: '0.375rem'
-};
-
-function Modal({ title, subtitle, onClose, children, maxWidth = '560px' }) {
-  useEffect(() => {
-    const handleKey = (e) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
-
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(18, 24, 38, 0.6)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 100,
-        padding: '1rem'
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%',
-          maxWidth,
-          maxHeight: 'calc(100vh - 2rem)',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--border-light)',
-          borderRadius: 'var(--radius-xl)',
-          boxShadow: 'var(--shadow-lg)',
-          overflow: 'hidden',
-          animation: 'fadeIn 0.2s ease-out'
-        }}
-      >
-        <div
-          style={{
-            padding: '1.25rem 1.5rem',
-            borderBottom: '1px solid var(--border-light)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            backgroundColor: 'var(--bg-surface-subtle)'
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>{title}</h3>
-            {subtitle && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{subtitle}</span>}
-          </div>
-          <button
-            type="button"
-            aria-label="Cerrar"
-            onClick={onClose}
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '0.25rem' }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div style={{ overflowY: 'auto' }}>{children}</div>
-      </div>
-    </div>
-  );
-}
 
 function KpiCard({ label, value, hint, icon: Icon, accent }) {
   return (
@@ -147,17 +53,6 @@ function KpiCard({ label, value, hint, icon: Icon, accent }) {
         {value}
       </div>
       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>{hint}</div>
-    </div>
-  );
-}
-
-function InfoItem({ label, children }) {
-  return (
-    <div>
-      <div style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '0.15rem' }}>{children}</div>
     </div>
   );
 }
@@ -189,10 +84,7 @@ export function SociasPage() {
 
   // Formulario alta / edición
   const [formMode, setFormMode] = useState(null); // null | 'create' | 'edit'
-  const [formData, setFormData] = useState(EMPTY_FORM);
   const [editing, setEditing] = useState(null);
-  const [formError, setFormError] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadOverview = async () => {
     const [summaryRes, jardinesRes] = await Promise.all([
@@ -264,72 +156,14 @@ export function SociasPage() {
   };
 
   const openCreate = () => {
-    setFormData({ ...EMPTY_FORM, jardinId: jardines[0]?.id || '' });
     setEditing(null);
-    setFormError(null);
     setFormMode('create');
   };
 
   const openEdit = (socia) => {
-    setFormData({
-      rut: socia.rut,
-      firstName: socia.firstName,
-      lastName: socia.lastName,
-      cargo: socia.cargo,
-      estado: socia.estado,
-      jardinId: socia.jardin?.id || '',
-      motivoTraslado: ''
-    });
     setEditing(socia);
-    setFormError(null);
     setDetail(null);
     setFormMode('edit');
-  };
-
-  const isTransfer = formMode === 'edit' && editing && formData.jardinId !== editing.jardin?.id;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setFormError(null);
-
-    if (formMode === 'create' && !validateRut(formData.rut)) {
-      setFormError('El RUT ingresado no es válido. Revise el dígito verificador.');
-      return;
-    }
-    if (formData.firstName.trim().length < 2 || formData.lastName.trim().length < 2) {
-      setFormError('Nombres y apellidos son obligatorios.');
-      return;
-    }
-    if (isTransfer && formData.motivoTraslado.trim().length < 3) {
-      setFormError('Indique el motivo del traslado de jardín.');
-      return;
-    }
-
-    const payload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      cargo: formData.cargo,
-      estado: formData.estado,
-      jardinId: formData.jardinId
-    };
-
-    try {
-      setIsSubmitting(true);
-      if (formMode === 'create') {
-        await SociaApiService.createSocia({ ...payload, rut: formData.rut });
-      } else {
-        await SociaApiService.updateSocia(editing.id, {
-          ...payload,
-          ...(isTransfer && { motivoTraslado: formData.motivoTraslado })
-        });
-      }
-      setFormMode(null);
-      await Promise.all([loadOverview(), loadSocias()]);
-    } catch (err) {
-      setFormError(err.response?.data?.message || 'Error al guardar la socia');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   // Exportar padrón filtrado a CSV compatible con Excel
@@ -449,7 +283,7 @@ export function SociasPage() {
         <KpiCard
           label="Socias Activas"
           value={summary?.sociasActivas ?? '—'}
-          hint={summary ? `Recaudación esperada ${formatCLP(summary.recaudacionMensualEsperada)}/mes` : ''}
+          hint={summary ? `Recaudación esperada ${formatCurrencyCLP(summary.recaudacionMensualEsperada)}/mes` : ''}
           icon={UserCheck}
           accent="var(--success-border)"
         />
@@ -463,7 +297,7 @@ export function SociasPage() {
         <KpiCard
           label="Con Crédito Vigente"
           value={summary?.sociasConCredito ?? '—'}
-          hint={summary ? `Saldo por cobrar ${formatCLP(summary.saldoCreditosPendiente)}` : ''}
+          hint={summary ? `Saldo por cobrar ${formatCurrencyCLP(summary.saldoCreditosPendiente)}` : ''}
           icon={CreditCard}
           accent="var(--sand-500)"
         />
@@ -617,7 +451,7 @@ export function SociasPage() {
                           </Badge>
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', color: s.cuotaMensual ? 'var(--text-main)' : 'var(--text-muted)' }}>
-                          {s.cuotaMensual ? formatCLP(s.cuotaMensual) : 'Sin cobro'}
+                          {s.cuotaMensual ? formatCurrencyCLP(s.cuotaMensual) : 'Sin cobro'}
                         </td>
                         <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                           {s.tieneCredito ? (
@@ -750,265 +584,25 @@ export function SociasPage() {
         </Card>
       )}
 
-      {/* Ficha de socia con créditos e historial */}
-      {detail && (
-        <Modal
-          title={`${detail.firstName} ${detail.lastName}`}
-          subtitle={`RUT ${detail.rut} · ${detail.jardin?.name || ''}`}
-          onClose={() => setDetail(null)}
-          maxWidth="640px"
-        >
-          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-              <InfoItem label="Cargo">{CARGO_LABELS[detail.cargo]}</InfoItem>
-              <InfoItem label="Estado">
-                <Badge variant={detail.estado === 'ACTIVA' ? 'success' : 'error'}>
-                  {detail.estado === 'ACTIVA' ? 'Activa' : 'Suspendida'}
-                </Badge>
-              </InfoItem>
-              <InfoItem label="Incorporación">{formatDate(detail.fechaIncorporacion)}</InfoItem>
-              <InfoItem label="Cuota social">{detail.cuotaMensual ? `${formatCLP(detail.cuotaMensual)} / mes` : 'Sin cobro'}</InfoItem>
-              <InfoItem label="Descuento créditos">{formatCLP(detail.descuentoMensualCreditos)} / mes</InfoItem>
-              {(detail.cargoDirectiva || detail.esDelegada) && (
-                <InfoItem label="Representación">
-                  {[detail.cargoDirectiva && DIRECTIVA_LABELS[detail.cargoDirectiva], detail.esDelegada && 'Delegada de jardín']
-                    .filter(Boolean)
-                    .join(' · ')}
-                </InfoItem>
-              )}
-            </div>
+      {/* Modal Ficha Detallada de Socia */}
+      <SociaDetailModal
+        detail={detail}
+        onClose={() => setDetail(null)}
+        canModify={canModify}
+        onEdit={openEdit}
+      />
 
-            {detail.estado === 'SUSPENDIDA' && (
-              <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--error-bg)', border: '1px solid var(--error-border)', borderRadius: 'var(--radius-md)', fontSize: '0.8125rem', color: 'var(--error-text)' }}>
-                Socia suspendida: no se genera cobro de la cuota social mientras mantenga este estado.
-              </div>
-            )}
-
-            <div>
-              <div style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-                Créditos y convenios
-              </div>
-              {detail.creditos.length === 0 ? (
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>La socia no registra créditos.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {detail.creditos.map((c) => {
-                    const progress = Math.round((c.cuotasPagadas / c.totalCuotas) * 100);
-                    return (
-                      <div key={c.id} style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.625rem' }}>
-                          <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{c.tipoNombre}</span>
-                          <Badge variant={c.estado === 'ACTIVO' ? 'warning' : 'success'}>
-                            {c.estado === 'ACTIVO' ? 'Vigente' : 'Finalizado'}
-                          </Badge>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                          <span>Cuota {c.cuotasPagadas} de {c.totalCuotas}</span>
-                          <span>{progress}%</span>
-                        </div>
-                        <div style={{ height: '6px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--bg-surface-subtle)', overflow: 'hidden', marginBottom: '0.75rem' }}>
-                          <div style={{ width: `${progress}%`, height: '100%', backgroundColor: 'var(--primary-500)' }} />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem' }}>
-                          <InfoItem label="Monto">{formatCLP(c.montoSolicitado)}</InfoItem>
-                          <InfoItem label="Valor cuota">{formatCLP(c.valorCuota)}</InfoItem>
-                          <InfoItem label="Saldo pendiente">{formatCLP(c.saldoPendiente)}</InfoItem>
-                          <InfoItem label="Período">
-                            {formatDate(c.fechaInicio)} – {formatDate(c.fechaTermino)}
-                          </InfoItem>
-                          {c.comisionAsociacion > 0 && (
-                            <InfoItem label="Comisión 2% Asoc.">{formatCLP(c.comisionAsociacion)}</InfoItem>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {detail.historialJardin.length > 0 && (
-              <div>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-                  Historial de traslados
-                </div>
-                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: 0, margin: 0 }}>
-                  {detail.historialJardin.map((h) => (
-                    <li key={h.id} style={{ display: 'flex', gap: '0.625rem', fontSize: '0.8125rem' }}>
-                      <ArrowRightLeft size={15} style={{ color: 'var(--primary-500)', flexShrink: 0, marginTop: '2px' }} />
-                      <span>
-                        <strong>{formatDate(h.fecha)}</strong>: {h.jardinAnterior} → {h.jardinNuevo}. Motivo: {h.motivo}{' '}
-                        <span style={{ color: 'var(--text-muted)' }}>({h.changedBy})</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {canModify && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button variant="outline" icon={Pencil} onClick={() => openEdit(detail)}>
-                  Editar ficha
-                </Button>
-              </div>
-            )}
-          </div>
-        </Modal>
-      )}
-
-      {/* Alta y edición de socia */}
-      {formMode && (
-        <Modal
-          title={formMode === 'create' ? 'Incorporar Nueva Socia' : 'Editar Ficha de Socia'}
-          subtitle={formMode === 'edit' ? `RUT ${editing?.rut}` : 'Los cambios quedan registrados en la bitácora de auditoría'}
-          onClose={() => setFormMode(null)}
-        >
-          <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {formError && (
-              <div
-                style={{
-                  padding: '0.75rem 1rem',
-                  backgroundColor: 'var(--error-bg)',
-                  border: '1px solid var(--error-border)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--error-text)',
-                  fontSize: '0.8125rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                <span>{formError}</span>
-              </div>
-            )}
-
-            {formMode === 'create' && (
-              <div>
-                <label style={labelStyle} htmlFor="socia-rut">RUT</label>
-                <input
-                  id="socia-rut"
-                  required
-                  inputMode="text"
-                  placeholder="Ej: 12.345.678-5"
-                  value={formData.rut}
-                  onChange={(e) => setFormData({ ...formData, rut: formatRut(e.target.value) })}
-                  className="vtf-input"
-                  style={{ borderColor: formData.rut.length >= 9 && !validateRut(formData.rut) ? 'var(--error-text)' : undefined }}
-                />
-                {formData.rut.length >= 9 && !validateRut(formData.rut) && (
-                  <span className="vtf-error-text">Dígito verificador incorrecto</span>
-                )}
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              <div>
-                <label style={labelStyle} htmlFor="socia-nombres">Nombres</label>
-                <input
-                  id="socia-nombres"
-                  required
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  className="vtf-input"
-                />
-              </div>
-              <div>
-                <label style={labelStyle} htmlFor="socia-apellidos">Apellidos</label>
-                <input
-                  id="socia-apellidos"
-                  required
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  className="vtf-input"
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              <div>
-                <label style={labelStyle} htmlFor="socia-cargo">Cargo</label>
-                <select
-                  id="socia-cargo"
-                  value={formData.cargo}
-                  onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                  className="vtf-input"
-                >
-                  <option value="DIRECTORA">Directora</option>
-                  <option value="EDUCADORA">Educadora</option>
-                  <option value="TECNICO">Técnico</option>
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle} htmlFor="socia-estado">Estado</label>
-                <select
-                  id="socia-estado"
-                  value={formData.estado}
-                  onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                  className="vtf-input"
-                >
-                  <option value="ACTIVA">Activa (cobra cuota $4.000)</option>
-                  <option value="SUSPENDIDA">Suspendida (sin cobro)</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyle} htmlFor="socia-jardin">Jardín</label>
-              <select
-                id="socia-jardin"
-                value={formData.jardinId}
-                onChange={(e) => setFormData({ ...formData, jardinId: e.target.value })}
-                className="vtf-input"
-              >
-                {jardines.map((j) => (
-                  <option key={j.id} value={j.id}>
-                    {j.code} · {j.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {isTransfer && (
-              <div
-                style={{
-                  padding: '1rem',
-                  backgroundColor: 'var(--sand-50)',
-                  border: '1px solid var(--sand-200)',
-                  borderRadius: 'var(--radius-md)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.5rem'
-                }}
-              >
-                <span style={{ fontSize: '0.8125rem', color: 'var(--sand-800)', display: 'flex', alignItems: 'center', gap: '0.375rem', fontWeight: 600 }}>
-                  <ArrowRightLeft size={15} /> Traslado desde {editing.jardin?.name}
-                  {editing.esDelegada && ' (dejará de ser delegada de ese jardín)'}
-                </span>
-                <label style={{ ...labelStyle, marginBottom: 0 }} htmlFor="socia-motivo">Motivo del traslado</label>
-                <input
-                  id="socia-motivo"
-                  required
-                  placeholder="Ej: Cambio de establecimiento por reubicación"
-                  value={formData.motivoTraslado}
-                  onChange={(e) => setFormData({ ...formData, motivoTraslado: e.target.value })}
-                  className="vtf-input"
-                />
-              </div>
-            )}
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-              <Button type="button" variant="outline" onClick={() => setFormMode(null)}>
-                Cancelar
-              </Button>
-              <Button type="submit" variant="primary" isLoading={isSubmitting}>
-                {formMode === 'create' ? 'Incorporar Socia' : 'Guardar Cambios'}
-              </Button>
-            </div>
-          </form>
-        </Modal>
-      )}
+      {/* Modal Formulario Alta / Edición de Socia */}
+      <SociaFormModal
+        formMode={formMode}
+        editing={editing}
+        jardines={jardines}
+        onClose={() => setFormMode(null)}
+        onSuccess={() => {
+          loadOverview();
+          loadSocias();
+        }}
+      />
     </div>
   );
 }
