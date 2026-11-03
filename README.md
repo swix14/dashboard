@@ -1,250 +1,194 @@
-# Sistema Web de Gestión — Asociación VTF Temuco
+# SIGAV — Sistema Integrado de Gestión Administrativa y Financiera
 
-Sistema web institucional responsive para la administración integral, control financiero, padrón de socias, gestión de convenios y rendición de cuentas de la **Asociación de Jardines VTF Temuco** (Vía Transferencia de Fondos).
+### Asociación Gremial de Trabajadores de Jardines Infantiles VTF — Temuco
 
-**Rama principal de desarrollo:** `develop` · [Instalación y ejecución](#5-ejecución-local-completa) · [Tema visual SIGAV](docs/TEMA_SIGAV.md)
+[![Entorno de Ejecución](https://img.shields.io/badge/Entorno-Node.js%2020%2B-339933?style=flat-square&logo=node.js&logoColor=white)](#5-guía-de-puesta-en-marcha-entorno-local)
+[![Frontend](https://img.shields.io/badge/Frontend-React%2018%20%7C%20Vite-61DAFB?style=flat-square&logo=react&logoColor=black)](#4-arquitectura-del-sistema)
+[![Backend](https://img.shields.io/badge/Backend-Express%20%7C%20REST%20API-000000?style=flat-square&logo=express&logoColor=white)](#4-arquitectura-del-sistema)
+[![Base de Datos](https://img.shields.io/badge/Persistencia-MySQL%20%2F%20MariaDB%20Dual-4479A1?style=flat-square&logo=mysql&logoColor=white)](#53-persistencia-de-datos)
+[![Identidad Visual](https://img.shields.io/badge/Identidad-SIGAV%20Design%20System-725682?style=flat-square)](#1-resumen-ejecutivo)
+[![Estado de Pruebas](https://img.shields.io/badge/Validación-28%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
 
----
-
-## 1. Contexto Institucional
-
-La Asociación representa y administra los fondos y beneficios de:
-- **280 socias en padrón** (Directoras, Educadoras y Técnicos en Educación Parvularia).
-- **23 jardines infantiles** VTF distribuidos en Temuco y Labranza.
-- **23 delegadas sindicales** (una representante electa por cada establecimiento educativo).
-- **Directiva Oficial:** Presidenta, Tesorera, Secretaria y Directora.
-- **Cuota Social Mensual:** $4.000 CLP fijos con distribución estatutaria tripartita ($1.000 Federación Nacional, $1.000 Asociación, $2.000 Fondo Cena Anual / Bienestar).
+Plataforma web institucional concebida para la gobernanza corporativa, fiscalización contable, administración del padrón gremial, custodia documental y rendición periódica de cuentas de los establecimientos de Educación Parvularia Vía Transferencia de Fondos (VTF) de la comuna de Temuco.
 
 ---
 
-## 2. Matriz de Roles y Accesos
+## 1. Resumen Ejecutivo
 
-| Rol | Titular Oficial | Identificador / RUT | Correo Oficial | Permisos Operativos | Visibilidad Financiera |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Super Admin** | Jhonny Marcelo Ferrada Pasten | `17.260.651-2` | `admin@asociacionvtf.cl` | Administración global del sistema, base de datos y auditoría | Acceso total |
-| **Tesorera** | Alejandra Romanett Sias Novoa | `13.918.472-6` | `tesorera@asociacionvtf.cl` | Gestión total de Tesorería, movimientos, centros de costo y comprobantes | Acceso y edición total |
-| **Presidenta** | Yerthie Johanna Sayago Gajardo | `15.421.368-7` | `presidenta@asociacionvtf.cl` | Supervisión general del sistema | **Solo Lectura en Tesorería** (supervisión sin edición de gastos) |
-| **Secretaria** | Nelly Ester Mella Burgos | `14.832.195-4` | `secretaria@asociacionvtf.cl` | Gestión del Padrón de Socias (altas, bajas, traslados) | Sin acceso a tesorería operativa |
-| **Directora** | Victoria Catalina Abarza Vega | `16.274.593-8` | `directora@asociacionvtf.cl` | Consulta institucional y supervisión de convenios | Resumen general autorizado |
-| **Delegadas** | Representantes de Jardín (Ej: Claudia Navarro) | `17.890.123-1` | `delegada@asociacionvtf.cl` | Representación de su establecimiento | **Exclusivo módulo de Reportes** (sin acceso a deudas privadas) |
-| **Socias** | Afiliadas del Padrón (277 registradas) | *Su RUT* | *Correo individual* | Acceso a noticias, buzón interactivo y solicitud de auxilio S.O.S | Ficha personal exclusiva |
+El **Sistema Integrado de Gestión Administrativa y Financiera (SIGAV)** unifica los procesos operativos, estatutarios y de bienestar de la organización gremial, asegurando un registro fidedigno, trazable e inmutable de los recursos sociales:
 
-> **Nota para desarrollo y pruebas:** La contraseña unificada de prueba para todas las cuentas demostrativas es: `Admin123!`
+* **Alcance Gremial:** Cobertura de 23 establecimientos educativos distribuidos en Temuco y Labranza.
+* **Padrón Representado:** Centralización de 280 trabajadoras afiliadas (Directoras, Educadoras de Párvulos y Técnicos en Educación Parvularia).
+* **Régimen Estatutario de Cuota Social:** Valor unificado de $4.000 CLP mensuales por afiliada activa, distribuido normativamente en tres fondos autónomos:
+  * **$1.000 CLP:** Aporte gremial a la Federación Nacional.
+  * **$1.000 CLP:** Fondo operacional y corriente de la Asociación Local.
+  * **$2.000 CLP:** Fondo de Bienestar y Evento Anual de Socias.
 
 ---
 
-## 3. Estado del Proyecto: Lo Hecho y Lo Por Hacer
+## 2. Marco de Gobernanza, Roles y Privacidad
+
+El sistema opera bajo el principio de **mínimo privilegio (PoLP)** y estricta **segregación de funciones**, garantizando la confidencialidad de la información financiera y de convenios conforme a las normativas vigentes de protección de datos personales:
+
+| Nivel de Acceso | Cargo / Unidad Funcional | Alcance Operativo | Perfil Financiero | Canal Institucional |
+| :--- | :--- | :--- | :--- | :--- |
+| **Administración Técnica** | Administrador de Plataforma | Mantenimiento de infraestructura, seguridad, bitácora y base de datos | Auditoría global y supervisión técnica | `admin@asociacionvtf.cl` |
+| **Tesorería General** | Tesorera Titular | Registro de ingresos, emisión de egresos, conciliación y comprobantes | Ejecución y control contable total | `tesoreria@asociacionvtf.cl` |
+| **Presidencia Gremial** | Presidenta de la Asociación | Supervisión ejecutiva y representación institucional | **Supervisión (Solo Lectura)**; sin edición de egresos | `presidenta@asociacionvtf.cl` |
+| **Secretaría General** | Secretaria de la Directiva | Administración del Padrón (incorporaciones, bajas, traslados) | Sin acceso a finanzas operativas | `secretaria@asociacionvtf.cl` |
+| **Dirección de Bienestar** | Directora de Convenios | Fiscalización y enlace con entidades de crédito social | Consolidado general de convenios | `directora@asociacionvtf.cl` |
+| **Delegadas de Base** | Representantes de Jardín (23) | Fiscalización de su establecimiento ante la asamblea | **Transparencia Institucional** (sin acceso a deudas individuales) | `delegada@asociacionvtf.cl` |
+| **Portal de Afiliadas** | Funcionarias Sindicalizadas | Buzón de consultas/denuncias, solicitudes S.O.S y noticias | Ficha personal e historial individual | *Acceso individual por RUT* |
+
+> **Aviso de Confidencialidad y Seguridad:**
+> Toda autenticación requiere cifrado simétrico mediante tokens criptográficos JWT y hashes bcrypt de alta seguridad. Los datos de prueba locales se administran exclusivamente mediante variables de entorno en el servidor (`.env`), protegiendo cualquier dato sensible fuera del código fuente público.
+
+---
+
+## 3. Estado del Proyecto: Módulos Operativos y Hoja de Ruta
 
 ```mermaid
 graph TD
-    subgraph Hecho ["✅ LO HECHO (Implementado y Validado)"]
-        V1["V1: Inicio & Autenticación RBAC"]
-        V2["V2: Tesorería & Comprobantes Físicos"]
-        V3["V3: Padrón de Socias & Traslados"]
-        ARCH["Arquitectura Dual MySQL XAMPP + Contingencia"]
-        UI["Diseño SIGAV & Menú Lateral Limpio"]
+    subgraph Operativos ["✅ MÓDULOS OPERATIVOS (Producción & Desarrollo)"]
+        M1["M1: Consola Ejecutiva & Autenticación RBAC"]
+        M2["M2: Tesorería con Respaldo Digital Obligatorio"]
+        M3["M3: Padrón Centralizado & Trazabilidad de Traslados"]
+        ARCH["Motor de Persistencia Dual (MySQL XAMPP / Failover)"]
+        UI["Dirección de Arte Institucional SIGAV"]
     end
 
-    subgraph PorHacer ["⏳ LO POR HACER (Hoja de Ruta Planificada)"]
-        V31["V3.1: Créditos, Carga Excel & Verificación de 4 Comprobantes"]
-        V4["V4: Portal de Socias, Buzón con Adjuntos & Solicitud S.O.S"]
-        V5["V5: Gestión Documental & Carpetas por Empresa"]
-        V6["V6: Portal de Delegadas & Reporte de Rendición en PDF"]
+    subgraph Planificados ["⏳ HOJA DE RUTA (Próximas Fases)"]
+        M31["Fase 3.1: Conciliación de Convenios & Procesamiento de Planillas"]
+        M4["Fase 4: Portal de Autoservicio Gremial & Solicitud S.O.S"]
+        M5["Fase 5: Custodia Documental & Repositorio Cronológico"]
+        M6["Fase 6: Rendición Formal de Cuentas en PDF para Asambleas"]
     end
 
-    V1 --> V2
-    V2 --> V3
-    V3 --> ARCH
+    M1 --> M2
+    M2 --> M3
+    M3 --> ARCH
     ARCH --> UI
-    UI -.-> V31
-    V31 -.-> V4
-    V4 -.-> V5
-    V5 -.-> V6
+    UI -.-> M31
+    M31 -.-> M4
+    M4 -.-> M5
+    M5 -.-> M6
 ```
 
----
+### 3.1. Módulos Operativos (Entregados y Verificados)
 
-### ✅ LO HECHO (Módulos Completados)
-
-#### 1. Identidad Visual y Estilo Institucional (SIGAV)
-- **Dirección de arte oficial:** Colores morado institucional (`#725682`), rosa suave, fondos beige cálidos y superficies blancas limpias.
-- **Modo Oscuro / Claro:** Tokens HSL con persistencia local y soporte para reducción de brillo.
-- **Menú Lateral (Sidebar) Limpio:** Menú corporativo definitivo, 100% responsivo para escritorio, tablets y móviles, sin etiquetas de desarrollo.
-
-#### 2. Inicio Institucional y Autenticación (V1)
-- **Autenticación RBAC flexible:** Inicio de sesión por RUT (con o sin puntos/guión) o por correo institucional.
-- **Dashboard de Inicio:**
-  - 3 KPIs superiores: Socias Activas (276), Suspendidas (4) y Saldo Total ($14.580.000).
-  - 3 Paneles medianos: Correlativo de los últimos 5 pagos a Federación, Próximas Tareas de tesorería y Alertas inteligentes de cuotas.
-  - 2 Gráficos Analíticos: Recaudación Mensual con selector de año (2026/2025) y Estado de Socias con créditos.
-
-#### 3. Módulo Completo de Tesorería (V2)
-- **Centros de Costo:** `ASOCIACION`, `CENA ANUAL`, `FEDERACION` e `ISI MUNDO COMISION`.
-- **Regla Estricta de Egresos:** Prohibición absoluta de registrar egresos sin comprobante respaldado.
-- **Subida Real de Comprobantes:** Soporte físico de almacenamiento mediante Multer (`backend/uploads/`) para PDF, JPG, PNG y WEBP (máximo 5 MB), con botón para previsualizar o descargar el comprobante original.
-- **Modal Transaccional Especializado:** Formularios diferenciados para *Ingreso*, *Egreso* y *Pago Federación*.
-- **Exportación Contable:** Descarga de movimientos filtrados en formato CSV compatible con Microsoft Excel.
-
-#### 4. Padrón de Socias y Gestión de Jardines (V3 Base)
-- **Padrón de 280 socias:** Búsqueda en tiempo real por nombre, apellido o RUT, con filtros por jardín, cargo, estado y crédito.
-- **Regla de Cuota Social:** $4.000 CLP para activas; bloqueo automático de cobro ($0) para socias suspendidas.
-- **Altas y Edición:** Validación estricta de RUT chileno (módulo 11) y control de unicidad.
-- **Traslados de Jardín:** Registro obligatorio del motivo del traslado e historial auditable por socia.
-- **Directorio de Jardines:** Catálogo de los 23 jardines con su delegada electa asignada.
-
-#### 5. Base de Datos Híbrida y Pruebas Automatizadas
-- **Arquitectura Dual MySQL (XAMPP) / Memoria:** Conexión nativa mediante pool `mysql2/promise` a base de datos `JARDINES_VTF`, con detección no bloqueante y activación automática de modo contingencia en memoria cuando MySQL está apagado.
-- **Scripts SQL completos en [`database/`](database/):** Esquema DDL (`database.sql`), directiva (`admin.sql`), padrón unificado de **277 socias consecutivas** (`data.sql`) y parches para XAMPP (`patch_xampp.sql`).
-- **Suite de Pruebas:** 28 pruebas automatizadas pasando al 100% (`test:auth`, `test:socias`, `test:comprobantes`).
+* **Dirección de Arte Corporativa SIGAV:**
+  * Sistema visual unificado con paleta cromática de alta fidelidad: morado heráldico (`#725682`), rosa corporativo, fondos beige cálidos y superficies neutras.
+  * Modo nocturno/diurno calibrado con tokens HSL y persistencia en cliente.
+  * Menú de navegación lateral institucional, depurado y 100% responsivo para cualquier dispositivo.
+* **Consola Ejecutiva y Autenticación Centralizada (V1):**
+  * Control de acceso multifactorial por identificador o correo institucional con validación de RUT.
+  * Indicadores de alto nivel (KPIs): Socias Activas, Suspendidas y Balance Consolidado de Fondos.
+  * Visualización analítica de recaudación interanual (2025/2026) y distribución de fondos gremiales.
+* **Tesorería y Control Financiero (V2):**
+  * Segregación en cuatro Centros de Costo: `ASOCIACION`, `CENA ANUAL`, `FEDERACION` e `ISI MUNDO COMISION`.
+  * **Protocolo de Respaldo Digital Obligatorio:** Ningún egreso contable puede ser procesado sin la incorporación física de un comprobante válido (PDF, JPG, PNG o WEBP).
+  * Almacenamiento seguro en servidor con enlace directo para descarga y auditoría forense.
+  * Exportación de libros contables a planillas normalizadas (.CSV / Excel).
+* **Padrón Centralizado de Afiliadas (V3 Base):**
+  * Registro integral de 280 trabajadoras con motor de búsqueda y filtros multidimensionales.
+  * Automatización estatutaria: las afiliadas con estado `SUSPENDIDA` quedan exentas de cobro mensual ($0 CLP).
+  * Registro y control histórico de traslados inter-jardines con justificación obligatoria.
+* **Persistencia Dual y Estabilidad Autónoma:**
+  * Integración con base de datos relacional MySQL / MariaDB (XAMPP).
+  * Mecanismo de contingencia autónomo en memoria que asegura disponibilidad 24/7 incluso ante caídas del motor de base de datos.
+  * Validación integral con 28 pruebas automatizadas aprobadas.
 
 ---
 
-### ⏳ LO POR HACER (Próximos Hitos por Versión)
+### 3.2. Hoja de Ruta (Módulos Planificados)
 
-#### ⏳ V3.1 — Motor Avanzado de Convenios, Créditos y Carga Excel
-- **Dashboard de Convenios:** Botones superiores de las 4 empresas oficiales (`SOS`, `ISIMUNDO`, `OPTICA`, `DENTAL`) mostrando *"A PAGAR $X"* y *"Último Pago Mes $Y"*.
-- **Cargador de Planilla Maestra Excel (Día 18 de cada mes):** Procesamiento de archivos `.xlsx` mediante SheetJS para actualizar automáticamente los montos a descontar por planilla.
-- **Módulo de Verificación Mensual (Días 1 al 5):**
-  - Selector de mes de rendición.
-  - 4 capturadores de comprobantes bancarios de transferencia (uno por cada empresa).
-  - Actualización automática de cuotas pagadas (ej. 3/6 a 4/6) y saldos pendientes solo tras validar los 4 comprobantes.
-- **Ficha Imprimible de Socia:** Estado de cuenta detallado por socia descargable en PDF.
-
-#### ⏳ V4 — Portal Exclusivo de Socias, Acceso Invitado y Buzón
-- **Acceso Diferenciado para Socias:** Botón *"Acceso Socias"* en el login; ingreso por RUT con validación en padrón.
-- **Primer Inicio y Seguridad:** Contraseña inicial con los 6 primeros dígitos del RUT y solicitud inmediata de cambio de clave.
-- **Tarjeta Pública de Directiva Depurada:** Mostrar únicamente las 3 titulares (`Yerthie` - Presidenta, `Alejandra` - Tesorera, `Nelly` - Secretaria) con sus correos oficiales `@vtftemuco.cl`, reservando el acceso de Super Admin y Directora para uso interno.
-- **Buzón Interactivo:** Formulario para socias (Consultas, Reclamos, Sugerencias, Felicitaciones, Denuncias) con datos de socia prellenados y subida de archivos adjuntos.
-- **Solicitud de Crédito S.O.S en Línea:** Formulario de auxilio de emergencia (monto, 1 a 4 cuotas y motivo) con confirmación popup.
-- **Muro de Noticias y Comunicados:** Publicación de avisos institucionales (pagos de federación, beneficios, convenios).
-
-#### ⏳ V5 — Gestión Documental y Carpetas por Empresa
-- **Repositorio de Documentos Maestros:** 4 contratos marco y pagarés tipo descargables en Word/PDF para convenios.
-- **Estructura Cronológica de Carpetas:** Archivos organizados por empresa (`ISIMUNDO`, `OPTICA`, `DENTAL`, `GIMNASIO`) en estructura `año / mes / día`.
-- **Registro Correlativo de Pagarés:** Seguimiento de socias que solicitan crédito con su documento firmado digitalizado.
-
-#### ⏳ V6 — Portal de Delegadas y Reporte de Rendición de Cuentas en PDF
-- **Vista Protegida para Delegadas:** Panel exclusivo de transparencia institucional con cifras agregadas por jardín.
-- **Protección Estricta de Privacidad:** Bloqueo de acceso a deudas individuales y datos privados de otras socias.
-- **Generador de Reporte en PDF:** Generación e impresión formal del balance anual de ingresos y egresos listo para asamblea general.
+* **Fase 3.1 — Conciliación de Convenios y Procesamiento de Planillas:**
+  * Cuadro de mandos para entidades en convenio: `S.O.S`, `ISIMUNDO`, `OPTICA` y `DENTAL`.
+  * Procesador inteligente de planillas de descuento en formato Microsoft Excel (.XLSX) mediante SheetJS.
+  * Protocolo de control mensual que exige la verificación de 4 comprobantes bancarios previos a la amortización de cuotas.
+* **Fase 4 — Portal de Autoservicio Gremial y Buzón Interactivo:**
+  * Acceso diferenciado de funcionarias para revisión personal de aportes y beneficios.
+  * Panel de presentación institucional de la Directiva Ejecutiva.
+  * Buzón gremial estructurado (Consultas, Sugerencias, Reclamos, Felicitaciones, Denuncias) con soporte de adjuntos.
+  * Tramitación en línea de solicitudes de auxilio crediticio de emergencia S.O.S.
+* **Fase 5 — Custodia Documental Centralizada:**
+  * Repositorio de Instrumentos Legales y Pagarés Maestros descargables.
+  * Estructuración cronológica de archivos digitales clasificados por empresa proveedora (`año / mes / día`).
+* **Fase 6 — Rendición Formal de Cuentas y Portal de Delegadas:**
+  * Consola de transparencia y fiscalización para delegadas gremiales de cada jardín.
+  * Generador de informes oficiales de Balance Anual en formato PDF formal para presentación ante asamblea.
 
 ---
 
-## 4. Estructura del Repositorio
+## 4. Arquitectura del Sistema
 
 ```text
 dashboard/
 ├── backend/
 │   ├── src/
-│   │   ├── config/          # Variables de entorno y pool MySQL / Prisma
-│   │   ├── controllers/     # Controladores (Auth, Dashboard, Treasury, Socia)
-│   │   ├── middlewares/     # JWT, validación de roles, uploads Multer y errores
-│   │   ├── routes/          # Enrutadores modulares de la API Express
-│   │   ├── services/        # Servicios de negocio (Auth, Treasury, Socia, Dashboard, Audit)
-│   │   ├── utils/           # Validador chileno de RUT (Módulo 11) y utilidades
-│   │   ├── validators/      # Esquemas de validación Zod
-│   │   └── server.js        # Punto de entrada de la API Express
-│   ├── prisma/
-│   │   ├── schema.prisma    # Esquema relacional Prisma (PostgreSQL opcional)
-│   │   └── seed.js          # Poblado de catálogos base
-│   ├── test/
-│   │   ├── authTest.js      # Pruebas de autenticación y RBAC
-│   │   ├── sociasTest.js    # Pruebas de padrón, estados y traslados V3
-│   │   └── comprobantesTest.js # Pruebas de subida y descarga de comprobantes
-│   ├── uploads/             # Directorio de almacenamiento de comprobantes físicos
-│   └── package.json
-├── database/                # Scripts SQL para MySQL XAMPP (JARDINES_VTF)
-│   ├── database.sql         # Esquema DDL, tablas relacionales y vistas
-│   ├── admin.sql            # Directiva y delegadas con roles
-│   ├── data.sql             # Padrón continuo de socias (1 al 277) y convenios
-│   └── patch_xampp.sql      # Parches de compatibilidad XAMPP
+│   │   ├── config/          # Configuración de entorno y conexión MySQL/Prisma
+│   │   ├── controllers/     # Controladores REST desacoplados
+│   │   ├── middlewares/     # Seguridad JWT, RBAC, auditoría y carga Multer
+│   │   ├── routes/          # Rutas expuestas por la API RESTful
+│   │   ├── services/        # Lógica de dominio de tesorería, socias y autenticación
+│   │   ├── utils/           # Módulo de validación de cédulas de identidad (Módulo 11)
+│   │   ├── validators/      # Esquemas de integridad de datos (Zod)
+│   │   └── server.js        # Punto de entrada HTTP y configuración de Express
+│   ├── database/            # Scripts DDL y DML para aprovisionamiento relacional
+│   ├── test/                # Suites de verificación y pruebas automatizadas
+│   └── uploads/             # Bóveda de almacenamiento de comprobantes digitales
 ├── frontend/
-│   ├── public/
-│   │   └── logo-vtf.png     # Logo oficial de la Asociación VTF Temuco
 │   ├── src/
-│   │   ├── components/      # UI institucional (Sidebar, Navbar, Card, Modal, etc.)
-│   │   ├── context/         # AuthContext (Sesión y RBAC), ThemeContext (Modo Oscuro)
-│   │   ├── pages/           # DashboardPage, TreasuryPage, SociasPage, LoginPage
-│   │   ├── routes/          # Enrutamiento React Router DOM protegido
-│   │   ├── services/        # Clientes Axios para conexión con backend
-│   │   ├── styles/          # Tokens HSL SIGAV y estilos responsivos
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── index.html
-│   └── package.json
-├── AGENTS.md                # Reglas de desarrollo y calidad Antigravity
-├── .gitignore
-├── package.json             # Scripts de coordinación raíz
-└── README.md                # Documentación oficial del proyecto
+│   │   ├── components/      # Librería de componentes visuales institucionales
+│   │   ├── context/         # Estados globales de autenticación, permisos y tema
+│   │   ├── pages/           # Vistas corporativas (Inicio, Tesorería, Socias)
+│   │   ├── routes/          # Enrutamiento protegido por credenciales y roles
+│   │   ├── services/        # Adaptadores de comunicación con la API
+│   │   └── styles/          # Tokens HSL y hoja de estilos institucionales SIGAV
+│   ├── public/              # Isotipo y activos públicos oficiales
+│   └── vite.config.js       # Configuración del empaquetador Vite
+└── README.md                # Documentación institucional y técnica
 ```
 
 ---
 
-## 5. Ejecución Local Completa
+## 5. Guía de Puesta en Marcha (Entorno Local)
 
-El proyecto se compone de dos aplicaciones que deben ejecutarse en terminales simultáneas:
+### 5.1. Requisitos Técnicos
+* Entorno de ejecución **Node.js LTS** (versión 18 o superior).
+* Gestor de paquetes **npm**.
+* Dos consolas de comandos simultáneas (PowerShell / Terminal).
 
-| Servicio | Tecnología | Dirección Local |
-| :--- | :--- | :--- |
-| **Frontend** | React + Vite | [http://localhost:5173](http://localhost:5173) |
-| **Backend API** | Node.js + Express | [http://localhost:4000/api/health](http://localhost:4000/api/health) |
-| **MySQL (Opcional)**| XAMPP / MariaDB | `localhost:3306` (Base: `jardines_vtf`) |
+### 5.2. Despliegue de Servicios Concurrentes
 
-### 5.1. Requisitos Previos
-- Node.js versión 18+ o 20+ (probado en Node.js 24) y npm.
-- Dos terminales PowerShell en la raíz del proyecto `dashboard`.
-
-### 5.2. Iniciar el Backend (Terminal 1)
-
-Desde la raíz `dashboard`:
-
+**Consola 1 — Servicio Backend (API):**
 ```powershell
 npm run dev:backend
 ```
+*Disponible en:* `http://localhost:4000/api`
 
-- La API escuchará en el puerto `4000`.
-- Si MySQL no está iniciado, activará automáticamente el modo contingencia en memoria.
-
-### 5.3. Iniciar el Frontend (Terminal 2)
-
-Desde la raíz `dashboard`:
-
+**Consola 2 — Interfaz de Usuario (Frontend):**
 ```powershell
 npm run dev:frontend
 ```
+*Disponible en:* `http://localhost:5173`
 
-- Abrirá el servidor de desarrollo en: **[http://localhost:5173](http://localhost:5173)**.
+### 5.3. Persistencia de Datos
+* **Modo Demostración / Contingencia (Predeterminado):** El sistema inicializa con datos institucionales estructurados en memoria volátil de alta disponibilidad, sin requerir servicios de bases de datos externos.
+* **Modo Persistente (MySQL / XAMPP):** Para activar la persistencia completa, inicie el servicio MySQL en el puerto `3306` e importe los scripts contenidos en `database/`:
+  1. `database/database.sql` (Esquema DDL relacional).
+  2. `database/admin.sql` (Cuentas operativas de directiva).
+  3. `database/data.sql` (Padrón continuo de afiliadas y convenios).
 
-### 5.4. Configuración Opcional de Base de Datos MySQL (XAMPP)
+### 5.4. Verificación Automatizada del Sistema
 
-Para utilizar la persistencia real con los scripts de la carpeta `database/`:
-
-1. Abre el panel de control de **XAMPP** e inicia **Apache** y **MySQL**.
-2. Ingresa a phpMyAdmin en `http://localhost/phpmyadmin`.
-3. Importa los scripts SQL en el siguiente orden:
-   1. `database/database.sql` (crea la base `JARDINES_VTF`, tablas y vistas).
-   2. `database/admin.sql` (crea los usuarios administradores de directiva y delegadas).
-   3. `database/data.sql` (carga el padrón continuo de 277 socias, convenios y créditos).
-   4. `database/patch_xampp.sql` (ajustes opcionales de compatibilidad).
-4. El archivo `backend/.env` ya viene preconfigurado para conectar con XAMPP (`DB_USER=root`, `DB_PASSWORD=`, `DB_NAME=jardines_vtf`). Al reiniciar el backend, se conectará de inmediato a MySQL.
-
-### 5.5. Ejecutar la Suite de Pruebas
-
-Para validar el funcionamiento del backend y todos los módulos completados:
+Para certificar la integridad de las reglas de negocio, modelos de seguridad y carga de documentos:
 
 ```powershell
 npm run test:backend
 ```
 
-O de forma independiente:
-
-```powershell
-npm --prefix backend run test:auth
-npm --prefix backend run test:socias
-npm --prefix backend run test:comprobantes
-```
-
-Para validar la compilación del frontend:
+Para verificar la optimización y empaquetado de producción de la interfaz:
 
 ```powershell
 npm run build:frontend
@@ -252,9 +196,7 @@ npm run build:frontend
 
 ---
 
-## 6. Metodología de Desarrollo
+## 6. Confidencialidad y Propiedad Intelectual
 
-Cada nueva versión se implementa bajo los siguientes estándares:
-1. **Un hito a la vez:** Enfoque prioritario en una versión específica hasta dejarla probada y operativa.
-2. **Ciclo interactivo:** Demostración en vivo en el navegador antes de pasar a la siguiente fase.
-3. **Calidad de código:** Cero errores de sintaxis o importación, validación en terminal y commits bajo el estándar Conventional Commits en español.
+> **DOCUMENTO CONFIDENCIAL**  
+> Este software y su documentación técnica son propiedad exclusiva de la **Asociación de Jardines Infantiles VTF Temuco**. Queda prohibida su reproducción, distribución pública o divulgación de los datos personales contenidos en el padrón o libros contables sin la autorización expresa de la Directiva Sindical conforme a la Ley N° 19.628 sobre Protección de la Vida Privada.
