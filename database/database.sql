@@ -117,12 +117,12 @@ FROM
     `liquidaciones_mensuales` l
     INNER JOIN `socias` s ON l.socia_id = s.id;
 
--- 6. Tabla de Movimientos de Tesorería (Ingresos, Egresos, Centros de Costo y Comprobantes)
+-- 6. Tabla de Movimientos de Tesorería (Ingresos, Egresos, Saldos Iniciales y Comprobantes)
 CREATE TABLE IF NOT EXISTS `movimientos_tesoreria` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `correlativo` VARCHAR(50) NOT NULL UNIQUE,
     `fecha` DATE NOT NULL,
-    `tipo` ENUM('INGRESO', 'EGRESO') NOT NULL,
+    `tipo` ENUM('INGRESO', 'EGRESO', 'SALDO_APERTURA') NOT NULL,
     `centro_costo` ENUM('ASOCIACION', 'CENA ANUAL', 'FEDERACION', 'ISI MUNDO COMISION') NOT NULL,
     `categoria` VARCHAR(100) NOT NULL,
     `descripcion` TEXT NOT NULL,
@@ -130,6 +130,9 @@ CREATE TABLE IF NOT EXISTS `movimientos_tesoreria` (
     `monto` INT NOT NULL,
     `responsable` VARCHAR(150) NOT NULL,
     `comprobante` VARCHAR(255) NULL,
+    `comprobante_stored` VARCHAR(255) NULL,
+    `comprobante_mime` VARCHAR(100) NULL,
+    `comprobante_size` INT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_mov_fecha` (`fecha`),
     INDEX `idx_mov_centro` (`centro_costo`),

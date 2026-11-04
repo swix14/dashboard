@@ -7,10 +7,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node test/authTest.js && node test/sociasTest.js && node test/comprobantesTest.js && node test/sociaPortalTest.js",
+    "test": "node test/authTest.js && node test/sociasTest.js && node test/comprobantesTest.js && node test/treasuryPersistenceTest.js && node test/sociaPortalTest.js",
     "test:auth": "node test/authTest.js",
     "test:socias": "node test/sociasTest.js",
     "test:comprobantes": "node test/comprobantesTest.js",
+    "test:treasury": "node test/treasuryPersistenceTest.js",
     "test:socia": "node test/sociaPortalTest.js"
   },
   "keywords": [

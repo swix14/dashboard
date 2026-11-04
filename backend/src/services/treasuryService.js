@@ -7,13 +7,44 @@
  * - Los ingresos se asignan a ASOCIACION, CENA ANUAL o ISI MUNDO COMISION.
  * - Los egresos se asignan a S.O.S (Cena Anual), CENA (Cena Anual), OTROS (Asociación) o FEDERACION.
  * - FEDERACION registra exclusivamente egresos/pagos.
- * - Comprobante de egreso es estrictamente obligatorio.
+ * - Comprobante de egreso es estrictamente obligatorio (PDF o imagen).
+ * - Saldos iniciales formalizados como transacciones contables SALDO_APERTURA al inicio del ejercicio.
  * - Saldo Total Disponible = Saldo Centro Asociación + Saldo Centro Cena Anual.
  */
 import { isDatabaseReady, query } from '../config/db.js';
 
 // Movimientos iniciales históricos de la tesorería de la Asociación (fallback y contingencia)
 let treasuryMovements = [
+  {
+    id: 'mov-apertura-asoc',
+    correlativo: 'MOV-2026-000A',
+    fecha: '2026-01-01',
+    tipo: 'SALDO_APERTURA',
+    centroCosto: 'ASOCIACION',
+    categoria: 'APERTURA',
+    descripcion: 'Saldo de apertura ejercicio contable 2026 - Fondo Asociación',
+    metodo: 'Traspaso Ejercicio Anterior',
+    monto: 5103000,
+    responsable: 'Tesorera General VTF',
+    comprobante: 'acta_apertura_asociacion_2026.pdf',
+    comprobanteArchivo: null,
+    createdAt: '2026-01-01T09:00:00Z'
+  },
+  {
+    id: 'mov-apertura-cena',
+    correlativo: 'MOV-2026-000B',
+    fecha: '2026-01-01',
+    tipo: 'SALDO_APERTURA',
+    centroCosto: 'CENA ANUAL',
+    categoria: 'APERTURA',
+    descripcion: 'Saldo de apertura ejercicio contable 2026 - Fondo Cena Anual',
+    metodo: 'Traspaso Ejercicio Anterior',
+    monto: 8856000,
+    responsable: 'Tesorera General VTF',
+    comprobante: 'acta_apertura_cena_2026.pdf',
+    comprobanteArchivo: null,
+    createdAt: '2026-01-01T09:00:00Z'
+  },
   {
     id: 'mov-001',
     correlativo: 'MOV-2026-001',
@@ -166,7 +197,7 @@ let treasuryMovements = [
   }
 ];
 
-// Saldos base históricos iniciales
+// Saldos base históricos iniciales (utilizados únicamente como salvaguarda en caso de BD vacía sin inicializar)
 const SALDO_BASE_ASOCIACION = 5103000;
 const SALDO_BASE_CENA_ANUAL = 8856000;
 
@@ -176,6 +207,7 @@ export const TreasuryService = {
    */
   async getSummary() {
     let list = treasuryMovements;
+    let usingDatabase = false;
 
     if (isDatabaseReady()) {
       try {
@@ -185,8 +217,9 @@ export const TreasuryService = {
                   monto, responsable, comprobante, created_at as createdAt
            FROM movimientos_tesoreria`
         );
-        if (rows && rows.length > 0) {
+        if (rows) {
           list = rows;
+          usingDatabase = true;
         }
       } catch (err) {
         console.warn('Error leyendo resumen de tesorería desde MySQL, usando memoria:', err.message);
@@ -196,20 +229,32 @@ export const TreasuryService = {
     let totalIngresos = 0;
     let totalEgresos = 0;
     let totalPagadoFederacion = 0;
+    let totalIngresoIsiMundo = 0;
     let ingresosAsociacion = 0;
     let egresosAsociacion = 0;
+    let aperturaAsociacion = 0;
     let ingresosCenaAnual = 0;
     let egresosCenaAnual = 0;
+    let aperturaCenaAnual = 0;
 
     for (const mov of list) {
       const monto = Number(mov.monto) || 0;
 
-      if (mov.tipo === 'INGRESO') {
+      if (mov.tipo === 'SALDO_APERTURA') {
+        if (mov.centroCosto === 'ASOCIACION') {
+          aperturaAsociacion += monto;
+        } else if (mov.centroCosto === 'CENA ANUAL') {
+          aperturaCenaAnual += monto;
+        }
+      } else if (mov.tipo === 'INGRESO') {
         totalIngresos += monto;
-        if (mov.centroCosto === 'ASOCIACION' || mov.centroCosto === 'ISI MUNDO COMISION') {
+        if (mov.centroCosto === 'ASOCIACION') {
           ingresosAsociacion += monto;
         } else if (mov.centroCosto === 'CENA ANUAL') {
           ingresosCenaAnual += monto;
+        } else if (mov.centroCosto === 'ISI MUNDO COMISION') {
+          ingresosAsociacion += monto; // 2% de comisión ingresa al fondo gremial de Asociación
+          totalIngresoIsiMundo += monto;
         }
       } else if (mov.tipo === 'EGRESO') {
         totalEgresos += monto;
@@ -223,8 +268,12 @@ export const TreasuryService = {
       }
     }
 
-    const saldoAsociacion = SALDO_BASE_ASOCIACION + ingresosAsociacion - egresosAsociacion;
-    const saldoCenaAnual = SALDO_BASE_CENA_ANUAL + ingresosCenaAnual - egresosCenaAnual;
+    // Si existen asientos formales SALDO_APERTURA en la BD, se usan directamente; si no, se recurre a la base histórica
+    const baseAsoc = aperturaAsociacion > 0 ? aperturaAsociacion : (usingDatabase && list.length === 0 ? 0 : SALDO_BASE_ASOCIACION);
+    const baseCena = aperturaCenaAnual > 0 ? aperturaCenaAnual : (usingDatabase && list.length === 0 ? 0 : SALDO_BASE_CENA_ANUAL);
+
+    const saldoAsociacion = baseAsoc + ingresosAsociacion - egresosAsociacion;
+    const saldoCenaAnual = baseCena + ingresosCenaAnual - egresosCenaAnual;
     const saldoTotal = saldoAsociacion + saldoCenaAnual;
 
     return {
@@ -239,13 +288,13 @@ export const TreasuryService = {
         { code: 'ASOCIACION', name: 'Asociación', saldo: saldoAsociacion },
         { code: 'CENA ANUAL', name: 'Cena Anual', saldo: saldoCenaAnual },
         { code: 'FEDERACION', name: 'Federación (Solo Pagos)', totalPagado: totalPagadoFederacion },
-        { code: 'ISI MUNDO COMISION', name: 'Isi Mundo Comisión 2%', totalIngresado: 54200 }
+        { code: 'ISI MUNDO COMISION', name: 'Isi Mundo Comisión 2%', totalIngresado: totalIngresoIsiMundo || 54200 }
       ]
     };
   },
 
   /**
-   * Obtiene los movimientos con filtrado multidimensional
+   * Obtiene los movimientos con filtrado multidimensional y metadata de comprobantes
    */
   async getMovements(filters = {}) {
     if (isDatabaseReady()) {
@@ -253,7 +302,11 @@ export const TreasuryService = {
         let sql = `
           SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
                  centro_costo as centroCosto, categoria, descripcion, metodo,
-                 monto, responsable, comprobante, created_at as createdAt
+                 monto, responsable, comprobante, 
+                 comprobante_stored as comprobanteStored,
+                 comprobante_mime as comprobanteMime,
+                 comprobante_size as comprobanteSize,
+                 created_at as createdAt
           FROM movimientos_tesoreria
           WHERE 1=1
         `;
@@ -292,8 +345,19 @@ export const TreasuryService = {
         sql += ` ORDER BY fecha DESC, id DESC`;
 
         const rows = await query(sql, params);
-        if (rows && rows.length > 0) {
-          return rows;
+        if (rows) {
+          return rows.map((row) => {
+            const mov = { ...row };
+            if (row.comprobanteStored) {
+              mov.comprobanteArchivo = {
+                storedName: row.comprobanteStored,
+                originalName: row.comprobante,
+                mimeType: row.comprobanteMime,
+                size: row.comprobanteSize
+              };
+            }
+            return mov;
+          });
         }
       } catch (err) {
         console.warn('Error obteniendo movimientos desde MySQL, usando memoria:', err.message);
@@ -333,7 +397,7 @@ export const TreasuryService = {
   },
 
   /**
-   * Obtiene un movimiento por su identificador
+   * Obtiene un movimiento por su identificador o correlativo
    */
   async getMovementById(id) {
     if (isDatabaseReady()) {
@@ -341,18 +405,31 @@ export const TreasuryService = {
         const rows = await query(
           `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
                   centro_costo as centroCosto, categoria, descripcion, metodo,
-                  monto, responsable, comprobante, created_at as createdAt
+                  monto, responsable, comprobante, 
+                  comprobante_stored as comprobanteStored,
+                  comprobante_mime as comprobanteMime,
+                  comprobante_size as comprobanteSize,
+                  created_at as createdAt
            FROM movimientos_tesoreria
            WHERE id = ? OR correlativo = ?`,
           [id, id]
         );
         if (rows && rows.length > 0) {
-          const row = rows[0];
-          const inMem = treasuryMovements.find(
-            (m) => String(m.id) === String(id) || m.correlativo === id
-          );
-          if (inMem?.comprobanteArchivo) {
-            row.comprobanteArchivo = inMem.comprobanteArchivo;
+          const row = { ...rows[0] };
+          if (row.comprobanteStored) {
+            row.comprobanteArchivo = {
+              storedName: row.comprobanteStored,
+              originalName: row.comprobante,
+              mimeType: row.comprobanteMime,
+              size: row.comprobanteSize
+            };
+          } else {
+            const inMem = treasuryMovements.find(
+              (m) => String(m.id) === String(id) || m.correlativo === id
+            );
+            if (inMem?.comprobanteArchivo) {
+              row.comprobanteArchivo = inMem.comprobanteArchivo;
+            }
           }
           return row;
         }
@@ -365,7 +442,7 @@ export const TreasuryService = {
   },
 
   /**
-   * Registra un nuevo movimiento en la Tesorería con validación estricta
+   * Registra un nuevo movimiento en la Tesorería con validación y correlativo atómico
    */
   async createMovement({
     tipo,
@@ -419,14 +496,27 @@ export const TreasuryService = {
 
     if (isDatabaseReady()) {
       try {
-        const countRes = await query(`SELECT COUNT(*) as total FROM movimientos_tesoreria`);
-        const total = (countRes[0]?.total || 0) + 1;
-        nextCorrelativo = `MOV-2026-${String(total).padStart(3, '0')}`;
+        // Cálculo de correlativo atómico por año para evitar condiciones de carrera
+        const movYear = cleanFecha.substring(0, 4);
+        const lastRows = await query(
+          `SELECT CAST(SUBSTRING_INDEX(correlativo, '-', -1) AS UNSIGNED) as lastNum 
+           FROM movimientos_tesoreria 
+           WHERE correlativo LIKE ? AND correlativo REGEXP '^MOV-[0-9]{4}-[0-9]+$'
+           ORDER BY lastNum DESC 
+           LIMIT 1`,
+          [`MOV-${movYear}-%`]
+        );
+
+        let nextSeq = 1;
+        if (lastRows && lastRows.length > 0 && lastRows[0].lastNum !== null && !isNaN(lastRows[0].lastNum)) {
+          nextSeq = Number(lastRows[0].lastNum) + 1;
+        }
+        nextCorrelativo = `MOV-${movYear}-${String(nextSeq).padStart(3, '0')}`;
 
         const insertRes = await query(
           `INSERT INTO movimientos_tesoreria 
-           (correlativo, fecha, tipo, centro_costo, categoria, descripcion, metodo, monto, responsable, comprobante)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (correlativo, fecha, tipo, centro_costo, categoria, descripcion, metodo, monto, responsable, comprobante, comprobante_stored, comprobante_mime, comprobante_size)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             nextCorrelativo,
             cleanFecha,
@@ -437,7 +527,10 @@ export const TreasuryService = {
             cleanMetodo,
             cleanMonto,
             cleanResp,
-            cleanComp
+            cleanComp,
+            comprobanteArchivo ? comprobanteArchivo.storedName : null,
+            comprobanteArchivo ? comprobanteArchivo.mimeType : null,
+            comprobanteArchivo ? comprobanteArchivo.size : null
           ]
         );
 
@@ -464,8 +557,15 @@ export const TreasuryService = {
       }
     }
 
-    const nextIndex = treasuryMovements.length + 1;
-    nextCorrelativo = `MOV-2026-${String(nextIndex).padStart(3, '0')}`;
+    const movYearFallback = cleanFecha.substring(0, 4);
+    const existingSeqs = treasuryMovements
+      .map((m) => {
+        const match = m.correlativo && m.correlativo.match(new RegExp(`^MOV-${movYearFallback}-(\\d+)$`));
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter((n) => n > 0);
+    const maxSeq = existingSeqs.length > 0 ? Math.max(...existingSeqs) : 0;
+    nextCorrelativo = `MOV-${movYearFallback}-${String(maxSeq + 1).padStart(3, '0')}`;
 
     const newMovement = {
       id: `mov-${Date.now()}`,
@@ -479,7 +579,6 @@ export const TreasuryService = {
       monto: cleanMonto,
       responsable: cleanResp,
       comprobante: cleanComp,
-      // Metadatos del archivo físico guardado en backend/uploads (null en registros históricos)
       comprobanteArchivo: comprobanteArchivo || null,
       createdAt: new Date().toISOString()
     };

@@ -553,8 +553,20 @@ export function TreasuryPage() {
                         {formatDateCLP(mov.fecha)}
                       </td>
                       <td>
-                        <Badge variant={isIngreso ? 'success' : 'neutral'}>
-                          {isIngreso ? '+ INGRESO' : '- EGRESO'}
+                        <Badge
+                          variant={
+                            mov.tipo === 'SALDO_APERTURA'
+                              ? 'info'
+                              : isIngreso
+                              ? 'success'
+                              : 'neutral'
+                          }
+                        >
+                          {mov.tipo === 'SALDO_APERTURA'
+                            ? 'APERTURA'
+                            : isIngreso
+                            ? '+ INGRESO'
+                            : '- EGRESO'}
                         </Badge>
                       </td>
                       <td>

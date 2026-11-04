@@ -154,6 +154,83 @@ async function runTests() {
     assert.strictEqual(res.status, 404);
   });
 
+  // 8. Validación Zod: Rechazo de montos con decimales (CLP es entero)
+  await test('POST /api/tesoreria/movimientos con monto decimal retorna 400', async () => {
+    const res = await fetch(`${baseUrl}/tesoreria/movimientos`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tesoreraToken}` },
+      body: (() => {
+        const form = new FormData();
+        form.append('tipo', 'INGRESO');
+        form.append('fecha', '2026-10-25');
+        form.append('descripcion', 'Aporte con decimales no permitido');
+        form.append('centroCosto', 'ASOCIACION');
+        form.append('monto', '15000.75');
+        form.append('metodo', 'Transferencia Bancaria');
+        return form;
+      })()
+    });
+    assert.strictEqual(res.status, 400);
+    const body = await res.json();
+    assert.strictEqual(body.success, false);
+  });
+
+  // 9. Validación Zod: Rechazo de fecha inexistente en el calendario (ej: 30 de febrero)
+  await test('POST /api/tesoreria/movimientos con fecha 2026-02-30 retorna 400', async () => {
+    const res = await fetch(`${baseUrl}/tesoreria/movimientos`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tesoreraToken}` },
+      body: (() => {
+        const form = new FormData();
+        form.append('tipo', 'INGRESO');
+        form.append('fecha', '2026-02-30');
+        form.append('descripcion', 'Fecha imposible en febrero');
+        form.append('centroCosto', 'ASOCIACION');
+        form.append('monto', '10000');
+        form.append('metodo', 'Transferencia Bancaria');
+        return form;
+      })()
+    });
+    assert.strictEqual(res.status, 400);
+    const body = await res.json();
+    assert.strictEqual(body.success, false);
+  });
+
+  // 10. Resumen financiero calcula correctamente con asientos SALDO_APERTURA
+  await test('GET /api/tesoreria/resumen incluye saldos y centros de costo oficiales', async () => {
+    const res = await fetch(`${baseUrl}/tesoreria/resumen`, {
+      headers: { Authorization: `Bearer ${tesoreraToken}` }
+    });
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
+    assert.strictEqual(body.success, true);
+    assert.ok(body.data.saldoTotal > 0);
+    assert.ok(body.data.saldoAsociacion > 0);
+    assert.ok(body.data.saldoCenaAnual > 0);
+    assert.strictEqual(body.data.centrosCosto.length, 4);
+  });
+
+  // 11. Correlativo atómico consecutivo sin colisiones
+  await test('POST /api/tesoreria/movimientos genera correlativo atómico en orden', async () => {
+    const res = await fetch(`${baseUrl}/tesoreria/movimientos`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tesoreraToken}` },
+      body: (() => {
+        const form = new FormData();
+        form.append('tipo', 'INGRESO');
+        form.append('fecha', '2026-10-26');
+        form.append('descripcion', 'Ingreso prueba correlativo');
+        form.append('centroCosto', 'ASOCIACION');
+        form.append('monto', '50000');
+        form.append('metodo', 'Transferencia Bancaria');
+        return form;
+      })()
+    });
+    assert.strictEqual(res.status, 201);
+    const body = await res.json();
+    assert.ok(body.data.correlativo.startsWith('MOV-2026-'));
+  });
+
   console.log(`\n[RESULTADOS] ${passed} pasados, ${failed} fallidos`);
   server.close();
   fs.rmSync(uploadsDir, { recursive: true, force: true });

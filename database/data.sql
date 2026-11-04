@@ -1058,9 +1058,11 @@ INSERT INTO `liquidaciones_mensuales` (`socia_id`, `mes`, `anio`, `cuota_asociac
 ((SELECT id FROM socias WHERE rut='19.198.120-0'), 10, 2026, 4000, 72351, 'generada');
 
 -- ============================================================================
--- 6. MOVIMIENTOS HISTÓRICOS DE TESORERÍA (10 REGISTROS)
+-- 6. MOVIMIENTOS HISTÓRICOS DE TESORERÍA Y SALDOS DE APERTURA (12 REGISTROS)
 -- ============================================================================
 INSERT INTO `movimientos_tesoreria` (`id`, `correlativo`, `fecha`, `tipo`, `centro_costo`, `categoria`, `descripcion`, `metodo`, `monto`, `responsable`, `comprobante`, `created_at`) VALUES
+(1001, 'MOV-2026-000A', '2026-01-01', 'SALDO_APERTURA', 'ASOCIACION', 'APERTURA', 'Saldo de apertura ejercicio contable 2026 - Fondo Asociación', 'Traspaso Ejercicio Anterior', 5103000, 'Tesorera General VTF', 'acta_apertura_asociacion_2026.pdf', '2026-01-01 09:00:00'),
+(1002, 'MOV-2026-000B', '2026-01-01', 'SALDO_APERTURA', 'CENA ANUAL', 'APERTURA', 'Saldo de apertura ejercicio contable 2026 - Fondo Cena Anual', 'Traspaso Ejercicio Anterior', 8856000, 'Tesorera General VTF', 'acta_apertura_cena_2026.pdf', '2026-01-01 09:00:00'),
 (1, 'MOV-2026-001', '2026-06-02', 'EGRESO', 'FEDERACION', 'PAGO FEDERACION', 'Aporte gremial nacional mes de Junio 2026', 'Transferencia Bancaria', 280000, 'Tesorera General VTF', 'comprobante_fed_jun_2026.pdf', '2026-06-02 10:30:00'),
 (2, 'MOV-2026-002', '2026-07-02', 'EGRESO', 'FEDERACION', 'PAGO FEDERACION', 'Aporte gremial nacional mes de Julio 2026', 'Transferencia Bancaria', 280000, 'Tesorera General VTF', 'comprobante_fed_jul_2026.pdf', '2026-07-02 11:15:00'),
 (3, 'MOV-2026-003', '2026-08-03', 'EGRESO', 'FEDERACION', 'PAGO FEDERACION', 'Aporte gremial nacional mes de Agosto 2026', 'Transferencia Bancaria', 280000, 'Tesorera General VTF', 'comprobante_fed_ago_2026.pdf', '2026-08-03 09:45:00'),
