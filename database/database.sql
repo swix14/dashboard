@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS `socias` (
     `correo` VARCHAR(100),
     `password` VARCHAR(255) NULL,
     `primer_ingreso` TINYINT(1) DEFAULT 1,
-    `jardin` VARCHAR(150)
+    `jardin` VARCHAR(150),
+    `estado` ENUM('ACTIVA', 'SUSPENDIDA') DEFAULT 'ACTIVA'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 2. Tabla de Convenios / Proveedores

@@ -22,16 +22,48 @@ export const AuthService = {
   async login({ identifier, password, ipAddress, userAgent }) {
     const cleanId = identifier.trim().toLowerCase();
     const cleanRut = cleanId.replace(/[^0-9kK]/g, '');
-    const altEmail = cleanId.endsWith('@vtf.cl')
-      ? cleanId.replace('@vtf.cl', '@asociacionvtf.cl')
-      : cleanId.endsWith('@asociacionvtf.cl')
-      ? cleanId.replace('@asociacionvtf.cl', '@vtf.cl')
-      : cleanId;
+
+    // Variantes de correo y alias para permitir inicio flexible (@vtf.cl y @asociacionvtf.cl)
+    const emailsToMatch = [cleanId];
+    if (cleanId.includes('@')) {
+      const [userPart] = cleanId.split('@');
+      const domains = ['vtf.cl', 'asociacionvtf.cl'];
+      const aliases = [userPart];
+      if (userPart === 'tesorera' || userPart === 'tesoreria' || userPart === 'alejandra.sias') {
+        aliases.push('tesoreria', 'tesorera', 'alejandra.sias');
+      }
+      if (userPart === 'presidenta' || userPart === 'presidencia' || userPart === 'yerthie.sayago') {
+        aliases.push('presidencia', 'presidenta', 'yerthie.sayago');
+      }
+      if (userPart === 'secretaria' || userPart === 'nelly.mella') {
+        aliases.push('secretaria', 'nelly.mella');
+      }
+      if (userPart === 'directora' || userPart === 'victoria.abarza') {
+        aliases.push('directora', 'victoria.abarza');
+      }
+      if (userPart === 'admin' || userPart === 'superadmin' || userPart === 'jhonny.ferrada') {
+        aliases.push('admin', 'jhonny.ferrada');
+      }
+      if (userPart.startsWith('delegada') || userPart === 'claudia.navarro') {
+        aliases.push('delegada', 'delegada.bambi', 'claudia.navarro');
+      }
+      if (userPart.startsWith('socia') || userPart === 'francisca.torres') {
+        aliases.push('socia', 'socia.educadora', 'francisca.torres');
+      }
+
+      for (const alias of aliases) {
+        for (const dom of domains) {
+          emailsToMatch.push(`${alias}@${dom}`);
+        }
+      }
+    }
+    const uniqueEmails = [...new Set(emailsToMatch)];
     let user = null;
 
     // 1. Búsqueda en MySQL (administradores) si está disponible
     if (isDatabaseReady()) {
       try {
+        const placeholders = uniqueEmails.map(() => '?').join(', ');
         const rows = await query(
           `SELECT a.id, a.rut, a.nombres, a.apellidos, a.correo, a.rol, a.contrasena, a.activo,
                   s.cargo, s.jardin
@@ -39,9 +71,8 @@ export const AuthService = {
            LEFT JOIN socias s ON a.rut = s.rut
            WHERE LOWER(a.rut) = ? 
               OR LOWER(REPLACE(REPLACE(a.rut, '.', ''), '-', '')) = ?
-              OR LOWER(a.correo) = ?
-              OR LOWER(a.correo) = ?`,
-          [cleanId, cleanRut, cleanId, altEmail]
+              OR LOWER(a.correo) IN (${placeholders})`,
+          [cleanId, cleanRut, ...uniqueEmails]
         );
 
         if (rows.length > 0) {

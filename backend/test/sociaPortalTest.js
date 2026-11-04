@@ -18,7 +18,10 @@ test('Suite de Pruebas: Portal Diferenciado de Socias y Buzón', async (t) => {
   const port = server.address().port;
   const baseUrl = `http://localhost:${port}/api`;
 
-  t.after(() => server.close());
+  t.after(() => {
+    server.close();
+    process.exit(0);
+  });
 
   let sociaToken = '';
   let sociaData = null;
