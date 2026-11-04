@@ -28,7 +28,7 @@ export function Sidebar({ isOpen, onClose }) {
       to: '/tesoreria',
       label: 'Tesorería y Fondos',
       icon: DollarSign,
-      allowed: isDirectiva || isTesorera
+      allowed: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode)
     },
     {
       to: '/socias',

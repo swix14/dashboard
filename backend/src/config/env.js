@@ -18,3 +18,10 @@ export const env = {
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
   UPLOADS_DIR: process.env.UPLOADS_DIR || path.join(backendRoot, 'uploads')
 };
+
+// Salvaguarda de seguridad en producción
+if (env.NODE_ENV === 'production') {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.includes('vtf-gestion-super-secret-key')) {
+    console.warn('⚠️ ALERTA DE SEGURIDAD: JWT_SECRET por defecto detectado en producción. Configure una clave secreta segura en variables de entorno.');
+  }
+}

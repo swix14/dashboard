@@ -3,14 +3,15 @@
 
 -- Para dropear la base de datos (solo usenlo para pruebas y no para
 -- la base de datos real porfa)
+-- Configuración de codificación UTF-8
 SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
 
-DROP DATABASE IF EXISTS `JARDINES_VTF`;
-
-CREATE DATABASE IF NOT EXISTS `JARDINES_VTF` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE `JARDINES_VTF`;
+-- NOTA PARA DESPLIEGUE EN CPANEL O XAMPP:
+-- En cPanel, selecciona primero la base de datos creada (ej: usuario_jardines_vtf) y luego importa este archivo.
+-- Si ejecutas en un entorno local vacío de desarrollo, puedes descomentar las siguientes 2 líneas:
+-- CREATE DATABASE IF NOT EXISTS `jardines_vtf` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- USE `jardines_vtf`;
 
 CREATE TABLE IF NOT EXISTS `administradores` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,

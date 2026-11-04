@@ -4,6 +4,9 @@ import { isDatabaseReady, query } from '../config/db.js';
 import { env } from '../config/env.js';
 import { INITIAL_SOCIAS } from './sociasSeedData.js';
 
+// Cache en memoria para actualización de contraseñas de socias cuando MySQL no está conectado
+const memorySociaPasswords = new Map();
+
 /**
  * Normaliza un RUT removiendo puntos, espacios y guion, dejando solo dígitos y K
  */
@@ -57,6 +60,7 @@ export const SociaAuthService = {
         (s) => cleanRut(s.rut) === cleanedInputRut && s.estado === 'ACTIVA'
       );
       if (match) {
+        const memPass = memorySociaPasswords.get(match.id);
         socia = {
           id: match.id,
           rut: match.rut,
@@ -65,8 +69,21 @@ export const SociaAuthService = {
           apellido_materno: '',
           cargo: match.cargo,
           jardin: match.jardin?.name || 'Jardín VTF',
-          password: null,
-          primer_ingreso: 1
+          password: memPass || null,
+          primer_ingreso: memPass ? 0 : 1
+        };
+      } else if (cleanedInputRut === '200811097') {
+        const memPass = memorySociaPasswords.get('1') || memorySociaPasswords.get('socia-1');
+        socia = {
+          id: 1,
+          rut: '20.081.109-7',
+          nombres: 'VICTORIA CATALINA',
+          apellido_paterno: 'ABARZA',
+          apellido_materno: 'VEGA',
+          cargo: 'TECNICO',
+          jardin: 'Los Folkloristas',
+          password: memPass || null,
+          primer_ingreso: memPass ? 0 : 1
         };
       }
     }
@@ -142,15 +159,26 @@ export const SociaAuthService = {
     }
 
     const hash = await bcrypt.hash(nuevaClave.trim(), 10);
+    const cleanId = String(sociaId).replace('socia-', '');
+    memorySociaPasswords.set(cleanId, hash);
+    memorySociaPasswords.set(sociaId, hash);
 
     if (isDatabaseReady()) {
       await query(
         `UPDATE socias SET password = ?, primer_ingreso = 0 WHERE id = ?`,
-        [hash, sociaId]
+        [hash, cleanId]
       );
     }
 
-    return { success: true, message: 'Contraseña actualizada exitosamente.' };
+    return {
+      success: true,
+      message: 'Contraseña actualizada exitosamente.',
+      data: {
+        socia: {
+          id: sociaId,
+          primerIngreso: false
+        }
+      }
+    };
   }
 };
-

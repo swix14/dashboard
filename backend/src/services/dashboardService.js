@@ -4,14 +4,17 @@ import { TreasuryService } from './treasuryService.js';
 
 export const DashboardService = {
   /**
-   * Genera métricas adaptadas de acuerdo al rol del usuario autenticado
+   * Genera métricas adaptadas estrictamente al principio de mínimo privilegio (PoLP)
    */
   async getMetricsByRole(user) {
     const roleCode = user.role?.code || user.role;
 
-    // Métricas base dinámicas o por defecto
+    // Métricas base institucionales (no financieras privadas)
     let totalSocias = 277;
     let totalJardines = 23;
+    let sociasActivasCount = 273;
+    let sociasSuspendidasCount = 4;
+
     let ultimosPagosFederacion = [
       { correlativo: 'FED-2026-005', fecha: '2026-10-02', monto: 280000, descripcion: 'Cuota Federación Octubre 2026', comprobante: 'comprobante_fed_oct_2026.pdf' },
       { correlativo: 'FED-2026-004', fecha: '2026-09-02', monto: 280000, descripcion: 'Cuota Federación Septiembre 2026', comprobante: 'comprobante_fed_sep_2026.pdf' },
@@ -28,15 +31,13 @@ export const DashboardService = {
       totalActivas: 277
     };
 
-    // Obtener saldos reales de tesorería
-    const treasurySummary = await TreasuryService.getSummary();
-
     if (isDatabaseReady()) {
       try {
         const [sociaCount] = await query(`SELECT COUNT(*) as total, COUNT(DISTINCT jardin) as totalJardines FROM socias`);
         if (sociaCount?.total) {
           totalSocias = Number(sociaCount.total);
           totalJardines = Number(sociaCount.totalJardines) || 23;
+          sociasActivasCount = Math.max(0, totalSocias - 4);
         }
 
         const fedRows = await query(
@@ -50,7 +51,6 @@ export const DashboardService = {
           ultimosPagosFederacion = fedRows;
         }
 
-        // Estadísticas de créditos reales en MySQL
         const [isiRes] = await query(`SELECT COUNT(*) as c FROM creditos WHERE convenio_id = 2 AND estado = 'vigente'`);
         const [sosRes] = await query(`SELECT COUNT(*) as c FROM creditos WHERE convenio_id = 1 AND estado = 'vigente'`);
         const [otrosRes] = await query(`SELECT COUNT(*) as c FROM creditos WHERE convenio_id IN (3, 4, 5) AND estado = 'vigente'`);
@@ -71,14 +71,12 @@ export const DashboardService = {
       }
     }
 
-    const baseSummary = {
+    // Base institucional común (sin exponer saldos de fondos)
+    const institutionalBase = {
       asociacion: 'Asociación de Jardines VTF',
       totalJardines,
       totalSocias,
       totalDelegadas: totalJardines,
-      fondoComunSaldo: treasurySummary.saldoTotal,
-      totalIngresosPeriodo: treasurySummary.totalIngresos,
-      totalEgresosPeriodo: treasurySummary.totalEgresos,
       valorCuotaMensual: 4000,
       distribucionCuota: {
         federacion: 1000,
@@ -87,26 +85,24 @@ export const DashboardService = {
       }
     };
 
-    // 1. Roles Administrativos / Directiva con acceso financiero y operativo
-    const isDirectiva = [
-      'ADMIN',
-      'SUPER_ADMIN',
-      'PRESIDENTA',
-      'TESORERA',
-      'SECRETARIA',
-      'DIRECTORA'
-    ].includes(roleCode);
+    // 1. Roles con acceso a información contable y financiera (ADMIN, PRESIDENTA, TESORERA, SECRETARIA)
+    const hasFinancialAccess = ['ADMIN', 'SUPER_ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode);
 
-    if (isDirectiva) {
+    if (hasFinancialAccess) {
+      const treasurySummary = await TreasuryService.getSummary();
+
       return {
-        ...baseSummary,
+        ...institutionalBase,
+        fondoComunSaldo: treasurySummary.saldoTotal,
+        totalIngresosPeriodo: treasurySummary.totalIngresos,
+        totalEgresosPeriodo: treasurySummary.totalEgresos,
         nivelAcceso: 'DIRECTIVA_ADMINISTRATIVA',
         puedeGestionarFinanzas: roleCode === 'TESORERA' || roleCode === 'ADMIN' || roleCode === 'SUPER_ADMIN',
         puedeGestionarSocias: roleCode === 'SECRETARIA' || roleCode === 'ADMIN' || roleCode === 'SUPER_ADMIN' || roleCode === 'PRESIDENTA',
         inicio: {
           // Fila 1: KPIs Principales
-          sociasActivas: totalSocias - 4,
-          sociasSuspendidas: 4,
+          sociasActivas: sociasActivasCount,
+          sociasSuspendidas: sociasSuspendidasCount,
           saldoTotal: treasurySummary.saldoTotal,
           saldoCenaAnual: treasurySummary.saldoCenaAnual,
           saldoAsociacion: treasurySummary.saldoAsociacion,
@@ -139,20 +135,6 @@ export const DashboardService = {
                 { mes: 'Ago', ingresos: 1200000, egresos: 360000 },
                 { mes: 'Sep', ingresos: 1280000, egresos: 540000 },
                 { mes: 'Oct', ingresos: 1048000, egresos: 280000 }
-              ],
-              '2025': [
-                { mes: 'Ene', ingresos: 980000, egresos: 250000 },
-                { mes: 'Feb', ingresos: 980000, egresos: 250000 },
-                { mes: 'Mar', ingresos: 1050000, egresos: 380000 },
-                { mes: 'Abr', ingresos: 1020000, egresos: 290000 },
-                { mes: 'May', ingresos: 1040000, egresos: 270000 },
-                { mes: 'Jun', ingresos: 1080000, egresos: 320000 },
-                { mes: 'Jul', ingresos: 1010000, egresos: 290000 },
-                { mes: 'Ago', ingresos: 1070000, egresos: 310000 },
-                { mes: 'Sep', ingresos: 1150000, egresos: 480000 },
-                { mes: 'Oct', ingresos: 1090000, egresos: 340000 },
-                { mes: 'Nov', ingresos: 1100000, egresos: 360000 },
-                { mes: 'Dic', ingresos: 1240000, egresos: 620000 }
               ]
             },
             estadoSociasCreditos: creditosStats
@@ -169,14 +151,14 @@ export const DashboardService = {
           {
             id: 'socias-activas',
             label: 'Socias Registradas',
-            value: `${totalSocias - 4} / ${totalSocias}`,
+            value: `${sociasActivasCount} / ${totalSocias}`,
             sublabel: 'Padrón en base de datos',
             type: 'positive'
           },
           {
             id: 'socias-suspendidas',
             label: 'Socias Suspendidas',
-            value: '4',
+            value: String(sociasSuspendidasCount),
             sublabel: 'Sin cobro de cuota',
             type: 'warning'
           }
@@ -184,33 +166,77 @@ export const DashboardService = {
       };
     }
 
-    // 2. Rol Delegada: Transparencia institucional general y de su jardín sin datos privados individuales
-    if (roleCode === 'DELEGADA') {
+    // 2. Rol Directora: Acceso a supervisión de convenios y socias de su jardín (SIN acceso a saldos bancarios de Tesorería)
+    if (roleCode === 'DIRECTORA') {
       return {
-        ...baseSummary,
-        nivelAcceso: 'DELEGADA_JARDIN',
-        jardinRepresentado: user.socia?.jardin?.name || 'Jardín Infantil Asignado',
+        ...institutionalBase,
+        nivelAcceso: 'DIRECTORA_CONVENIOS',
+        puedeGestionarFinanzas: false,
+        puedeGestionarSocias: false,
+        inicio: {
+          sociasActivas: sociasActivasCount,
+          sociasSuspendidas: sociasSuspendidasCount,
+          alertas: {
+            sociasUltimaCuotaIsimundo: 6,
+            sociasUltimaCuotaSos: 3
+          },
+          graficos: {
+            estadoSociasCreditos: creditosStats
+          }
+        },
         kpis: [
           {
-            id: 'fondo-comun',
-            label: 'Saldo Fondo Común Asociación',
-            value: `$${treasurySummary.saldoTotal.toLocaleString('es-CL')}`,
-            sublabel: 'Auditoría pública al día',
+            id: 'socias-activas',
+            label: 'Socias en Asociación',
+            value: `${sociasActivasCount} activas`,
+            sublabel: 'Padrón institucional',
             type: 'positive'
+          },
+          {
+            id: 'creditos-vigentes',
+            label: 'Socias con Convenios',
+            value: `${creditosStats.activasConIsimundo + creditosStats.activasConSos + creditosStats.activasConDentalOptica}`,
+            sublabel: 'Isi Mundo, S.O.S, Óptica, Dental',
+            type: 'neutral'
           },
           {
             id: 'jardines-activos',
             label: 'Jardines en la Asociación',
             value: `${totalJardines} jardines`,
-            sublabel: 'Representación activa',
+            sublabel: 'Comuna de Temuco',
+            type: 'neutral'
+          }
+        ]
+      };
+    }
+
+    // 3. Rol Delegada: Transparencia institucional de su jardín (SIN cifras contables privadas de la Asociación)
+    if (roleCode === 'DELEGADA') {
+      return {
+        ...institutionalBase,
+        nivelAcceso: 'DELEGADA_JARDIN',
+        jardinRepresentado: user.socia?.jardin?.name || 'Jardín Infantil Asignado',
+        kpis: [
+          {
+            id: 'jardines-activos',
+            label: 'Jardines en la Asociación',
+            value: `${totalJardines} jardines`,
+            sublabel: 'Representación gremial activa',
             type: 'neutral'
           },
           {
             id: 'cuota-establecida',
             label: 'Valor Cuota Mensual',
             value: '$4.000 CLP',
-            sublabel: 'Distribución tripartita estandarizada',
+            sublabel: 'Distribución tripartita estatutaria',
             type: 'neutral'
+          },
+          {
+            id: 'socias-totales',
+            label: 'Padrón General',
+            value: `${totalSocias} socias`,
+            sublabel: 'Educadoras y Técnicos',
+            type: 'positive'
           }
         ],
         resumenTransparencia: {
@@ -223,9 +249,9 @@ export const DashboardService = {
       };
     }
 
-    // 3. Rol Socia: Vista institucional individual autorizada
+    // 4. Rol Socia: Vista individual autorizada
     return {
-      ...baseSummary,
+      ...institutionalBase,
       nivelAcceso: 'SOCIA',
       kpis: [
         {

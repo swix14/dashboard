@@ -47,7 +47,14 @@ export function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
 
         {/* V2 — Módulo Completo de Tesorería */}
-        <Route path="tesoreria" element={<TreasuryPage />} />
+        <Route
+          path="tesoreria"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA']}>
+              <TreasuryPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="finanzas" element={<Navigate to="/tesoreria" replace />} />
 
         {/* V3 — Padrón de Socias y Gestión de Créditos */}

@@ -5,7 +5,7 @@ import { env } from '../config/env.js';
 import { INITIAL_USERS, INITIAL_ROLES, INITIAL_JARDINES } from './seedData.js';
 import { AuditService } from './auditService.js';
 
-// Almacén en memoria sincronizado con seed para garantizar disponibilidad continua
+// Almacén en memoria sincronizado con seed para pruebas locales de desarrollo
 const memoryUsers = [...INITIAL_USERS];
 
 function normalizeRoleCode(rawRole) {
@@ -29,7 +29,7 @@ export const AuthService = {
       : cleanId;
     let user = null;
 
-    // 1. Búsqueda en MySQL XAMPP (administradores) si está disponible
+    // 1. Búsqueda en MySQL (administradores) si está disponible
     if (isDatabaseReady()) {
       try {
         const rows = await query(
@@ -75,12 +75,12 @@ export const AuthService = {
           };
         }
       } catch (err) {
-        console.warn('Error consultando administradores en MySQL, usando fallback:', err.message);
+        console.warn('Error consultando administradores en MySQL, usando contingencia:', err.message);
       }
     }
 
-    // 2. Fallback a memoria si no se encontró en MySQL o está desconectado
-    if (!user) {
+    // 2. Fallback a memoria si la base de datos no está disponible o en tests locales
+    if (!user && !isDatabaseReady()) {
       const found = memoryUsers.find(
         (u) =>
           u.email.toLowerCase() === cleanId ||
@@ -114,16 +114,12 @@ export const AuthService = {
       throw new Error('Su usuario se encuentra inactivo o suspendido. Contacte a la directiva.');
     }
 
-    // 3. Verificar contraseña: texto plano (de prueba en admin.sql) o hash bcrypt
+    // 3. Verificar contraseña mediante hash bcrypt exclusivamente (sin texto plano)
     let passwordMatch = false;
-    if (user.passwordHash === password) {
-      passwordMatch = true;
-    } else {
-      try {
-        passwordMatch = await bcrypt.compare(password, user.passwordHash);
-      } catch {
-        passwordMatch = false;
-      }
+    try {
+      passwordMatch = await bcrypt.compare(password, user.passwordHash);
+    } catch {
+      passwordMatch = false;
     }
 
     if (!passwordMatch) {
@@ -169,6 +165,7 @@ export const AuthService = {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        isActive: user.isActive,
         role: user.role,
         socia: user.socia
       }
@@ -176,7 +173,7 @@ export const AuthService = {
   },
 
   /**
-   * Obtener perfil del usuario por ID
+   * Obtener perfil del usuario por ID con verificación de estado activo
    */
   async getProfile(userId) {
     let user = null;
@@ -186,19 +183,24 @@ export const AuthService = {
       if (isDatabaseReady()) {
         try {
           const rows = await query(
-            `SELECT id, rut, nombres, apellido_paterno, apellido_materno, cargo, jardin, primer_ingreso
+            `SELECT id, rut, nombres, apellido_paterno, apellido_materno, cargo, jardin, primer_ingreso, estado
              FROM socias
              WHERE id = ?`,
             [rawId]
           );
           if (rows.length > 0) {
             const row = rows[0];
+            const isSociaActive = row.estado ? row.estado === 'ACTIVA' : true;
+            if (!isSociaActive) {
+              throw new Error('Su membresía de socia se encuentra inactiva o suspendida.');
+            }
             return {
               id: `socia-${row.id}`,
               sociaId: row.id,
               rut: row.rut,
               firstName: row.nombres,
               lastName: `${row.apellido_paterno || ''} ${row.apellido_materno || ''}`.trim(),
+              isActive: true,
               role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
               cargo: row.cargo,
               jardin: row.jardin,
@@ -216,6 +218,7 @@ export const AuthService = {
         rut: 'RUT Socia',
         firstName: 'Socia',
         lastName: 'VTF',
+        isActive: true,
         role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
         cargo: 'Socia',
         jardin: 'Jardín VTF',
@@ -237,6 +240,11 @@ export const AuthService = {
 
         if (rows.length > 0) {
           const row = rows[0];
+          const isActive = Boolean(row.activo === 1 || row.activo === null);
+          if (!isActive) {
+            throw new Error('Su usuario se encuentra inactivo o suspendido. Contacte a la directiva.');
+          }
+
           const roleCode = normalizeRoleCode(row.rol);
           const roleObj = INITIAL_ROLES.find((r) => r.code === roleCode) || {
             id: `role-${roleCode.toLowerCase()}`,
@@ -250,6 +258,7 @@ export const AuthService = {
             email: row.correo || `${row.rut.toLowerCase()}@asociacionvtf.cl`,
             firstName: row.nombres,
             lastName: row.apellidos,
+            isActive: true,
             role: roleObj,
             socia: {
               id: `socia-${row.id}`,
@@ -263,17 +272,24 @@ export const AuthService = {
           };
         }
       } catch (err) {
+        if (err.message.includes('inactivo') || err.message.includes('suspendido')) {
+          throw err;
+        }
         console.warn('Error en getProfile MySQL:', err.message);
       }
     }
 
-    if (!user) {
+    if (!user && !isDatabaseReady()) {
       const found = memoryUsers.find((u) => u.id === userId);
       if (found) {
+        if (!found.isActive) {
+          throw new Error('Su usuario se encuentra inactivo o suspendido. Contacte a la directiva.');
+        }
         const role = INITIAL_ROLES.find((r) => r.code === found.roleCode);
         const jardin = INITIAL_JARDINES.find((j) => j.id === found.jardinId);
         user = {
           ...found,
+          isActive: true,
           role,
           socia: {
             id: `socia-${found.id}`,
@@ -298,6 +314,7 @@ export const AuthService = {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      isActive: user.isActive !== false,
       role: user.role,
       socia: user.socia
     };

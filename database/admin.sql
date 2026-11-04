@@ -1,4 +1,5 @@
-USE `JARDINES_VTF`;
+-- SCRIPT DE APROVISIONAMIENTO DE ADMINISTRADORES Y DIRECTIVA (SIGAV)
+-- Contraseñas seguras cifradas con algoritmo bcrypt (costo 10) para 'Admin123!'
 
 INSERT INTO
     `administradores` (
@@ -18,7 +19,7 @@ VALUES
         'Ferrada Pasten',
         'admin@asociacionvtf.cl',
         'Super_Admin',
-        'Admin123!',
+        '$2b$10$crgtkhpm9nlcizsbRFp.6.Xc2zzMyBxkJu7eRpE5yn58ZByMWv8M6',
         1
     ),
     (
@@ -27,7 +28,7 @@ VALUES
         'Sias Novoa',
         'tesoreria@asociacionvtf.cl',
         'Tesorera',
-        'Admin123!',
+        '$2b$10$crgtkhpm9nlcizsbRFp.6.Xc2zzMyBxkJu7eRpE5yn58ZByMWv8M6',
         1
     ),
     (
@@ -36,7 +37,7 @@ VALUES
         'Sayago Gajardo',
         'presidencia@asociacionvtf.cl',
         'Presidenta',
-        'Admin123!',
+        '$2b$10$crgtkhpm9nlcizsbRFp.6.Xc2zzMyBxkJu7eRpE5yn58ZByMWv8M6',
         1
     ),
     (
@@ -45,7 +46,7 @@ VALUES
         'Mella Burgos',
         'secretaria@asociacionvtf.cl',
         'Secretaria',
-        'Admin123!',
+        '$2b$10$crgtkhpm9nlcizsbRFp.6.Xc2zzMyBxkJu7eRpE5yn58ZByMWv8M6',
         1
     ),
     (
@@ -54,7 +55,7 @@ VALUES
         'Abarza Vega',
         'directora@asociacionvtf.cl',
         'Directora',
-        'Admin123!',
+        '$2b$10$crgtkhpm9nlcizsbRFp.6.Xc2zzMyBxkJu7eRpE5yn58ZByMWv8M6',
         1
     ),
 
@@ -65,7 +66,7 @@ VALUES
         'Navarro',
         'delegada@asociacionvtf.cl',
         'Delegada',
-        'Admin123!',
+        '$2b$10$crgtkhpm9nlcizsbRFp.6.Xc2zzMyBxkJu7eRpE5yn58ZByMWv8M6',
         1
     )
 ON DUPLICATE KEY UPDATE

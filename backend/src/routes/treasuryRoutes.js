@@ -9,22 +9,22 @@ const router = Router();
 // Todas las rutas de tesorería requieren sesión activa
 router.use(authMiddleware);
 
-// Consulta de resumen y movimientos: permitida para Directiva (incluida Presidenta para supervisión)
+// Consulta de resumen y movimientos: permitida para Presidencia, Tesorería y Secretaría (Directora BLOQUEADA de tesorería general)
 router.get(
   '/resumen',
-  requireRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA'),
+  requireRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'),
   TreasuryController.getSummary
 );
 
 router.get(
   '/movimientos',
-  requireRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA'),
+  requireRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'),
   TreasuryController.getMovements
 );
 
 router.get(
   '/movimientos/:id/comprobante',
-  requireRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA'),
+  requireRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'),
   TreasuryController.downloadComprobante
 );
 

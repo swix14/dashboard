@@ -114,6 +114,54 @@ async function runTests() {
     assert.strictEqual(body.success, false);
   });
 
+  // 9. Login Directora y verificación de segmentación financiera PoLP
+  let directoraToken = '';
+  await test('POST /api/auth/login Directora exitoso con rol DIRECTORA', async () => {
+    const res = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: 'directora@vtf.cl', password: 'Admin123!' })
+    });
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
+    assert.strictEqual(body.data.user.role.code, 'DIRECTORA');
+    directoraToken = body.data.token;
+  });
+
+  // 10. Directora en Dashboard NO recibe saldos ni fondos de Tesorería
+  await test('GET /api/dashboard/metrics Directora no expone saldos de Tesorería', async () => {
+    const res = await fetch(`${baseUrl}/dashboard/metrics`, {
+      headers: { Authorization: `Bearer ${directoraToken}` }
+    });
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
+    assert.strictEqual(body.data.nivelAcceso, 'DIRECTORA_CONVENIOS');
+    assert.strictEqual(body.data.fondoComunSaldo, undefined);
+    assert.strictEqual(body.data.inicio.saldoTotal, undefined);
+    assert.strictEqual(body.data.puedeGestionarFinanzas, false);
+  });
+
+  // 11. Directora tiene bloqueado el acceso a Tesorería general con 403 Forbidden
+  await test('GET /api/tesoreria/resumen bloqueado con 403 para Directora', async () => {
+    const res = await fetch(`${baseUrl}/tesoreria/resumen`, {
+      headers: { Authorization: `Bearer ${directoraToken}` }
+    });
+    assert.strictEqual(res.status, 403);
+    const body = await res.json();
+    assert.strictEqual(body.success, false);
+  });
+
+  // 12. Delegada en Dashboard no expone saldos financieros
+  await test('GET /api/dashboard/metrics Delegada no expone fondo común ni saldos', async () => {
+    const res = await fetch(`${baseUrl}/dashboard/metrics`, {
+      headers: { Authorization: `Bearer ${delegadaToken}` }
+    });
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
+    assert.strictEqual(body.data.nivelAcceso, 'DELEGADA_JARDIN');
+    assert.strictEqual(body.data.fondoComunSaldo, undefined);
+  });
+
   console.log(`\n[RESULTADOS] ${passed} pasados, ${failed} fallidos`);
   server.close();
 

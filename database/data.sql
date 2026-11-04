@@ -6,7 +6,8 @@
 SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
 
-USE `JARDINES_VTF`;
+-- En cPanel importar sobre la base de datos seleccionada
+-- USE `jardines_vtf`;
 
 -- ============================================================================
 -- 1. CARGA DE CONVENIOS (5 REGISTROS)

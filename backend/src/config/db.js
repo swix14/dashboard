@@ -19,16 +19,16 @@ try {
     keepAliveInitialDelay: 0
   });
 
-  // Verificación no bloqueante de conectividad
+  // Verificación inicial de conectividad
   pool.getConnection()
     .then((connection) => {
       isConnected = true;
       connection.release();
-      console.log(`✓ Conexión exitosa a MySQL XAMPP: ${env.DB_NAME}@${env.DB_HOST}:${env.DB_PORT}`);
+      console.log(`✓ Conexión exitosa a MySQL: ${env.DB_NAME}@${env.DB_HOST}:${env.DB_PORT}`);
     })
     .catch((err) => {
       isConnected = false;
-      console.warn(`ℹ MySQL XAMPP no disponible (${err.message}). Modo contingencia activo.`);
+      console.warn(`ℹ MySQL no disponible (${err.message}). Modo contingencia activo.`);
     });
 } catch (error) {
   isConnected = false;
@@ -46,8 +46,16 @@ export async function query(sql, params = []) {
   if (!pool) {
     throw new Error('Pool de base de datos no inicializado');
   }
-  const [rows] = await pool.execute(sql, params);
-  return rows;
+  try {
+    const [rows] = await pool.execute(sql, params);
+    isConnected = true;
+    return rows;
+  } catch (err) {
+    if (['ECONNREFUSED', 'PROTOCOL_CONNECTION_LOST', 'ETIMEDOUT', 'ER_ACCESS_DENIED_ERROR', 'ENOTFOUND'].includes(err.code)) {
+      isConnected = false;
+    }
+    throw err;
+  }
 }
 
 export { pool };

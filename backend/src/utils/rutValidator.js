@@ -5,12 +5,18 @@
 export function validateRut(rutString) {
   if (!rutString || typeof rutString !== 'string') return false;
 
-  // Limpiar puntos y guiones
-  const cleanRut = rutString.replace(/[^0-9kK]/g, '').toUpperCase();
+  // Limpiar puntos, espacios y guiones
+  const cleanRut = rutString.replace(/[\.\-\s]/g, '').toUpperCase();
   if (cleanRut.length < 8 || cleanRut.length > 9) return false;
 
   const cuerpo = cleanRut.slice(0, -1);
   const dv = cleanRut.slice(-1);
+
+  // El cuerpo debe contener estrictamente dígitos numéricos
+  if (!/^\d+$/.test(cuerpo)) return false;
+
+  // El dígito verificador debe ser un número del 0 al 9 o K
+  if (!/^[0-9K]$/.test(dv)) return false;
 
   return dv === computeRutDv(cuerpo);
 }
