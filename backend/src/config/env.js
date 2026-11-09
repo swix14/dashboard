@@ -26,8 +26,14 @@ env.ALLOW_MEMORY_FALLBACK = process.env.ALLOW_MEMORY_FALLBACK
   : env.NODE_ENV !== 'production';
 
 // Salvaguarda de seguridad en producción
+// La clave por defecto está publicada en el repositorio: con ella cualquiera podría fabricar
+// una sesión de Tesorera. En producción la app no arranca sin una clave propia.
 if (env.NODE_ENV === 'production') {
-  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.includes('vtf-gestion-super-secret-key')) {
-    console.warn('⚠️ ALERTA DE SEGURIDAD: JWT_SECRET por defecto detectado en producción. Configure una clave secreta segura en variables de entorno.');
+  const secret = process.env.JWT_SECRET || '';
+  if (secret.length < 32 || secret.includes('vtf-gestion-super-secret-key')) {
+    throw new Error(
+      'JWT_SECRET no configurado o inseguro. En cPanel > Setup Node.js App agregue la variable JWT_SECRET ' +
+        'con una cadena aleatoria de al menos 32 caracteres y pulse Restart.'
+    );
   }
 }

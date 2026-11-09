@@ -56,6 +56,8 @@ async function prepararBase() {
     }
     // Las suites inician sesión con la clave inicial: se omite el cambio obligatorio de primer ingreso
     await connection.query('UPDATE administradores SET primer_ingreso = 0');
+    // admin.sql deja desactivada la delegada de demostración; las suites la usan para probar permisos
+    await connection.query("UPDATE administradores SET activo = 1 WHERE correo = 'delegada@vtftemuco.cl'");
   } finally {
     await connection.end();
   }

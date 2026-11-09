@@ -1,6 +1,8 @@
 /**
  * Servicio de Tesorería — Asociación VTF Temuco
- * Conectado a MySQL XAMPP (tabla movimientos_tesoreria) con contingencia transparente en memoria.
+ * Conectado a MySQL (tabla movimientos_tesoreria). Los movimientos en memoria de abajo se usan
+ * SOLO cuando no hay base de datos (desarrollo y tests): si MySQL está conectado y una consulta
+ * falla, el error se informa en vez de mostrar o "guardar" datos de prueba.
  * 
  * Reglas de negocio:
  * - Centros de Costo: ASOCIACION, CENA ANUAL, FEDERACION, ISI MUNDO COMISION.
@@ -12,6 +14,7 @@
  * - Saldo Total Disponible = Saldo Centro Asociación + Saldo Centro Cena Anual.
  */
 import { isDatabaseReady, query } from '../config/db.js';
+import { hoyChile } from '../utils/fecha.js';
 
 // Movimientos iniciales históricos de la tesorería de la Asociación (fallback y contingencia)
 let treasuryMovements = [
@@ -197,33 +200,20 @@ let treasuryMovements = [
   }
 ];
 
-// Saldos base históricos iniciales (utilizados únicamente como salvaguarda en caso de BD vacía sin inicializar)
-const SALDO_BASE_ASOCIACION = 5103000;
-const SALDO_BASE_CENA_ANUAL = 8856000;
-
 export const TreasuryService = {
   /**
    * Obtiene el resumen financiero calculado en tiempo real
    */
   async getSummary() {
     let list = treasuryMovements;
-    let usingDatabase = false;
 
     if (isDatabaseReady()) {
-      try {
-        const rows = await query(
-          `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
-                  centro_costo as centroCosto, categoria, descripcion, metodo,
-                  monto, responsable, comprobante, created_at as createdAt
-           FROM movimientos_tesoreria`
-        );
-        if (rows) {
-          list = rows;
-          usingDatabase = true;
-        }
-      } catch (err) {
-        console.warn('Error leyendo resumen de tesorería desde MySQL, usando memoria:', err.message);
-      }
+      list = await query(
+        `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
+                centro_costo as centroCosto, categoria, descripcion, metodo,
+                monto, responsable, comprobante, created_at as createdAt
+         FROM movimientos_tesoreria`
+      );
     }
 
     let totalIngresos = 0;
@@ -268,12 +258,9 @@ export const TreasuryService = {
       }
     }
 
-    // Si existen asientos formales SALDO_APERTURA en la BD, se usan directamente; si no, se recurre a la base histórica
-    const baseAsoc = aperturaAsociacion > 0 ? aperturaAsociacion : (usingDatabase && list.length === 0 ? 0 : SALDO_BASE_ASOCIACION);
-    const baseCena = aperturaCenaAnual > 0 ? aperturaCenaAnual : (usingDatabase && list.length === 0 ? 0 : SALDO_BASE_CENA_ANUAL);
-
-    const saldoAsociacion = baseAsoc + ingresosAsociacion - egresosAsociacion;
-    const saldoCenaAnual = baseCena + ingresosCenaAnual - egresosCenaAnual;
+    // Los saldos iniciales salen solo de los asientos SALDO_APERTURA (sin montos fijos en el código)
+    const saldoAsociacion = aperturaAsociacion + ingresosAsociacion - egresosAsociacion;
+    const saldoCenaAnual = aperturaCenaAnual + ingresosCenaAnual - egresosCenaAnual;
     const saldoTotal = saldoAsociacion + saldoCenaAnual;
 
     return {
@@ -288,7 +275,7 @@ export const TreasuryService = {
         { code: 'ASOCIACION', name: 'Asociación', saldo: saldoAsociacion },
         { code: 'CENA ANUAL', name: 'Cena Anual', saldo: saldoCenaAnual },
         { code: 'FEDERACION', name: 'Federación (Solo Pagos)', totalPagado: totalPagadoFederacion },
-        { code: 'ISI MUNDO COMISION', name: 'Isi Mundo Comisión 2%', totalIngresado: totalIngresoIsiMundo || 54200 }
+        { code: 'ISI MUNDO COMISION', name: 'Isi Mundo Comisión 2%', totalIngresado: totalIngresoIsiMundo }
       ]
     };
   },
@@ -298,7 +285,7 @@ export const TreasuryService = {
    */
   async getMovements(filters = {}) {
     if (isDatabaseReady()) {
-      try {
+      {
         let sql = `
           SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
                  centro_costo as centroCosto, categoria, descripcion, metodo,
@@ -345,22 +332,18 @@ export const TreasuryService = {
         sql += ` ORDER BY fecha DESC, id DESC`;
 
         const rows = await query(sql, params);
-        if (rows) {
-          return rows.map((row) => {
-            const mov = { ...row };
-            if (row.comprobanteStored) {
-              mov.comprobanteArchivo = {
-                storedName: row.comprobanteStored,
-                originalName: row.comprobante,
-                mimeType: row.comprobanteMime,
-                size: row.comprobanteSize
-              };
-            }
-            return mov;
-          });
-        }
-      } catch (err) {
-        console.warn('Error obteniendo movimientos desde MySQL, usando memoria:', err.message);
+        return rows.map((row) => {
+          const mov = { ...row };
+          if (row.comprobanteStored) {
+            mov.comprobanteArchivo = {
+              storedName: row.comprobanteStored,
+              originalName: row.comprobante,
+              mimeType: row.comprobanteMime,
+              size: row.comprobanteSize
+            };
+          }
+          return mov;
+        });
       }
     }
 
@@ -401,41 +384,29 @@ export const TreasuryService = {
    */
   async getMovementById(id) {
     if (isDatabaseReady()) {
-      try {
-        const rows = await query(
-          `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
-                  centro_costo as centroCosto, categoria, descripcion, metodo,
-                  monto, responsable, comprobante, 
-                  comprobante_stored as comprobanteStored,
-                  comprobante_mime as comprobanteMime,
-                  comprobante_size as comprobanteSize,
-                  created_at as createdAt
-           FROM movimientos_tesoreria
-           WHERE id = ? OR correlativo = ?`,
-          [id, id]
-        );
-        if (rows && rows.length > 0) {
-          const row = { ...rows[0] };
-          if (row.comprobanteStored) {
-            row.comprobanteArchivo = {
-              storedName: row.comprobanteStored,
-              originalName: row.comprobante,
-              mimeType: row.comprobanteMime,
-              size: row.comprobanteSize
-            };
-          } else {
-            const inMem = treasuryMovements.find(
-              (m) => String(m.id) === String(id) || m.correlativo === id
-            );
-            if (inMem?.comprobanteArchivo) {
-              row.comprobanteArchivo = inMem.comprobanteArchivo;
-            }
-          }
-          return row;
-        }
-      } catch (err) {
-        console.warn('Error buscando movimiento por ID en MySQL:', err.message);
+      const rows = await query(
+        `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
+                centro_costo as centroCosto, categoria, descripcion, metodo,
+                monto, responsable, comprobante,
+                comprobante_stored as comprobanteStored,
+                comprobante_mime as comprobanteMime,
+                comprobante_size as comprobanteSize,
+                created_at as createdAt
+         FROM movimientos_tesoreria
+         WHERE id = ? OR correlativo = ?`,
+        [id, id]
+      );
+      if (rows.length === 0) return null;
+      const row = { ...rows[0] };
+      if (row.comprobanteStored) {
+        row.comprobanteArchivo = {
+          storedName: row.comprobanteStored,
+          originalName: row.comprobante,
+          mimeType: row.comprobanteMime,
+          size: row.comprobanteSize
+        };
       }
+      return row;
     }
 
     return treasuryMovements.find((m) => String(m.id) === String(id) || m.correlativo === id) || null;
@@ -488,14 +459,14 @@ export const TreasuryService = {
     }
 
     let nextCorrelativo = '';
-    const cleanFecha = fecha || new Date().toISOString().split('T')[0];
+    const cleanFecha = fecha || hoyChile();
     const cleanDesc = descripcion.trim();
     const cleanMetodo = metodo || 'Transferencia Bancaria';
     const cleanResp = responsable || 'Tesorera General VTF';
     const cleanComp = comprobante ? comprobante.trim() : null;
 
     if (isDatabaseReady()) {
-      try {
+      {
         // Cálculo de correlativo atómico por año para evitar condiciones de carrera
         const movYear = cleanFecha.substring(0, 4);
         const lastRows = await query(
@@ -550,10 +521,7 @@ export const TreasuryService = {
           createdAt: new Date().toISOString()
         };
 
-        treasuryMovements.unshift(newDbMovement);
         return newDbMovement;
-      } catch (err) {
-        console.warn('Error insertando movimiento en MySQL, usando memoria:', err.message);
       }
     }
 

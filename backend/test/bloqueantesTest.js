@@ -142,6 +142,38 @@ await test('En producción sin MySQL: health avisa y el login responde 503', asy
   }
 });
 
+// La clave JWT por defecto está en el repositorio: en producción la app no debe arrancar con ella
+await test('En producción sin JWT_SECRET propio la app no arranca', async () => {
+  for (const secret of ['', 'vtf-gestion-super-secret-key-2026-production-ready']) {
+    const port = 40000 + Math.floor(Math.random() * 10000);
+    const child = spawn(process.execPath, ['app.cjs'], {
+      cwd: backendRoot,
+      // JWT_SECRET definido (aunque vacío) impide que dotenv lo tome del .env local
+      env: { ...process.env, NODE_ENV: 'production', PORT: String(port), DB_HOST: '127.0.0.1', DB_PORT: '1', JWT_SECRET: secret },
+      stdio: 'ignore'
+    });
+    const code = await new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        child.kill();
+        resolve('sigue corriendo');
+      }, 8000);
+      child.on('exit', (c) => {
+        clearTimeout(timer);
+        resolve(c);
+      });
+    });
+    assert.notStrictEqual(code, 0, `con JWT_SECRET="${secret}" la app debía negarse a arrancar`);
+    assert.notStrictEqual(code, 'sigue corriendo', `con JWT_SECRET="${secret}" la app arrancó igual`);
+  }
+});
+
+// Fechas en hora de Chile: a las 23:30 del 9 de noviembre en Chile (02:30 UTC del día 10)
+await test('hoyChile usa la fecha de Chile, no la de UTC', async () => {
+  const { hoyChile } = await import('../src/utils/fecha.js');
+  assert.strictEqual(hoyChile(new Date('2026-11-10T02:30:00Z')), '2026-11-09');
+  assert.strictEqual(hoyChile(new Date('2026-11-10T12:00:00Z')), '2026-11-10');
+});
+
 console.log(`\n[RESULTADOS BLOQUEANTES] ${passed} pasados, ${failed} fallidos`);
 server.closeAllConnections?.();
 server.close();

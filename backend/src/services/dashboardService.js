@@ -23,6 +23,23 @@ export const DashboardService = {
       { correlativo: 'FED-2026-001', fecha: '2026-06-02', monto: 280000, descripcion: 'Cuota Federación Junio 2026', comprobante: 'comprobante_fed_jun_2026.pdf' }
     ];
 
+    // Ejemplo solo para el modo memoria (desarrollo sin MySQL)
+    let alertasCuotas = { isi: 6, sos: 3 };
+    let recaudacionMensual = {
+      '2026': [
+        { mes: 'Ene', ingresos: 1120000, egresos: 350000 },
+        { mes: 'Feb', ingresos: 1120000, egresos: 280000 },
+        { mes: 'Mar', ingresos: 1250000, egresos: 420000 },
+        { mes: 'Abr', ingresos: 1190000, egresos: 310000 },
+        { mes: 'May', ingresos: 1180000, egresos: 290000 },
+        { mes: 'Jun', ingresos: 1210000, egresos: 380000 },
+        { mes: 'Jul', ingresos: 1150000, egresos: 330000 },
+        { mes: 'Ago', ingresos: 1200000, egresos: 360000 },
+        { mes: 'Sep', ingresos: 1280000, egresos: 540000 },
+        { mes: 'Oct', ingresos: 1048000, egresos: 280000 }
+      ]
+    };
+
     let creditosStats = {
       activasConIsimundo: 38,
       activasConSos: 24,
@@ -57,23 +74,70 @@ export const DashboardService = {
           ultimosPagosFederacion = fedRows;
         }
 
-        const [isiRes] = await query(`SELECT COUNT(*) as c FROM creditos WHERE convenio_id = 2 AND estado = 'vigente'`);
-        const [sosRes] = await query(`SELECT COUNT(*) as c FROM creditos WHERE convenio_id = 1 AND estado = 'vigente'`);
-        const [otrosRes] = await query(`SELECT COUNT(*) as c FROM creditos WHERE convenio_id IN (3, 4, 5) AND estado = 'vigente'`);
-
-        const cIsi = Number(isiRes?.c || 38);
-        const cSos = Number(sosRes?.c || 24);
-        const cOtros = Number(otrosRes?.c || 19);
+        // Socias distintas (no créditos) del padrón vigente. Antes un 0 real se reemplazaba por
+        // números fijos (38/24/19) y una socia con dos créditos se restaba dos veces.
+        const [cred] = await query(
+          `SELECT
+             COUNT(DISTINCT CASE WHEN c.convenio_id = 2 THEN c.socia_id END) AS isi,
+             COUNT(DISTINCT CASE WHEN c.convenio_id = 1 THEN c.socia_id END) AS sos,
+             COUNT(DISTINCT CASE WHEN c.convenio_id IN (3, 4, 5) THEN c.socia_id END) AS otros,
+             COUNT(DISTINCT c.socia_id) AS con_credito
+           FROM creditos c JOIN socias s ON s.id = c.socia_id
+           WHERE c.estado = 'vigente' AND s.estado <> 'RETIRADA'`
+        );
 
         creditosStats = {
-          activasConIsimundo: cIsi,
-          activasConSos: cSos,
-          activasConDentalOptica: cOtros,
-          activasSinCredito: Math.max(0, totalSocias - (cIsi + cSos + cOtros)),
+          activasConIsimundo: Number(cred?.isi || 0),
+          activasConSos: Number(cred?.sos || 0),
+          activasConDentalOptica: Number(cred?.otros || 0),
+          activasSinCredito: Math.max(0, totalSocias - Number(cred?.con_credito || 0)),
           totalActivas: totalSocias
         };
+
+        // Socias a las que les queda una sola cuota (alerta del Inicio)
+        const [ultima] = await query(
+          `SELECT
+             COUNT(DISTINCT CASE WHEN c.convenio_id = 2 THEN c.socia_id END) AS isi,
+             COUNT(DISTINCT CASE WHEN c.convenio_id = 1 THEN c.socia_id END) AS sos
+           FROM creditos c JOIN socias s ON s.id = c.socia_id
+           WHERE c.estado = 'vigente' AND s.estado <> 'RETIRADA' AND c.total_cuotas - c.cuotas_pagadas = 1`
+        );
+        alertasCuotas = { isi: Number(ultima?.isi || 0), sos: Number(ultima?.sos || 0) };
+
+        // Ingresos y egresos reales por mes (los saldos de apertura no son recaudación)
+        const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const porMes = await query(
+          `SELECT YEAR(fecha) AS anio, MONTH(fecha) AS mes,
+                  SUM(CASE WHEN tipo = 'INGRESO' THEN monto ELSE 0 END) AS ingresos,
+                  SUM(CASE WHEN tipo = 'EGRESO' THEN monto ELSE 0 END) AS egresos
+           FROM movimientos_tesoreria
+           WHERE tipo IN ('INGRESO', 'EGRESO')
+           GROUP BY YEAR(fecha), MONTH(fecha)
+           ORDER BY anio, mes`
+        );
+        recaudacionMensual = {};
+        for (const r of porMes) {
+          const anio = String(r.anio);
+          if (!recaudacionMensual[anio]) {
+            // Del año en curso se muestran los meses hasta el último con movimientos
+            recaudacionMensual[anio] = MESES.map((mes) => ({ mes, ingresos: 0, egresos: 0 }));
+          }
+          recaudacionMensual[anio][r.mes - 1] = {
+            mes: MESES[r.mes - 1],
+            ingresos: Number(r.ingresos || 0),
+            egresos: Number(r.egresos || 0)
+          };
+        }
+        for (const anio of Object.keys(recaudacionMensual)) {
+          const meses = recaudacionMensual[anio];
+          let ultimo = meses.length - 1;
+          while (ultimo > 0 && meses[ultimo].ingresos === 0 && meses[ultimo].egresos === 0) ultimo--;
+          recaudacionMensual[anio] = meses.slice(0, ultimo + 1);
+        }
       } catch (err) {
-        console.warn('Error calculando métricas avanzadas MySQL, usando valores calculados:', err.message);
+        // Con MySQL conectado, un error se informa: mostrar los números de ejemplo engañaría a la directiva
+        console.error('Error calculando métricas del Inicio en MySQL:', err.message);
+        throw err;
       }
     }
 
@@ -121,28 +185,15 @@ export const DashboardService = {
             { id: 'task-3', titulo: 'Deudas Morosas / No Realizados', fechaLimite: 'Vencida', estado: 'Atención', urgencia: 'alerta', descripcion: '3 socias con cuotas de convenio atrasadas' }
           ],
           alertas: {
-            sociasUltimaCuotaIsimundo: 6,
-            sociasUltimaCuotaSos: 3,
+            sociasUltimaCuotaIsimundo: alertasCuotas.isi,
+            sociasUltimaCuotaSos: alertasCuotas.sos,
             pagoFederacionAlDia: true,
             pagoFederacionFecha: ultimosPagosFederacion[0]?.fecha || '02/10/2026'
           },
 
           // Fila 3: Gráficos Analíticos
           graficos: {
-            recaudacionMensual: {
-              '2026': [
-                { mes: 'Ene', ingresos: 1120000, egresos: 350000 },
-                { mes: 'Feb', ingresos: 1120000, egresos: 280000 },
-                { mes: 'Mar', ingresos: 1250000, egresos: 420000 },
-                { mes: 'Abr', ingresos: 1190000, egresos: 310000 },
-                { mes: 'May', ingresos: 1180000, egresos: 290000 },
-                { mes: 'Jun', ingresos: 1210000, egresos: 380000 },
-                { mes: 'Jul', ingresos: 1150000, egresos: 330000 },
-                { mes: 'Ago', ingresos: 1200000, egresos: 360000 },
-                { mes: 'Sep', ingresos: 1280000, egresos: 540000 },
-                { mes: 'Oct', ingresos: 1048000, egresos: 280000 }
-              ]
-            },
+            recaudacionMensual,
             estadoSociasCreditos: creditosStats
           }
         },
@@ -183,8 +234,8 @@ export const DashboardService = {
           sociasActivas: sociasActivasCount,
           sociasSuspendidas: sociasSuspendidasCount,
           alertas: {
-            sociasUltimaCuotaIsimundo: 6,
-            sociasUltimaCuotaSos: 3
+            sociasUltimaCuotaIsimundo: alertasCuotas.isi,
+            sociasUltimaCuotaSos: alertasCuotas.sos
           },
           graficos: {
             estadoSociasCreditos: creditosStats

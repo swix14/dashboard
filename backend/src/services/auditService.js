@@ -3,6 +3,16 @@ import { isDatabaseReady, query } from '../config/db.js';
 // Memoria de auditoría en caso de que MySQL no esté disponible
 const memoryAuditLogs = [];
 
+// Un registro con texto que no es JSON no debe impedir leer toda la bitácora
+function parseDetails(raw) {
+  if (typeof raw !== 'string') return raw;
+  try {
+    return JSON.parse(raw || '{}');
+  } catch {
+    return { texto: raw };
+  }
+}
+
 export const AuditService = {
   /**
    * Registra una acción de auditoría
@@ -43,6 +53,9 @@ export const AuditService = {
    * Obtiene los logs recientes de auditoría
    */
   async getRecentLogs(limit = 20) {
+    // LIMIT como entero validado: mysql2 (execute) con "LIMIT ?" falla en MySQL 8 y la
+    // bitácora caía en silencio a la memoria vacía.
+    const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 20, 1), 200);
     if (isDatabaseReady()) {
       try {
         const rows = await query(
@@ -51,12 +64,11 @@ export const AuditService = {
            FROM auditoria a
            LEFT JOIN administradores adm ON a.usuario_id = adm.id
            ORDER BY a.created_at DESC
-           LIMIT ?`,
-          [Number(limit)]
+           LIMIT ${safeLimit}`
         );
         return rows.map((r) => ({
           ...r,
-          details: typeof r.detalles === 'string' ? JSON.parse(r.detalles || '{}') : r.detalles,
+          details: parseDetails(r.detalles),
           user: r.usuario_id ? {
             id: r.usuario_id,
             firstName: r.nombres,
@@ -70,6 +82,6 @@ export const AuditService = {
       }
     }
 
-    return memoryAuditLogs.slice(0, limit);
+    return memoryAuditLogs.slice(0, safeLimit);
   }
 };

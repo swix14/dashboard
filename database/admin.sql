@@ -73,7 +73,8 @@ VALUES
     ),
 
     -- DELEGADAS DE JARDIN
-    -- Cuenta de DEMOSTRACIÓN (RUT ficticio). Reemplazar por las delegadas reales cuando se confirmen.
+    -- Cuenta de DEMOSTRACIÓN (RUT ficticio), creada DESACTIVADA (activo = 0): con la clave inicial
+    -- conocida, cualquiera podría tomarla. Activarla solo para pruebas o reemplazarla por las delegadas reales.
     (
         '17.890.123-1',
         'Claudia',
@@ -81,7 +82,7 @@ VALUES
         'delegada@vtftemuco.cl',
         'Delegada',
         '$2b$10$crgtkhpm9nlcizsbRFp.6.Xc2zzMyBxkJu7eRpE5yn58ZByMWv8M6',
-        1,
+        0,
         1
     )
 -- Reimportar no pisa contraseñas ya personalizadas ni el estado de primer ingreso

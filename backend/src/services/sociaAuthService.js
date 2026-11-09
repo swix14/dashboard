@@ -74,7 +74,11 @@ export const SociaAuthService = {
 
     if (!passwordValid) {
       if (isFirstTime) {
-        throw new Error(`Contraseña incorrecta. Recuerde que para su primer ingreso su contraseña son los primeros 6 dígitos de su RUT (ej. ${defaultInitialPass}).`);
+        // Ejemplo genérico: antes se mostraba la clave inicial real del RUT ingresado
+        throw new Error(
+          'Contraseña incorrecta. Para su primer ingreso, la contraseña son los primeros 6 dígitos de su RUT ' +
+            '(ej. si su RUT es 12.345.678-5, la clave es 123456).'
+        );
       }
       throw new Error('Contraseña incorrecta. Si olvidó su clave personal, pida a la directiva que la restablezca.');
     }

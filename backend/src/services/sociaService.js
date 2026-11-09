@@ -10,6 +10,7 @@
 import { query, withTransaction } from '../config/db.js';
 import { formatRutWithDots } from '../utils/rutValidator.js';
 import { cleanRut, CUOTA_SOCIAL_MENSUAL } from '../utils/sociaFormat.js';
+import { hoyChile } from '../utils/fecha.js';
 
 export class SociaError extends Error {
   constructor(message, statusCode = 400) {
@@ -323,7 +324,7 @@ export const SociaService = {
         data.jardinId,
         data.celular ?? null,
         data.correo ?? null,
-        data.fechaIngreso ?? new Date().toISOString().slice(0, 10)
+        data.fechaIngreso ?? hoyChile()
       ]
     );
 
@@ -430,8 +431,8 @@ export const SociaService = {
     if (row.estado === 'RETIRADA') throw new SociaError('La socia ya se encuentra retirada.', 409);
 
     await query(
-      `UPDATE socias SET estado = 'RETIRADA', es_delegada = 0, fecha_retiro = CURDATE(), motivo_retiro = ? WHERE id = ?`,
-      [motivo, sociaId]
+      `UPDATE socias SET estado = 'RETIRADA', es_delegada = 0, fecha_retiro = ?, motivo_retiro = ? WHERE id = ?`,
+      [hoyChile(), motivo, sociaId]
     );
     return { socia: await this.getSociaById(sociaId), estadoAnterior: row.estado };
   },

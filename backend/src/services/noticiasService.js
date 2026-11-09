@@ -1,4 +1,5 @@
 import { isDatabaseReady, query } from '../config/db.js';
+import { hoyChile } from '../utils/fecha.js';
 
 const INITIAL_NOTICIAS = [
   {
@@ -35,19 +36,14 @@ export const NoticiasService = {
    * Obtiene la lista de noticias publicadas
    */
   async getNoticias() {
+    // Con base de datos se muestra lo que hay en ella, aunque esté vacía (antes reaparecían
+    // las noticias de ejemplo al borrar todas).
     if (isDatabaseReady()) {
-      try {
-        const rows = await query(
-          `SELECT id, titulo, contenido, categoria, DATE_FORMAT(fecha_publicacion, '%Y-%m-%d') as fecha, destacado, autor, created_at
-           FROM noticias
-           ORDER BY destacado DESC, fecha_publicacion DESC, id DESC`
-        );
-        if (rows.length > 0) {
-          return rows;
-        }
-      } catch (err) {
-        console.warn('Error leyendo noticias desde MySQL, usando fallback:', err.message);
-      }
+      return query(
+        `SELECT id, titulo, contenido, categoria, DATE_FORMAT(fecha_publicacion, '%Y-%m-%d') as fecha, destacado, autor, created_at
+         FROM noticias
+         ORDER BY destacado DESC, fecha_publicacion DESC, id DESC`
+      );
     }
     return INITIAL_NOTICIAS;
   },
@@ -60,7 +56,7 @@ export const NoticiasService = {
       throw new Error('El título y contenido de la noticia son obligatorios.');
     }
 
-    const fecha = fechaPublicacion || new Date().toISOString().slice(0, 10);
+    const fecha = fechaPublicacion || hoyChile();
     const autorNombre = autor || 'Directiva VTF';
     const esDestacado = destacado ? 1 : 0;
     const cat = categoria || 'COMUNICADO';

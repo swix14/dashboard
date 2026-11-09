@@ -20,6 +20,7 @@ import { env } from '../config/env.js';
 import { validateRut, formatRutWithDots } from '../utils/rutValidator.js';
 import { cleanRut, normalizeCargo, normalizeCelular, normalizeName, normalizeText } from '../utils/sociaFormat.js';
 import { SociaError } from './sociaService.js';
+import { hoyChile } from '../utils/fecha.js';
 
 const MOTIVO_TRASLADO = 'Actualización por planilla Maestra Socias';
 
@@ -293,9 +294,9 @@ function toPreview(resultado, archivo) {
 
 function guardarArchivo(buffer, originalName) {
   const now = new Date();
-  const yyyy = String(now.getFullYear());
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const stamp = `${yyyy}-${mm}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+  const [yyyy, mm, dd] = hoyChile(now).split('-');
+  const hora = now.toLocaleTimeString('en-GB', { timeZone: 'America/Santiago', hour12: false }).replace(/:/g, '');
+  const stamp = `${yyyy}-${mm}-${dd}_${hora}`;
   const base = path.basename(originalName || 'planilla.xlsx').replace(/[^\w.\-]+/g, '_').slice(-80);
   const dir = path.join(env.UPLOADS_DIR, 'padron', yyyy, mm);
   fs.mkdirSync(dir, { recursive: true });
@@ -327,7 +328,7 @@ export const PadronImportService = {
     try {
       return await withTransaction(async (tx) => {
         const resultado = await compararConPadron(filas, tx);
-        const hoy = new Date().toISOString().slice(0, 10);
+        const hoy = hoyChile();
 
         for (const n of resultado.nuevas) {
           await tx(

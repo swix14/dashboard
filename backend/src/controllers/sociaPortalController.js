@@ -87,7 +87,8 @@ export const SociaPortalController = {
   async createNoticia(req, res, next) {
     try {
       const { titulo, contenido, categoria, destacado } = req.body;
-      const autor = req.user ? `${req.user.firstName} (${req.user.role})` : 'Directiva VTF';
+      // role es un objeto { code, name }: antes quedaba "Nombre ([object Object])"
+      const autor = req.user ? `${req.user.firstName} ${req.user.lastName || ''}`.trim() + ` (${req.user.role?.name || req.user.role?.code || 'Directiva'})` : 'Directiva VTF';
       const noticia = await NoticiasService.createNoticia({
         titulo,
         contenido,
