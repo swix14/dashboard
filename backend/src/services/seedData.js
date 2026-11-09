@@ -77,7 +77,7 @@ export const INITIAL_JARDINES = [
 export const INITIAL_USERS = [
   {
     id: 'user-admin',
-    email: 'jferrada.pasten@gmail.com',
+    email: 'admin@vtftemuco.cl',
     rut: '17.260.651-2',
     passwordHash: DEFAULT_PASSWORD_HASH,
     firstName: 'Jhonny Marcelo',
@@ -90,7 +90,7 @@ export const INITIAL_USERS = [
   },
   {
     id: 'user-presidenta',
-    email: 'yerthie.sayago@vtf.cl',
+    email: 'presidenta@vtftemuco.cl',
     rut: '15.421.368-7',
     passwordHash: DEFAULT_PASSWORD_HASH,
     firstName: 'Yerthie Johanna',
@@ -103,7 +103,7 @@ export const INITIAL_USERS = [
   },
   {
     id: 'user-tesorera',
-    email: 'tesorera@vtf.cl',
+    email: 'tesorera@vtftemuco.cl',
     rut: '13.918.472-6',
     passwordHash: DEFAULT_PASSWORD_HASH,
     firstName: 'Alejandra Romanett',
@@ -116,7 +116,7 @@ export const INITIAL_USERS = [
   },
   {
     id: 'user-secretaria',
-    email: 'secretaria@vtf.cl',
+    email: 'secretaria@vtftemuco.cl',
     rut: '14.832.195-4',
     passwordHash: DEFAULT_PASSWORD_HASH,
     firstName: 'Nelly Ester',
@@ -129,7 +129,7 @@ export const INITIAL_USERS = [
   },
   {
     id: 'user-directora',
-    email: 'directora@vtf.cl',
+    email: 'directora@vtftemuco.cl',
     rut: '16.274.593-8',
     passwordHash: DEFAULT_PASSWORD_HASH,
     firstName: 'Victoria Catalina',
@@ -142,7 +142,7 @@ export const INITIAL_USERS = [
   },
   {
     id: 'user-delegada',
-    email: 'delegada.bambi@vtf.cl',
+    email: 'delegada@vtftemuco.cl',
     rut: '17.890.123-1',
     passwordHash: DEFAULT_PASSWORD_HASH,
     firstName: 'Claudia',
@@ -155,7 +155,7 @@ export const INITIAL_USERS = [
   },
   {
     id: 'user-socia',
-    email: 'socia.educadora@vtf.cl',
+    email: 'socia@vtftemuco.cl',
     rut: '18.901.234-9',
     passwordHash: DEFAULT_PASSWORD_HASH,
     firstName: 'Francisca',

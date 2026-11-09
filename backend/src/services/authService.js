@@ -8,8 +8,8 @@ import { AuditService } from './auditService.js';
 // Almacén en memoria sincronizado con seed para pruebas locales de desarrollo
 const memoryUsers = INITIAL_USERS.map((u) => ({ ...u }));
 
-// Dominio oficial primero; los otros se mantienen por compatibilidad con accesos ya entregados
-export const INSTITUTIONAL_DOMAINS = ['vtftemuco.cl', 'vtf.cl', 'asociacionvtf.cl'];
+// Único dominio aceptado para ingresar con correo
+export const INSTITUTIONAL_DOMAIN = 'vtftemuco.cl';
 
 // Claves conocidas que nunca pueden quedar como definitivas
 const FORBIDDEN_PASSWORDS = ['admin123!', '12345678', 'password', 'contraseña'];
@@ -55,59 +55,34 @@ export const AuthService = {
    */
   async login({ identifier, password, ipAddress, userAgent }) {
     const cleanId = identifier.trim().toLowerCase();
-    const cleanRut = cleanId.replace(/[^0-9kK]/g, '');
 
-    // Variantes de correo y alias: el dominio oficial es @vtftemuco.cl; se aceptan además
-    // los dominios usados en versiones anteriores. Un dominio ajeno solo coincide exacto.
-    const emailsToMatch = [cleanId];
-    const [userPart, domainPart] = cleanId.split('@');
-    if (domainPart && INSTITUTIONAL_DOMAINS.includes(domainPart)) {
-      const domains = INSTITUTIONAL_DOMAINS;
-      const aliases = [userPart];
-      if (userPart === 'tesorera' || userPart === 'tesoreria' || userPart === 'alejandra.sias') {
-        aliases.push('tesoreria', 'tesorera', 'alejandra.sias');
-      }
-      if (userPart === 'presidenta' || userPart === 'presidencia' || userPart === 'yerthie.sayago') {
-        aliases.push('presidencia', 'presidenta', 'yerthie.sayago');
-      }
-      if (userPart === 'secretaria' || userPart === 'nelly.mella') {
-        aliases.push('secretaria', 'nelly.mella');
-      }
-      if (userPart === 'directora' || userPart === 'victoria.abarza') {
-        aliases.push('directora', 'victoria.abarza');
-      }
-      if (userPart === 'admin' || userPart === 'superadmin' || userPart === 'jhonny.ferrada') {
-        aliases.push('admin', 'jhonny.ferrada');
-      }
-      if (userPart.startsWith('delegada') || userPart === 'claudia.navarro') {
-        aliases.push('delegada', 'delegada.bambi', 'claudia.navarro');
-      }
-      if (userPart.startsWith('socia') || userPart === 'francisca.torres') {
-        aliases.push('socia', 'socia.educadora', 'francisca.torres');
-      }
-
-      for (const alias of aliases) {
-        for (const dom of domains) {
-          emailsToMatch.push(`${alias}@${dom}`);
-        }
-      }
+    // Identificador estricto: correo institucional exacto (@vtftemuco.cl) o RUT. Sin alias ni otros dominios.
+    const isEmail = cleanId.includes('@');
+    if (isEmail && !cleanId.endsWith(`@${INSTITUTIONAL_DOMAIN}`)) {
+      throw new Error(`Use su correo institucional @${INSTITUTIONAL_DOMAIN} o su RUT.`);
     }
-    const uniqueEmails = [...new Set(emailsToMatch)];
+    const email = isEmail ? cleanId : null;
+    const cleanRut = isEmail ? null : cleanId.replace(/[^0-9k]/g, '');
+    if (!isEmail && (!cleanRut || cleanRut.length < 7)) {
+      throw new Error('Credenciales inválidas. Compruebe su correo/RUT y contraseña.');
+    }
     let user = null;
 
     // 1. Búsqueda en MySQL (administradores) si está disponible
     if (isDatabaseReady()) {
       try {
-        const placeholders = uniqueEmails.map(() => '?').join(', ');
         // a.* incluye primer_ingreso cuando la migración ya fue aplicada (si no, se asume 0)
         const rows = await query(
-          `SELECT a.*, s.cargo, s.jardin
-           FROM administradores a
-           LEFT JOIN socias s ON a.rut = s.rut
-           WHERE LOWER(a.rut) = ?
-              OR LOWER(REPLACE(REPLACE(a.rut, '.', ''), '-', '')) = ?
-              OR LOWER(a.correo) IN (${placeholders})`,
-          [cleanId, cleanRut, ...uniqueEmails]
+          isEmail
+            ? `SELECT a.*, s.cargo, s.jardin
+               FROM administradores a
+               LEFT JOIN socias s ON a.rut = s.rut
+               WHERE LOWER(a.correo) = ?`
+            : `SELECT a.*, s.cargo, s.jardin
+               FROM administradores a
+               LEFT JOIN socias s ON a.rut = s.rut
+               WHERE LOWER(REPLACE(REPLACE(a.rut, '.', ''), '-', '')) = ?`,
+          [isEmail ? email : cleanRut]
         );
 
         if (rows.length > 0) {
@@ -150,8 +125,8 @@ export const AuthService = {
     if (!user && !isDatabaseReady()) {
       const found = memoryUsers.find(
         (u) =>
-          uniqueEmails.includes(u.email.toLowerCase()) ||
-          u.rut.replace(/[^0-9kK]/g, '').toLowerCase() === cleanRut
+          (isEmail && u.email.toLowerCase() === email) ||
+          (!isEmail && u.rut.replace(/[^0-9kK]/g, '').toLowerCase() === cleanRut)
       );
 
       if (found) {

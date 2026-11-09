@@ -58,8 +58,8 @@ async function runTests() {
     }
   }
 
-  const tesoreraToken = await login('tesorera@vtf.cl');
-  const presidentaToken = await login('yerthie.sayago@vtf.cl');
+  const tesoreraToken = await login('tesorera@vtftemuco.cl');
+  const presidentaToken = await login('presidenta@vtftemuco.cl');
 
   // 1. Egreso sin archivo rechazado
   await test('POST /api/tesoreria/movimientos egreso sin archivo retorna 400', async () => {
@@ -233,11 +233,12 @@ async function runTests() {
   });
 
   console.log(`\n[RESULTADOS] ${passed} pasados, ${failed} fallidos`);
+  server.closeAllConnections?.();
   server.close();
-  // Cerrar MySQL antes de salir: process.exit con sockets abiertos rompe libuv en Windows
+  // Cerrar MySQL antes de salir: salir con process.exit y sockets abiertos rompe libuv en Windows
   await dbPool?.end().catch(() => {});
   fs.rmSync(uploadsDir, { recursive: true, force: true });
-  process.exit(failed > 0 ? 1 : 0);
+  process.exitCode = failed > 0 ? 1 : 0;
 }
 
 runTests();

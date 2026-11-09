@@ -1,7 +1,7 @@
 /**
  * Pruebas de los bloqueantes de despliegue (09-11-2026):
  *  - Login con el dominio oficial @vtftemuco.cl
- *  - Un dominio ajeno no hereda los alias institucionales
+ *  - Solo el correo exacto @vtftemuco.cl o el RUT: sin otros dominios ni alias
  *  - Cambio de contraseña de la directiva con política mínima
  *  - En producción, sin MySQL, la API responde 503 en vez de datos de memoria
  *
@@ -57,9 +57,24 @@ await test('POST /api/auth/login acepta presidenta@vtftemuco.cl', async () => {
   assert.strictEqual(body.data.user.role.code, 'PRESIDENTA');
 });
 
-await test('POST /api/auth/login rechaza alias con dominio ajeno (tesorera@gmail.com)', async () => {
-  const { status } = await post('/auth/login', { identifier: 'tesorera@gmail.com', password: 'Admin123!' });
-  assert.strictEqual(status, 401);
+for (const variante of [
+  'tesorera@gmail.com',
+  'tesorera@vtf.cl',
+  'tesorera@asociacionvtf.cl',
+  'tesoreria@vtftemuco.cl',
+  'alejandra.sias@vtftemuco.cl'
+]) {
+  await test(`POST /api/auth/login rechaza la variante ${variante}`, async () => {
+    const { status } = await post('/auth/login', { identifier: variante, password: 'Admin123!' });
+    assert.strictEqual(status, 401);
+  });
+}
+
+await test('POST /api/auth/login acepta el RUT con o sin puntos', async () => {
+  for (const rut of ['13.918.472-6', '139184726']) {
+    const { status } = await post('/auth/login', { identifier: rut, password: 'Admin123!' });
+    assert.strictEqual(status, 200, rut);
+  }
 });
 
 await test('validatePasswordPolicy rechaza claves cortas, sin números, la inicial y el RUT', async () => {
@@ -71,7 +86,7 @@ await test('validatePasswordPolicy rechaza claves cortas, sin números, la inici
 });
 
 await test('POST /api/auth/cambiar-clave exige la clave actual y luego permite entrar con la nueva', async () => {
-  const login = await post('/auth/login', { identifier: 'secretaria@vtf.cl', password: 'Admin123!' });
+  const login = await post('/auth/login', { identifier: 'secretaria@vtftemuco.cl', password: 'Admin123!' });
   const token = login.body.data.token;
 
   const wrong = await post('/auth/cambiar-clave', { currentPassword: 'otra', newPassword: 'Secretaria2026' }, token);
@@ -84,9 +99,9 @@ await test('POST /api/auth/cambiar-clave exige la clave actual y luego permite e
   assert.strictEqual(ok.status, 200);
   assert.strictEqual(ok.body.data.user.mustChangePassword, false);
 
-  const oldPass = await post('/auth/login', { identifier: 'secretaria@vtf.cl', password: 'Admin123!' });
+  const oldPass = await post('/auth/login', { identifier: 'secretaria@vtftemuco.cl', password: 'Admin123!' });
   assert.strictEqual(oldPass.status, 401);
-  const newPass = await post('/auth/login', { identifier: 'secretaria@vtf.cl', password: 'Secretaria2026' });
+  const newPass = await post('/auth/login', { identifier: 'secretaria@vtftemuco.cl', password: 'Secretaria2026' });
   assert.strictEqual(newPass.status, 200);
 });
 
@@ -118,7 +133,7 @@ await test('En producción sin MySQL: health avisa y el login responde 503', asy
     const res = await fetch(`${prodUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: 'tesorera@vtf.cl', password: 'Admin123!' })
+      body: JSON.stringify({ identifier: 'tesorera@vtftemuco.cl', password: 'Admin123!' })
     });
     assert.strictEqual(res.status, 503);
     assert.strictEqual((await res.json()).code, 'DATABASE_UNAVAILABLE');
@@ -128,5 +143,6 @@ await test('En producción sin MySQL: health avisa y el login responde 503', asy
 });
 
 console.log(`\n[RESULTADOS BLOQUEANTES] ${passed} pasados, ${failed} fallidos`);
+server.closeAllConnections?.();
 server.close();
 process.exitCode = failed > 0 ? 1 : 0;

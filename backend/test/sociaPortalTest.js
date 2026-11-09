@@ -30,6 +30,7 @@ test('Suite de Pruebas: Portal Diferenciado de Socias y Buzón', async (t) => {
 
   t.after(async () => {
     await resetSociaDePrueba();
+    server.closeAllConnections?.();
     server.close();
     // Cerrar el pool en vez de process.exit: así no se ocultan fallos ni se corta libuv en Windows
     await pool?.end().catch(() => {});

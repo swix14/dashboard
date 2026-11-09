@@ -46,7 +46,7 @@ async function runPersistenceSuite() {
     }
   }
 
-  const tesoreraToken = await login('tesorera@vtf.cl');
+  const tesoreraToken = await login('tesorera@vtftemuco.cl');
 
   // 1. Guardar egreso con archivo PDF y persistir en MySQL
   let savedId = null;
@@ -112,11 +112,12 @@ async function runPersistenceSuite() {
   });
 
   console.log(`\n[RESULTADOS PERSISTENCIA] ${passed} pasados, ${failed} fallidos`);
+  server.closeAllConnections?.();
   server.close();
-  // Cerrar MySQL antes de salir: process.exit con sockets abiertos rompe libuv en Windows
+  // Cerrar MySQL antes de salir: salir con process.exit y sockets abiertos rompe libuv en Windows
   await dbPool?.end().catch(() => {});
   fs.rmSync(uploadsDir, { recursive: true, force: true });
-  process.exit(failed > 0 ? 1 : 0);
+  process.exitCode = failed > 0 ? 1 : 0;
 }
 
 runPersistenceSuite();

@@ -38,7 +38,7 @@ async function runTests() {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: 'tesorera@vtf.cl', password: 'PasswordIncorrecta' })
+      body: JSON.stringify({ identifier: 'tesorera@vtftemuco.cl', password: 'PasswordIncorrecta' })
     });
     assert.strictEqual(res.status, 401);
     const body = await res.json();
@@ -51,7 +51,7 @@ async function runTests() {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: 'tesorera@vtf.cl', password: 'Admin123!' })
+      body: JSON.stringify({ identifier: 'tesorera@vtftemuco.cl', password: 'Admin123!' })
     });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
@@ -121,7 +121,7 @@ async function runTests() {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: 'directora@vtf.cl', password: 'Admin123!' })
+      body: JSON.stringify({ identifier: 'directora@vtftemuco.cl', password: 'Admin123!' })
     });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
@@ -164,14 +164,15 @@ async function runTests() {
   });
 
   console.log(`\n[RESULTADOS] ${passed} pasados, ${failed} fallidos`);
+  server.closeAllConnections?.();
   server.close();
-  // Cerrar MySQL antes de salir: process.exit con sockets abiertos rompe libuv en Windows
+  // Cerrar MySQL antes de salir: salir con process.exit y sockets abiertos rompe libuv en Windows
   await dbPool?.end().catch(() => {});
 
   if (failed > 0) {
-    process.exit(1);
+    process.exitCode = 1;
   } else {
-    process.exit(0);
+    process.exitCode = 0;
   }
 }
 

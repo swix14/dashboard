@@ -35,9 +35,9 @@ async function runTests() {
     }
   }
 
-  const secretariaToken = await login('secretaria@vtf.cl');
-  const directoraToken = await login('directora@vtf.cl');
-  const delegadaToken = await login('delegada.bambi@vtf.cl');
+  const secretariaToken = await login('secretaria@vtftemuco.cl');
+  const directoraToken = await login('directora@vtftemuco.cl');
+  const delegadaToken = await login('delegada@vtftemuco.cl');
   const auth = (token) => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
 
   // 1. Resumen del padrón coincide con la realidad institucional
@@ -189,10 +189,11 @@ async function runTests() {
   });
 
   console.log(`\n[RESULTADOS] ${passed} pasados, ${failed} fallidos`);
+  server.closeAllConnections?.();
   server.close();
-  // Cerrar MySQL antes de salir: process.exit con sockets abiertos rompe libuv en Windows
+  // Cerrar MySQL antes de salir: salir con process.exit y sockets abiertos rompe libuv en Windows
   await dbPool?.end().catch(() => {});
-  process.exit(failed > 0 ? 1 : 0);
+  process.exitCode = failed > 0 ? 1 : 0;
 }
 
 runTests();
