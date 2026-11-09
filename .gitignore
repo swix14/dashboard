@@ -38,6 +38,7 @@ backend/uploads/*
 # IDE y sistema
 .vscode/
 .idea/
+.claude/
 *.suo
 *.ntvs*
 *.njsproj
