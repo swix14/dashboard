@@ -135,6 +135,27 @@ flowchart TD
 
 ---
 
+### Hotfix 2026-11-09: Bloqueantes del despliegue en cPanel
+> [!IMPORTANT]
+> **Estado:** **Terminado ✓** (pendiente de aplicar en el hosting)  
+> **Resultados:** 57 pruebas de backend aprobadas (`npm test`, incluye la nueva `test/bloqueantesTest.js`). Build Vite limpio.
+
+#### 1. Bugs corregidos y causa
+- **Producción corría sin base de datos y mostraba datos de prueba.** Las capturas mostraban "Jardín Rayito de Sol", que solo existe en `seedData.js`, el respaldo en memoria. La causa fue el nombre de usuario o de base sin el prefijo de cPanel (`vtftemuc_`), sumado a que nada esperaba la conexión inicial: las primeras peticiones del arranque en frío de Passenger se atendían en memoria. Ahora `db.js` espera el primer intento (`waitForDatabase`) y reintenta cada 15 s. En producción la API responde **503** en vez de usar datos de memoria (`ALLOW_MEMORY_FALLBACK`), y `/api/health` informa `database.conectada` junto con el código de error.
+- **"No fue posible cargar las métricas":** era una consecuencia del punto anterior (sesión emitida en memoria y validada contra MySQL, o un timeout del arranque en frío). Ahora el dashboard muestra el motivo real y el timeout del cliente subió a 20 s.
+- **Correos @vtftemuco.cl rechazados:** se agregó el dominio oficial. Los alias (tesorera, presidenta…) solo aplican a dominios institucionales; `tesorera@gmail.com` ya no entra.
+- **La clave inicial de la socia seguía sirviendo después de cambiarla:** se eliminó esa excepción en `sociaAuthService.js`. Además, la nueva clave no puede ser la inicial.
+- **RUTs ficticios de la directiva en `admin.sql`:** se reemplazaron por los del padrón y se cambiaron los correos a `@vtftemuco.cl`.
+- **Misma clave para toda la directiva y sin cambio obligatorio:** se agregó la columna `administradores.primer_ingreso`, la ruta `POST /api/auth/cambiar-clave` con política mínima, un bloqueo en el servidor (403 `PASSWORD_CHANGE_REQUIRED`) y un modal bloqueante en el frontend. "¿Olvidó su contraseña?" ahora explica el procedimiento.
+- `server.js` y `app.cjs` ahora incluyen los ajustes que antes existían solo en el paquete de despliegue (Passenger, mismo dominio, frontend en `public/`).
+
+#### 2. Aplicación en el hosting
+1. En la base ya instalada, ejecutar `database/migraciones/2026-11-09_directiva_y_primer_ingreso.sql`.
+2. Corregir `DB_NAME` y `DB_USER` con el prefijo (ver `docs/GUIA_DESPLIEGUE_CPANEL.md`), subir el código nuevo y hacer Restart.
+3. Comprobar que `https://vtftemuco.cl/api/health` responda `"conectada": true`.
+
+---
+
 ### Versión 3: Padrón Centralizado 100% Persistente en MySQL
 > [!NOTE]
 > **Estado:** Pendiente — **Asignado para resolución del equipo** (Carlos S., Braulio P., Sebastian A.)  

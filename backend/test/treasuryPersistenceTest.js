@@ -8,6 +8,7 @@ const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vtf-treasury-test-'));
 process.env.UPLOADS_DIR = uploadsDir;
 
 const { default: app } = await import('../src/server.js');
+const { pool: dbPool } = await import('../src/config/db.js');
 const { TreasuryService } = await import('../src/services/treasuryService.js');
 
 // Servidor de pruebas en puerto efímero
@@ -112,6 +113,8 @@ async function runPersistenceSuite() {
 
   console.log(`\n[RESULTADOS PERSISTENCIA] ${passed} pasados, ${failed} fallidos`);
   server.close();
+  // Cerrar MySQL antes de salir: process.exit con sockets abiertos rompe libuv en Windows
+  await dbPool?.end().catch(() => {});
   fs.rmSync(uploadsDir, { recursive: true, force: true });
   process.exit(failed > 0 ? 1 : 0);
 }

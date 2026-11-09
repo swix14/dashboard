@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import app from '../src/server.js';
+import { pool as dbPool } from "../src/config/db.js";
 
 // Servidor de pruebas en puerto efímero
 const server = app.listen(0);
@@ -164,6 +165,8 @@ async function runTests() {
 
   console.log(`\n[RESULTADOS] ${passed} pasados, ${failed} fallidos`);
   server.close();
+  // Cerrar MySQL antes de salir: process.exit con sockets abiertos rompe libuv en Windows
+  await dbPool?.end().catch(() => {});
 
   if (failed > 0) {
     process.exit(1);

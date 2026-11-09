@@ -8,6 +8,7 @@ const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vtf-uploads-test-'));
 process.env.UPLOADS_DIR = uploadsDir;
 
 const { default: app } = await import('../src/server.js');
+const { pool: dbPool } = await import('../src/config/db.js');
 
 // Servidor de pruebas en puerto efímero
 const server = app.listen(0);
@@ -233,6 +234,8 @@ async function runTests() {
 
   console.log(`\n[RESULTADOS] ${passed} pasados, ${failed} fallidos`);
   server.close();
+  // Cerrar MySQL antes de salir: process.exit con sockets abiertos rompe libuv en Windows
+  await dbPool?.end().catch(() => {});
   fs.rmSync(uploadsDir, { recursive: true, force: true });
   process.exit(failed > 0 ? 1 : 0);
 }

@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import express from 'express';
 import apiRouter from '../src/routes/index.js';
 import { errorMiddleware } from '../src/middlewares/errorMiddleware.js';
+import { isDatabaseReady, pool, query, waitForDatabase } from '../src/config/db.js';
 
 const app = express();
 app.use(express.json());
@@ -18,9 +19,20 @@ test('Suite de Pruebas: Portal Diferenciado de Socias y Buzón', async (t) => {
   const port = server.address().port;
   const baseUrl = `http://localhost:${port}/api`;
 
-  t.after(() => {
+  // Socia de prueba en estado de primer ingreso (antes y después: la suite es repetible)
+  await waitForDatabase();
+  const resetSociaDePrueba = async () => {
+    if (isDatabaseReady()) {
+      await query("UPDATE socias SET password = NULL, primer_ingreso = 1 WHERE rut = '20.081.109-7'");
+    }
+  };
+  await resetSociaDePrueba();
+
+  t.after(async () => {
+    await resetSociaDePrueba();
     server.close();
-    process.exit(0);
+    // Cerrar el pool en vez de process.exit: así no se ocultan fallos ni se corta libuv en Windows
+    await pool?.end().catch(() => {});
   });
 
   let sociaToken = '';
@@ -70,6 +82,17 @@ test('Suite de Pruebas: Portal Diferenciado de Socias y Buzón', async (t) => {
     assert.strictEqual(body.success, false);
   });
 
+  // 3b. Con la clave inicial, el servidor bloquea todo salvo el cambio de clave (solo verificable con MySQL)
+  await t.test('POST /api/socia/buzon bloqueado con 403 hasta cambiar la clave inicial', async (st) => {
+    if (!isDatabaseReady()) return st.skip('requiere MySQL');
+    const res = await fetch(`${baseUrl}/socia/buzon/mis-mensajes`, {
+      headers: { Authorization: `Bearer ${sociaToken}` }
+    });
+    assert.strictEqual(res.status, 403);
+    const body = await res.json();
+    assert.strictEqual(body.code, 'PASSWORD_CHANGE_REQUIRED');
+  });
+
   // 4. Cambiar contraseña obligatoria
   await t.test('POST /api/socia/cambiar-clave actualiza contraseña con bcrypt', async () => {
     const res = await fetch(`${baseUrl}/socia/cambiar-clave`, {
@@ -85,6 +108,27 @@ test('Suite de Pruebas: Portal Diferenciado de Socias y Buzón', async (t) => {
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.strictEqual(body.success, true);
+    assert.strictEqual(body.data.socia.primerIngreso, false);
+  });
+
+  // 4b. Tras cambiarla, la clave inicial ya no sirve y la personal sí
+  await t.test('POST /api/socia/login rechaza la clave inicial después del cambio', async () => {
+    const res = await fetch(`${baseUrl}/socia/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rut: '20.081.109-7', password: '200811' })
+    });
+    assert.strictEqual(res.status, 401);
+  });
+
+  await t.test('POST /api/socia/login acepta la clave personal sin pedir nuevo cambio', async () => {
+    const res = await fetch(`${baseUrl}/socia/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rut: '20.081.109-7', password: 'MiNuevaClaveSegura2026' })
+    });
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
     assert.strictEqual(body.data.socia.primerIngreso, false);
   });
 
