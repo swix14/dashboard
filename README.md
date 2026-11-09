@@ -7,7 +7,7 @@
 [![Backend](https://img.shields.io/badge/Backend-Express%20%7C%20REST%20API-000000?style=flat-square&logo=express&logoColor=white)](#4-arquitectura-del-sistema)
 [![Base de Datos](https://img.shields.io/badge/Persistencia-MySQL%20%2F%20MariaDB%20Dual-4479A1?style=flat-square&logo=mysql&logoColor=white)](#53-persistencia-de-datos)
 [![Identidad Visual](https://img.shields.io/badge/Identidad-SIGAV%20Design%20System-725682?style=flat-square)](#1-resumen-ejecutivo)
-[![Estado de Pruebas](https://img.shields.io/badge/Validación-28%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
+[![Estado de Pruebas](https://img.shields.io/badge/Validación-75%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
 
 Plataforma web institucional concebida para la gobernanza corporativa, fiscalización contable, administración del padrón gremial, custodia documental y rendición periódica de cuentas de los establecimientos de Educación Parvularia Vía Transferencia de Fondos (VTF) de la comuna de Temuco.
 
@@ -96,7 +96,7 @@ graph TD
 * **Persistencia Dual y Estabilidad Autónoma:**
   * Integración con base de datos relacional MySQL / MariaDB (XAMPP).
   * Mecanismo de contingencia autónomo en memoria que asegura disponibilidad 24/7 incluso ante caídas del motor de base de datos.
-  * Validación integral con 28 pruebas automatizadas aprobadas.
+  * Validación integral con 75 pruebas automatizadas aprobadas.
 
 ---
 
@@ -174,15 +174,16 @@ npm run dev:frontend
 *Disponible en:* `http://localhost:5173`
 
 ### 5.3. Persistencia de Datos
-* **Modo Demostración / Contingencia (Predeterminado):** El sistema inicializa con datos institucionales estructurados en memoria volátil de alta disponibilidad, sin requerir servicios de bases de datos externos.
-* **Modo Persistente (MySQL / XAMPP):** Para activar la persistencia completa, inicie el servicio MySQL en el puerto `3306` e importe los scripts contenidos en `database/`:
+* **MySQL / XAMPP (requerido):** el padrón de socias y el portal de socias trabajan solo con MySQL. Inicie MySQL en el puerto `3306`, cree la base `jardines_vtf` e importe, en este orden:
   1. `database/database.sql` (Esquema DDL relacional).
-  2. `database/admin.sql` (Cuentas operativas de directiva).
-  3. `database/data.sql` (Padrón continuo de afiliadas y convenios).
+  2. `database/data.sql` (23 jardines, padrón de 277 socias, convenios y créditos).
+  3. `database/admin.sql` (Cuentas de directiva, con cambio de clave obligatorio al primer ingreso).
+* **Base ya instalada:** aplique los scripts de `database/migraciones/` en orden de fecha (ver `docs/GUIA_DESPLIEGUE_CPANEL.md`).
+* **Sin MySQL (solo desarrollo):** el login de directiva y Tesorería responden con datos de prueba en memoria; en producción la API responde 503.
 
 ### 5.4. Verificación Automatizada del Sistema
 
-Para certificar la integridad de las reglas de negocio, modelos de seguridad y carga de documentos:
+Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 7 suites contra ella (nunca toca `jardines_vtf`):
 
 ```powershell
 npm run test:backend

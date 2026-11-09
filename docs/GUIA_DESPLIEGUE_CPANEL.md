@@ -56,7 +56,10 @@ Para garantizar máxima estabilidad, rendimiento y evitar colisiones entre el se
      1. **`database/database.sql`** (tablas)
      2. **`database/data.sql`** (convenios, padrón de 277 socias, movimientos de apertura y noticias)
      3. **`database/admin.sql`** (6 cuentas de directiva con clave inicial `Admin123!` y cambio obligatorio al primer ingreso)
-   - **Base ya instalada antes del 09-11-2026:** no reimportes; ejecuta en la pestaña *SQL* el archivo `database/migraciones/2026-11-09_directiva_y_primer_ingreso.sql`.
+   - **Base ya instalada antes del 09-11-2026:** no reimportes. Primero exporta un respaldo (pestaña *Exportar*) y luego ejecuta en la pestaña *SQL*, en este orden y una sola vez cada uno:
+     1. `database/migraciones/2026-11-09_directiva_y_primer_ingreso.sql`
+     2. `database/migraciones/2026-11-09_v3_padron_mysql.sql` (padrón V3). **Súbelo junto con el código nuevo:** el código anterior deja de funcionar con esta migración, porque reemplaza la columna `socias.jardin` por `jardin_id`.
+   - La carpeta `uploads/` debe permitir escritura: ahí se guardan los comprobantes y, en `uploads/padron/AAAA/MM/`, cada planilla Maestra Socias cargada.
 
 ---
 

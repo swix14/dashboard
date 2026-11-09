@@ -75,7 +75,7 @@ dashboard/
 | :---: | :--- | :--- | :---: | :--- |
 | **V1** | **Consola Ejecutiva, Directiva y Seguridad Base (PoLP)** | **Sebastian Olguín** | **Terminado ✓** | Commits `2a194fb`, `a768d64` (39 tests OK) |
 | **V2** | **Tesorería Robusta y Respaldo Digital Obligatorio** | **Sebastian Olguín** | **Terminado ✓** | Commit `c3608ed` (46 tests OK) |
-| **V3** | **Padrón Centralizado 100% Persistente en MySQL** | Carlos S. y Braulio P. | **Pendiente (Equipo)** | Asignado para resolución del equipo |
+| **V3** | **Padrón Centralizado 100% Persistente en MySQL** | **Sebastian Victoriano** | **Terminado ✓** | 75 tests OK (`npm test`) |
 | **V4** | **Módulo Independiente de Créditos y Convenios** | Carlos S. y Luis C. | **Pendiente (Equipo)** | Asignado para resolución del equipo |
 | **V5** | **Portal de Afiliadas, Primer Ingreso y Buzón Gremial** | Sebastian A. y Braulio P. | **Pendiente (Equipo)** | Asignado para resolución del equipo |
 | **V6** | **Custodia Documental y Carpeta por Proveedor** | Equipo Técnico | **Pendiente (Equipo)** | Asignado para resolución del equipo |
@@ -85,7 +85,7 @@ dashboard/
 ```mermaid
 flowchart TD
     V1["V1: Consola Ejecutiva y Seguridad Base [Terminado ✓]"] --> V2["V2: Tesorería y Respaldo Digital [Terminado ✓]"]
-    V2 --> V3["V3: Padrón Centralizado MySQL [Equipo]"]
+    V2 --> V3["V3: Padrón Centralizado MySQL [Terminado ✓]"]
     V3 --> V4["V4: Módulo Créditos y Convenios [Equipo]"]
     V4 --> V5["V5: Portal de Afiliadas y Buzón [Equipo]"]
     V5 --> V6["V6: Custodia Documental [Equipo]"]
@@ -157,19 +157,34 @@ flowchart TD
 ---
 
 ### Versión 3: Padrón Centralizado 100% Persistente en MySQL
-> [!NOTE]
-> **Estado:** Pendiente — **Asignado para resolución del equipo** (Carlos S., Braulio P., Sebastian A.)  
-> **Objetivo:** Desacoplar el padrón del arreglo en memoria `INITIAL_SOCIAS`, conectar todas las lecturas a MySQL con paginación y solventar la mutación de estado previa a la validación.
+> [!IMPORTANT]
+> **Estado:** **Terminado ✓** (pendiente de aplicar en el hosting)  
+> **Responsable:** Sebastian Victoriano  
+> **Resultados:** 75 pruebas de backend aprobadas en 7 suites (`npm test`, sobre la base de prueba `jardines_vtf_test`). Build Vite limpio. Lectura verificada con la planilla real "Maestra Socias": 277 filas, 0 errores.
 
-#### 1. Archivos Involucrados
-- `backend/src/services/sociaService.js`: Reemplazo total de métodos de lectura y escritura por consultas SQL parametrizadas (`SELECT ... LIMIT ? OFFSET ?`).
-- `backend/src/controllers/sociaController.js`: Paginación (`page`, `limit`), filtros SQL y validación de entrada.
-- `backend/src/validators/sociaValidator.js`: Validación estricta de RUT, datos personales y motivos de traslado.
-- `database/database.sql`: Tabla relacional `historial_traslados` con FK a `socias` y `jardines`.
+#### 1. Decisiones de negocio
+- **Cargos:** DIRECTORA, EDUCADORA, TECNICO, ASISTENTE, AUXILIAR y `SIN DATO` (22 socias del padrón real sin cargo, para completar).
+- **Eliminar socia = baja lógica (`RETIRADA`)** con motivo y fecha. No cuenta ni cobra cuota, conserva créditos e historial y se reactiva editando su estado. El borrado físico de una socia con créditos queda bloqueado en la base (`ON DELETE RESTRICT`).
+- **Planilla Maestra Socias:** vista previa y luego aplicación en una sola transacción. Las celdas vacías no borran datos. Las socias ausentes en la planilla **no** se dan de baja solas: se listan para revisión. Cada archivo se guarda en `uploads/padron/AAAA/MM/` sin sobrescribir y queda registrado en `cargas_padron`.
+- **Se eliminó el padrón ficticio en memoria** (`sociasSeedData.js`). El portal de socias y el padrón trabajan solo con MySQL.
 
-#### 2. Criterios de Aceptación
-- Crear una socia vía API, reiniciar el backend y comprobar su persistencia inmediata desde MySQL.
-- Intentar un traslado sin motivo y confirmar que falle con 400 sin alterar el jardín ni datos de la socia (transaccional).
+#### 2. Archivos
+- `database/database.sql` y `data.sql`: tablas `jardines` (23), `historial_traslados` y `cargas_padron`. La socia pasa a `jardin_id` y suma `fecha_ingreso`, `es_delegada`, retiro y marcas de tiempo. Celulares en `+569XXXXXXXX` y correos en minúscula.
+- `database/migraciones/2026-11-09_v3_padron_mysql.sql`: migración de bases ya instaladas.
+- `backend/src/services/sociaService.js`: SQL parametrizado con paginación en el servidor, búsqueda por nombre, RUT (con o sin puntos), jardín o correo, y traslados transaccionales.
+- `backend/src/services/padronImportService.js`, `utils/sociaFormat.js` y `validators/sociaValidator.js`.
+- `frontend/src/pages/SociasPage.jsx` y `components/socias/*`: recuadros de la especificación, filtros (incluye "sin jardín" y "retiradas"), retiro con motivo, carga de Excel con vista previa y exportación completa según el filtro.
+- `backend/test/run.js`: crea la base de prueba desde los SQL del repositorio y corre cada suite contra ella. Nunca toca la base de desarrollo.
+
+#### 3. Bugs corregidos en el camino
+- **Una socia suspendida conservaba el acceso al portal:** `getProfile` capturaba su propio error y devolvía un perfil genérico activo. Ahora también se exige el estado ACTIVA al iniciar sesión.
+- **La bitácora nunca se guardaba en MySQL:** enviaba `admin-N` a la columna numérica `usuario_id`. Ahora guarda el número.
+- **El Inicio mostraba números fijos del padrón** (280, 4 suspendidas, 98,6 %). Ahora se calculan con los datos reales.
+
+#### 4. Criterios de Aceptación (verificados en `sociasTest.js` y `padronImportTest.js`)
+- Crear una socia vía API, levantar un segundo backend y encontrarla en MySQL.
+- Un traslado sin motivo falla con 400 sin alterar el jardín ni ningún otro dato (transacción).
+- Una planilla aplicada dos veces no duplica ni cambia nada.
 
 ---
 
