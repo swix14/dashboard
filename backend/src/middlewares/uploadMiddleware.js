@@ -57,6 +57,31 @@ export function uploadComprobante(fieldName = 'comprobante') {
   };
 }
 
+// Planillas Excel: se leen en memoria (se guardan en disco solo al aplicar la carga)
+const planillaUploader = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_FILE_SIZE_MB * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    // Algunos navegadores envían application/octet-stream: se valida la extensión
+    if (!/\.xlsx$/i.test(file.originalname || '')) {
+      return cb(new Error('Formato no permitido. Suba la planilla en formato Excel .xlsx.'));
+    }
+    cb(null, true);
+  }
+});
+
+export function uploadPlanilla(fieldName = 'planilla') {
+  const handler = planillaUploader.single(fieldName);
+  return (req, res, next) => {
+    handler(req, res, (err) => {
+      if (!err) return next();
+      const message =
+        err.code === 'LIMIT_FILE_SIZE' ? `La planilla supera el tamaño máximo de ${MAX_FILE_SIZE_MB} MB.` : err.message;
+      return res.status(400).json({ success: false, message });
+    });
+  };
+}
+
 /**
  * Elimina un archivo subido cuando la operación asociada no se completa.
  */

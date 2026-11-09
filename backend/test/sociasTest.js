@@ -1,13 +1,38 @@
+/**
+ * Pruebas del padrón de socias (V3, 100% MySQL).
+ * Corre sobre la base de prueba creada por test/run.js con el padrón real de data.sql
+ * (277 socias, 23 jardines, 8 sin jardín y 22 con cargo SIN DATO).
+ */
 import assert from 'node:assert';
-import app from '../src/server.js';
-import { pool as dbPool } from "../src/config/db.js";
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// Servidor de pruebas en puerto efímero
+const { default: app } = await import('../src/server.js');
+const { pool: dbPool, query, waitForDatabase, isDatabaseReady } = await import('../src/config/db.js');
+
+await waitForDatabase();
+if (!isDatabaseReady()) {
+  console.error('sociasTest requiere MySQL: ejecútelo con "npm test" (crea la base de prueba).');
+  process.exit(1);
+}
+
 const server = app.listen(0);
-const port = server.address().port;
-const baseUrl = `http://localhost:${port}/api`;
+const baseUrl = `http://localhost:${server.address().port}/api`;
+const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-console.log(`[TEST] Servidor de prueba iniciado en ${baseUrl}`);
+let passed = 0;
+let failed = 0;
+async function test(name, fn) {
+  try {
+    await fn();
+    console.log(`  ✓ ${name}`);
+    passed++;
+  } catch (err) {
+    console.error(`  ✗ ${name}\n    Error: ${err.message}`);
+    failed++;
+  }
+}
 
 async function login(identifier) {
   const res = await fetch(`${baseUrl}/auth/login`, {
@@ -15,185 +40,251 @@ async function login(identifier) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ identifier, password: 'Admin123!' })
   });
-  const body = await res.json();
-  return body.data.token;
+  return (await res.json()).data.token;
 }
 
-async function runTests() {
-  let passed = 0;
-  let failed = 0;
+const secretaria = await login('secretaria@vtftemuco.cl');
+const directora = await login('directora@vtftemuco.cl');
+const delegada = await login('delegada@vtftemuco.cl');
+const headers = (token) => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
+const api = async (method, url, token, body) => {
+  const res = await fetch(`${baseUrl}${url}`, { method, headers: headers(token), body: body ? JSON.stringify(body) : undefined });
+  return { status: res.status, body: await res.json() };
+};
 
-  async function test(name, fn) {
-    try {
-      await fn();
-      console.log(`  ✓ ${name}`);
-      passed++;
-    } catch (err) {
-      console.error(`  ✗ ${name}`);
-      console.error(`    Error: ${err.message}`);
-      failed++;
+// RUT válido que no está en el padrón (cuerpo 11.111.112 -> DV calculado)
+const RUT_NUEVA = '11.111.112-K';
+
+await test('GET /api/socias/resumen refleja el padrón real de MySQL', async () => {
+  const { status, body } = await api('GET', '/socias/resumen', secretaria);
+  assert.strictEqual(status, 200);
+  const d = body.data;
+  assert.strictEqual(d.totalSocias, 277);
+  assert.strictEqual(d.sociasActivas, 277);
+  assert.strictEqual(d.sociasSuspendidas, 0);
+  assert.strictEqual(d.totalJardines, 23);
+  assert.strictEqual(d.sociasSinJardin, 8);
+  assert.strictEqual(d.sociasSinCargo, 22);
+  const [{ n }] = await query(
+    "SELECT COUNT(DISTINCT socia_id) AS n FROM creditos WHERE estado = 'vigente'"
+  );
+  assert.strictEqual(d.sociasConCredito, Number(n));
+  assert.strictEqual(d.valorCuotaMensual, 4000);
+});
+
+await test('GET /api/socias pagina en el servidor (20 por página, total 277)', async () => {
+  const p1 = await api('GET', '/socias?page=1&limit=20', secretaria);
+  const p2 = await api('GET', '/socias?page=2&limit=20', secretaria);
+  assert.strictEqual(p1.body.total, 277);
+  assert.strictEqual(p1.body.data.length, 20);
+  assert.notStrictEqual(p1.body.data[0].id, p2.body.data[0].id);
+});
+
+await test('GET /api/socias?limit=0 devuelve el padrón completo (exportación)', async () => {
+  const { body } = await api('GET', '/socias?limit=0', secretaria);
+  assert.strictEqual(body.data.length, 277);
+});
+
+await test('Búsqueda por RUT con o sin puntos y por nombre de jardín', async () => {
+  const conPuntos = await api('GET', `/socias?search=${encodeURIComponent('20.081.109')}`, secretaria);
+  const sinPuntos = await api('GET', '/socias?search=20081109', secretaria);
+  assert.strictEqual(conPuntos.body.data[0]?.rut, '20.081.109-7');
+  assert.strictEqual(sinPuntos.body.data[0]?.rut, '20.081.109-7');
+  const jardin = await api('GET', `/socias?search=${encodeURIComponent('Los Físicos')}&limit=0`, secretaria);
+  assert.strictEqual(jardin.body.total, 20);
+});
+
+await test('Filtros por jardín, cargo, crédito y "sin jardín"', async () => {
+  const sinJardin = await api('GET', '/socias?jardinId=SIN_JARDIN&limit=0', secretaria);
+  assert.strictEqual(sinJardin.body.total, 8);
+  const asist = await api('GET', '/socias?cargo=ASISTENTE&limit=0', secretaria);
+  assert.ok(asist.body.data.every((s) => s.cargo === 'ASISTENTE'));
+  const conCredito = await api('GET', '/socias?credito=SI&limit=0', secretaria);
+  assert.ok(conCredito.body.data.length > 0 && conCredito.body.data.every((s) => s.tieneCredito));
+  const sinCredito = await api('GET', '/socias?credito=NO&limit=0', secretaria);
+  assert.strictEqual(conCredito.body.total + sinCredito.body.total, 277);
+});
+
+await test('GET /api/socias/jardines devuelve los 23 jardines con conteos', async () => {
+  const { body } = await api('GET', '/socias/jardines', secretaria);
+  assert.strictEqual(body.data.length, 23);
+  assert.strictEqual(body.data.find((j) => j.name === 'Los Físicos').totalSocias, 20);
+});
+
+await test('GET /api/socias denegado con 403 para Delegada', async () => {
+  const { status } = await api('GET', '/socias', delegada);
+  assert.strictEqual(status, 403);
+});
+
+let nuevaId = null;
+await test('POST /api/socias crea la socia en MySQL con datos normalizados', async () => {
+  const { status, body } = await api('POST', '/socias', secretaria, {
+    rut: '11111112k',
+    nombres: '  maría   josé ',
+    apellidoPaterno: 'pérez',
+    apellidoMaterno: 'soto',
+    cargo: 'ASISTENTE',
+    jardinId: 8,
+    celular: '9 1234 5678',
+    correo: 'Maria.Perez@Example.cl'
+  });
+  assert.strictEqual(status, 201, body.message);
+  nuevaId = body.data.id;
+  assert.strictEqual(body.data.rut, RUT_NUEVA);
+  assert.strictEqual(body.data.nombres, 'MARÍA JOSÉ');
+  assert.strictEqual(body.data.estado, 'ACTIVA');
+  assert.strictEqual(body.data.celular, '+56912345678');
+  assert.strictEqual(body.data.correo, 'maria.perez@example.cl');
+  assert.strictEqual(body.data.jardin.name, 'Los Físicos');
+});
+
+await test('La socia creada persiste tras reiniciar el backend (otro proceso)', async () => {
+  // Proceso nuevo = sin estado en memoria: solo puede verla si quedó en MySQL
+  const port = 41000 + Math.floor(Math.random() * 8000);
+  const child = spawn(process.execPath, ['app.cjs'], {
+    cwd: backendRoot,
+    env: { ...process.env, PORT: String(port), NODE_ENV: 'development' },
+    stdio: 'ignore'
+  });
+  try {
+    const url = `http://127.0.0.1:${port}/api`;
+    let ok = false;
+    for (let i = 0; i < 50 && !ok; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      ok = await fetch(`${url}/health`).then((r) => r.ok).catch(() => false);
     }
+    assert.ok(ok, 'el segundo backend no arrancó');
+    const loginRes = await fetch(`${url}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: 'secretaria@vtftemuco.cl', password: 'Admin123!' })
+    });
+    const token = (await loginRes.json()).data.token;
+    const res = await fetch(`${url}/socias/${nuevaId}`, { headers: headers(token) });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual((await res.json()).data.rut, RUT_NUEVA);
+  } finally {
+    child.kill();
   }
+});
 
-  const secretariaToken = await login('secretaria@vtftemuco.cl');
-  const directoraToken = await login('directora@vtftemuco.cl');
-  const delegadaToken = await login('delegada@vtftemuco.cl');
-  const auth = (token) => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
-
-  // 1. Resumen del padrón coincide con la realidad institucional
-  await test('GET /api/socias/resumen informa 280 socias (276 activas, 4 suspendidas)', async () => {
-    const res = await fetch(`${baseUrl}/socias/resumen`, { headers: auth(secretariaToken) });
-    assert.strictEqual(res.status, 200);
-    const { data } = await res.json();
-    assert.strictEqual(data.totalSocias, 280);
-    assert.strictEqual(data.sociasActivas, 276);
-    assert.strictEqual(data.sociasSuspendidas, 4);
-    assert.strictEqual(data.totalJardines, 23);
-    assert.strictEqual(data.recaudacionMensualEsperada, 276 * 4000);
+await test('POST /api/socias con RUT duplicado (con otro formato) retorna 409', async () => {
+  const { status } = await api('POST', '/socias', secretaria, {
+    rut: '11.111.112-k',
+    nombres: 'Otra',
+    apellidoPaterno: 'Persona',
+    cargo: 'EDUCADORA',
+    jardinId: 1
   });
+  assert.strictEqual(status, 409);
+});
 
-  // 2. Las socias suspendidas no generan cobro de cuota
-  await test('GET /api/socias?estado=SUSPENDIDA devuelve cuota mensual 0', async () => {
-    const res = await fetch(`${baseUrl}/socias?estado=SUSPENDIDA`, { headers: auth(secretariaToken) });
-    const { data } = await res.json();
-    assert.strictEqual(data.length, 4);
-    assert.ok(data.every((s) => s.cuotaMensual === 0));
+await test('POST /api/socias valida RUT, celular y jardín', async () => {
+  const base = { nombres: 'Ana', apellidoPaterno: 'Rojas', cargo: 'EDUCADORA', jardinId: 1 };
+  assert.strictEqual((await api('POST', '/socias', secretaria, { ...base, rut: '12.345.678-0' })).status, 400);
+  assert.strictEqual((await api('POST', '/socias', secretaria, { ...base, rut: '11.111.113-8', celular: '123' })).status, 400);
+  assert.strictEqual((await api('POST', '/socias', secretaria, { ...base, rut: '11.111.113-8', jardinId: 999 })).status, 400);
+});
+
+await test('POST /api/socias denegado con 403 para Directora (solo lectura)', async () => {
+  const { status } = await api('POST', '/socias', directora, {
+    rut: '11.111.113-8',
+    nombres: 'Ana',
+    apellidoPaterno: 'Rojas',
+    cargo: 'EDUCADORA',
+    jardinId: 1
   });
+  assert.strictEqual(status, 403);
+});
 
-  // 3. Filtro de crédito SI
-  await test('GET /api/socias?credito=SI solo devuelve socias con crédito activo', async () => {
-    const res = await fetch(`${baseUrl}/socias?credito=SI`, { headers: auth(secretariaToken) });
-    const { data } = await res.json();
-    assert.ok(data.length > 0);
-    assert.ok(data.every((s) => s.tieneCredito && s.creditosActivos.length > 0));
+await test('PUT traslado sin motivo retorna 400 y no altera ningún dato (transaccional)', async () => {
+  const antes = await api('GET', `/socias/${nuevaId}`, secretaria);
+  const { status } = await api('PUT', `/socias/${nuevaId}`, secretaria, { jardinId: 3, cargo: 'EDUCADORA' });
+  assert.strictEqual(status, 400);
+  const despues = await api('GET', `/socias/${nuevaId}`, secretaria);
+  assert.strictEqual(despues.body.data.jardin.id, antes.body.data.jardin.id);
+  assert.strictEqual(despues.body.data.cargo, 'ASISTENTE');
+  assert.strictEqual(despues.body.data.historialJardin.length, 0);
+});
+
+await test('PUT traslado con motivo registra el historial', async () => {
+  const { status, body } = await api('PUT', `/socias/${nuevaId}`, secretaria, {
+    jardinId: 3,
+    motivoTraslado: 'Reubicación por cierre de sala'
   });
+  assert.strictEqual(status, 200);
+  assert.strictEqual(body.data.jardin.name, 'Cerro Ñielol');
+  assert.strictEqual(body.data.historialJardin.length, 1);
+  assert.strictEqual(body.data.historialJardin[0].jardinAnterior, 'Los Físicos');
+  assert.strictEqual(body.data.historialJardin[0].motivo, 'Reubicación por cierre de sala');
+});
 
-  // 4. Catálogo de jardines con una delegada por jardín
-  await test('GET /api/socias/jardines devuelve 23 jardines, cada uno con delegada', async () => {
-    const res = await fetch(`${baseUrl}/socias/jardines`, { headers: auth(directoraToken) });
-    assert.strictEqual(res.status, 200);
-    const { data } = await res.json();
-    assert.strictEqual(data.length, 23);
-    assert.ok(data.every((j) => j.delegada));
+await test('PUT suspender deja la cuota en 0 y la socia sale de las activas', async () => {
+  const { body } = await api('PUT', `/socias/${nuevaId}`, secretaria, { estado: 'SUSPENDIDA' });
+  assert.strictEqual(body.data.cuotaMensual, 0);
+  const resumen = await api('GET', '/socias/resumen', secretaria);
+  assert.strictEqual(resumen.body.data.sociasSuspendidas, 1);
+});
+
+await test('DELETE retira (baja lógica): no aparece ni cuenta, pero conserva créditos', async () => {
+  // Socia real con créditos en data.sql
+  const [conCredito] = await query(
+    "SELECT s.id, COUNT(c.id) AS creditos FROM socias s JOIN creditos c ON c.socia_id = s.id GROUP BY s.id LIMIT 1"
+  );
+  const sinMotivo = await fetch(`${baseUrl}/socias/${conCredito.id}`, { method: 'DELETE', headers: headers(secretaria), body: '{}' });
+  assert.strictEqual(sinMotivo.status, 400);
+
+  const { status, body } = await api('DELETE', `/socias/${conCredito.id}`, secretaria, { motivo: 'Renuncia voluntaria' });
+  assert.strictEqual(status, 200);
+  assert.strictEqual(body.data.estado, 'RETIRADA');
+  assert.strictEqual(body.data.creditos.length, Number(conCredito.creditos));
+
+  const lista = await api('GET', '/socias?limit=0', secretaria);
+  assert.ok(!lista.body.data.some((s) => s.id === conCredito.id));
+  const retiradas = await api('GET', '/socias?estado=RETIRADA', secretaria);
+  assert.ok(retiradas.body.data.some((s) => s.id === conCredito.id));
+
+  // Reactivar desde la edición
+  const react = await api('PUT', `/socias/${conCredito.id}`, secretaria, { estado: 'ACTIVA' });
+  assert.strictEqual(react.body.data.estado, 'ACTIVA');
+  assert.strictEqual(react.body.data.motivoRetiro, null);
+});
+
+await test('El borrado físico de una socia con créditos está bloqueado en la base', async () => {
+  const [conCredito] = await query('SELECT socia_id FROM creditos LIMIT 1');
+  await assert.rejects(() => query('DELETE FROM socias WHERE id = ?', [conCredito.socia_id]));
+});
+
+await test('Socia suspendida no puede entrar al portal ni usar un token previo', async () => {
+  const rut = '20.081.109-7';
+  const loginOk = await fetch(`${baseUrl}/socia/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rut, password: '200811' })
   });
-
-  // 5. Delegada no puede ver el padrón (privacidad de deudas)
-  await test('GET /api/socias denegado con 403 para Delegada', async () => {
-    const res = await fetch(`${baseUrl}/socias`, { headers: auth(delegadaToken) });
-    assert.strictEqual(res.status, 403);
-  });
-
-  // 6. Secretaria incorpora una socia con RUT válido
-  let nuevaSociaId = '';
-  await test('POST /api/socias Secretaria crea socia (201)', async () => {
-    const res = await fetch(`${baseUrl}/socias`, {
+  const token = (await loginOk.json()).data.token;
+  await query("UPDATE socias SET estado = 'SUSPENDIDA' WHERE rut = ?", [rut]);
+  try {
+    const login = await fetch(`${baseUrl}/socia/login`, {
       method: 'POST',
-      headers: auth(secretariaToken),
-      body: JSON.stringify({
-        rut: '11111111-1',
-        firstName: 'Socia',
-        lastName: 'De Prueba',
-        cargo: 'TECNICO',
-        jardinId: 'jar-5'
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rut, password: '200811' })
     });
-    assert.strictEqual(res.status, 201);
-    const { data } = await res.json();
-    assert.strictEqual(data.rut, '11.111.111-1');
-    assert.strictEqual(data.estado, 'ACTIVA');
-    nuevaSociaId = data.id;
-  });
+    assert.strictEqual(login.status, 401);
+    const usoToken = await fetch(`${baseUrl}/socia/buzon/mis-mensajes`, { headers: { Authorization: `Bearer ${token}` } });
+    assert.ok([401, 403].includes(usoToken.status), `status ${usoToken.status}`);
+  } finally {
+    await query("UPDATE socias SET estado = 'ACTIVA' WHERE rut = ?", [rut]);
+  }
+});
 
-  // 7. RUT duplicado rechazado
-  await test('POST /api/socias con RUT duplicado retorna 409', async () => {
-    const res = await fetch(`${baseUrl}/socias`, {
-      method: 'POST',
-      headers: auth(secretariaToken),
-      body: JSON.stringify({
-        rut: '11.111.111-1',
-        firstName: 'Otra',
-        lastName: 'Persona',
-        cargo: 'TECNICO',
-        jardinId: 'jar-5'
-      })
-    });
-    assert.strictEqual(res.status, 409);
-  });
+await test('GET /api/socias/:id inexistente retorna 404', async () => {
+  assert.strictEqual((await api('GET', '/socias/999999', secretaria)).status, 404);
+  assert.strictEqual((await api('GET', '/socias/abc', secretaria)).status, 404);
+});
 
-  // 8. RUT inválido rechazado
-  await test('POST /api/socias con RUT inválido retorna 400', async () => {
-    const res = await fetch(`${baseUrl}/socias`, {
-      method: 'POST',
-      headers: auth(secretariaToken),
-      body: JSON.stringify({
-        rut: '11.111.111-2',
-        firstName: 'Rut',
-        lastName: 'Malo',
-        cargo: 'TECNICO',
-        jardinId: 'jar-5'
-      })
-    });
-    assert.strictEqual(res.status, 400);
-  });
-
-  // 9. Directora solo puede ver (no modificar socias)
-  await test('POST /api/socias denegado con 403 para Directora', async () => {
-    const res = await fetch(`${baseUrl}/socias`, {
-      method: 'POST',
-      headers: auth(directoraToken),
-      body: JSON.stringify({ rut: '22222222-2', firstName: 'X', lastName: 'Y', cargo: 'TECNICO', jardinId: 'jar-1' })
-    });
-    assert.strictEqual(res.status, 403);
-  });
-
-  // 10. Traslado de jardín sin motivo rechazado
-  await test('PUT /api/socias/:id traslado sin motivo retorna 400', async () => {
-    const res = await fetch(`${baseUrl}/socias/${nuevaSociaId}`, {
-      method: 'PUT',
-      headers: auth(secretariaToken),
-      body: JSON.stringify({ jardinId: 'jar-6' })
-    });
-    assert.strictEqual(res.status, 400);
-  });
-
-  // 11. Traslado con motivo queda en el historial
-  await test('PUT /api/socias/:id traslado con motivo registra historial', async () => {
-    const res = await fetch(`${baseUrl}/socias/${nuevaSociaId}`, {
-      method: 'PUT',
-      headers: auth(secretariaToken),
-      body: JSON.stringify({ jardinId: 'jar-6', motivoTraslado: 'Cambio de domicilio' })
-    });
-    assert.strictEqual(res.status, 200);
-    const { data } = await res.json();
-    assert.strictEqual(data.jardin.id, 'jar-6');
-    assert.strictEqual(data.historialJardin.length, 1);
-    assert.strictEqual(data.historialJardin[0].motivo, 'Cambio de domicilio');
-  });
-
-  // 12. Suspender socia deja su cuota en 0
-  await test('PUT /api/socias/:id suspender deja cuota mensual en 0', async () => {
-    const res = await fetch(`${baseUrl}/socias/${nuevaSociaId}`, {
-      method: 'PUT',
-      headers: auth(secretariaToken),
-      body: JSON.stringify({ estado: 'SUSPENDIDA' })
-    });
-    const { data } = await res.json();
-    assert.strictEqual(data.estado, 'SUSPENDIDA');
-    assert.strictEqual(data.cuotaMensual, 0);
-  });
-
-  // 13. Socia inexistente
-  await test('GET /api/socias/:id inexistente retorna 404', async () => {
-    const res = await fetch(`${baseUrl}/socias/no-existe`, { headers: auth(secretariaToken) });
-    assert.strictEqual(res.status, 404);
-  });
-
-  console.log(`\n[RESULTADOS] ${passed} pasados, ${failed} fallidos`);
-  server.closeAllConnections?.();
-  server.close();
-  // Cerrar MySQL antes de salir: salir con process.exit y sockets abiertos rompe libuv en Windows
-  await dbPool?.end().catch(() => {});
-  process.exitCode = failed > 0 ? 1 : 0;
-}
-
-runTests();
+console.log(`\n[RESULTADOS] ${passed} pasados, ${failed} fallidos`);
+server.closeAllConnections?.();
+server.close();
+await dbPool?.end().catch(() => {});
+process.exitCode = failed > 0 ? 1 : 0;

@@ -33,12 +33,18 @@ export const DashboardService = {
 
     if (isDatabaseReady()) {
       try {
-        const [sociaCount] = await query(`SELECT COUNT(*) as total, COUNT(DISTINCT jardin) as totalJardines FROM socias`);
-        if (sociaCount?.total) {
-          totalSocias = Number(sociaCount.total);
-          totalJardines = Number(sociaCount.totalJardines) || 23;
-          sociasActivasCount = Math.max(0, totalSocias - 4);
-        }
+        // Conteos reales del padrón (V3); las RETIRADAS no forman parte del padrón vigente
+        const [sociaCount] = await query(
+          `SELECT SUM(estado <> 'RETIRADA') AS total,
+                  SUM(estado = 'ACTIVA') AS activas,
+                  SUM(estado = 'SUSPENDIDA') AS suspendidas,
+                  (SELECT COUNT(*) FROM jardines WHERE activo = 1) AS jardines
+           FROM socias`
+        );
+        totalSocias = Number(sociaCount?.total || 0);
+        sociasActivasCount = Number(sociaCount?.activas || 0);
+        sociasSuspendidasCount = Number(sociaCount?.suspendidas || 0);
+        totalJardines = Number(sociaCount?.jardines || 0);
 
         const fedRows = await query(
           `SELECT correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, monto, descripcion, comprobante

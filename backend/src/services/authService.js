@@ -74,13 +74,15 @@ export const AuthService = {
         // a.* incluye primer_ingreso cuando la migración ya fue aplicada (si no, se asume 0)
         const rows = await query(
           isEmail
-            ? `SELECT a.*, s.cargo, s.jardin
+            ? `SELECT a.*, s.cargo, j.nombre AS jardin
                FROM administradores a
                LEFT JOIN socias s ON a.rut = s.rut
+               LEFT JOIN jardines j ON j.id = s.jardin_id
                WHERE LOWER(a.correo) = ?`
-            : `SELECT a.*, s.cargo, s.jardin
+            : `SELECT a.*, s.cargo, j.nombre AS jardin
                FROM administradores a
                LEFT JOIN socias s ON a.rut = s.rut
+               LEFT JOIN jardines j ON j.id = s.jardin_id
                WHERE LOWER(REPLACE(REPLACE(a.rut, '.', ''), '-', '')) = ?`,
           [isEmail ? email : cleanRut]
         );
@@ -282,19 +284,22 @@ export const AuthService = {
 
     if (String(userId).startsWith('socia-')) {
       const rawId = String(userId).replace('socia-', '');
+      let membershipError = null;
       if (isDatabaseReady()) {
         try {
           const rows = await query(
-            `SELECT id, rut, nombres, apellido_paterno, apellido_materno, cargo, jardin, primer_ingreso, estado
-             FROM socias
-             WHERE id = ?`,
+            `SELECT s.id, s.rut, s.nombres, s.apellido_paterno, s.apellido_materno, s.cargo,
+                    j.nombre AS jardin, s.primer_ingreso, s.estado
+             FROM socias s LEFT JOIN jardines j ON j.id = s.jardin_id
+             WHERE s.id = ?`,
             [rawId]
           );
           if (rows.length > 0) {
             const row = rows[0];
-            const isSociaActive = row.estado ? row.estado === 'ACTIVA' : true;
-            if (!isSociaActive) {
-              throw new Error('Su membresía de socia se encuentra inactiva o suspendida.');
+            if (row.estado !== 'ACTIVA') {
+              // Se lanza fuera del try: antes el catch lo tragaba y la socia suspendida seguía con acceso
+              membershipError = new Error('Su membresía de socia se encuentra inactiva o suspendida.');
+              throw membershipError;
             }
             return {
               id: `socia-${row.id}`,
@@ -311,10 +316,14 @@ export const AuthService = {
             };
           }
         } catch (err) {
+          if (err === membershipError) throw err;
           console.warn('Error en getProfile socia MySQL:', err.message);
         }
+        // Con base de datos, una socia que no existe (o una consulta fallida) no obtiene perfil
+        throw new Error('Usuario no encontrado');
       }
 
+      // Perfil genérico solo en modo memoria de desarrollo (sin MySQL)
       return {
         id: `socia-${rawId}`,
         sociaId: rawId,
@@ -333,9 +342,10 @@ export const AuthService = {
       const rawId = userId.replace('admin-', '');
       try {
         const rows = await query(
-          `SELECT a.*, s.cargo, s.jardin
+          `SELECT a.*, s.cargo, j.nombre AS jardin
            FROM administradores a
            LEFT JOIN socias s ON a.rut = s.rut
+               LEFT JOIN jardines j ON j.id = s.jardin_id
            WHERE a.id = ?`,
           [rawId]
         );

@@ -21,10 +21,13 @@ export const AuditService = {
 
     if (isDatabaseReady()) {
       try {
+        // usuario_id es INT y apunta a administradores: "admin-12" -> 12; socias y memoria -> NULL (queda el RUT)
+        const match = /^admin-(\d+)$/.exec(String(entry.userId || ''));
+        const dbUserId = match ? Number(match[1]) : null;
         await query(
           `INSERT INTO auditoria (usuario_id, usuario_rut, accion, detalles, ip_address, user_agent, created_at)
            VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-          [entry.userId, entry.rut, entry.action, entry.details, entry.ipAddress, entry.userAgent]
+          [dbUserId, entry.rut, entry.action, entry.details, entry.ipAddress, entry.userAgent]
         );
         return entry;
       } catch (err) {

@@ -125,5 +125,29 @@ export async function query(sql, params = []) {
   }
 }
 
+/**
+ * Ejecuta varias operaciones como una sola transacción: o se aplican todas o ninguna.
+ * `fn` recibe `tx(sql, params)` que corre sobre la misma conexión.
+ */
+export async function withTransaction(fn) {
+  if (!pool) throw new Error('Pool de base de datos no inicializado');
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const tx = async (sql, params = []) => {
+      const [rows] = await connection.execute(sql, params);
+      return rows;
+    };
+    const result = await fn(tx);
+    await connection.commit();
+    return result;
+  } catch (err) {
+    await connection.rollback().catch(() => {});
+    throw err;
+  } finally {
+    connection.release();
+  }
+}
+
 export { pool };
-export default { pool, isDatabaseReady, waitForDatabase, getDatabaseStatus, query };
+export default { pool, isDatabaseReady, waitForDatabase, getDatabaseStatus, query, withTransaction };
