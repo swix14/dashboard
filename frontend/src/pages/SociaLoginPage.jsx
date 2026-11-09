@@ -127,9 +127,12 @@ export function SociaLoginPage() {
         { headers: { Authorization: `Bearer ${provisionalSession.token}` } }
       );
 
-      const { socia, token } = res.data.data;
+      const { token } = res.data.data;
       setModalSuccess(true);
 
+      // La respuesta del cambio de clave solo trae id y primerIngreso: los datos de la socia
+      // salen del login (antes el portal quedaba sin nombre, RUT ni jardín hasta recargar)
+      const socia = provisionalSession.socia;
       const updatedUser = {
         id: `socia-${socia.id}`,
         sociaId: socia.id,

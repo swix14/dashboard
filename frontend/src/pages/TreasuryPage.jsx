@@ -23,7 +23,7 @@ import { Card } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { NewMovementModal } from '../components/treasury/NewMovementModal.jsx';
-import { formatCurrencyCLP, formatDateCLP, formatFileSize } from '../utils/formatters.js';
+import { formatCurrencyCLP, formatDateCLP, formatFileSize, csvCell } from '../utils/formatters.js';
 
 // Con responseType 'blob' el mensaje de error del backend también llega como Blob
 const readBlobErrorMessage = async (err) => {
@@ -123,14 +123,15 @@ export function TreasuryPage() {
       m.tipo,
       m.centroCosto,
       m.categoria,
-      `"${m.descripcion.replace(/"/g, '""')}"`,
+      m.descripcion,
       m.metodo,
       m.monto,
-      `"${m.responsable}"`,
+      m.responsable,
       m.comprobante || 'Sin Comprobante'
     ]);
 
-    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
+    // Todas las celdas pasan por csvCell: antes un ";" en categor\u00EDa o comprobante corr\u00EDa las columnas
+    const csvContent = '\uFEFF' + [headers, ...rows].map((r) => r.map(csvCell).join(';')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

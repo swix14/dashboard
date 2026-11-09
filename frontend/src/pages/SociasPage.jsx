@@ -28,7 +28,7 @@ import { SociaFormModal } from '../components/socias/SociaFormModal.jsx';
 import { RetirarSociaModal } from '../components/socias/RetirarSociaModal.jsx';
 import { ImportPadronModal } from '../components/socias/ImportPadronModal.jsx';
 import { CARGOS, CARGO_LABELS, ESTADO_BADGE, labelStyle, nombreCompleto } from '../components/socias/sociaLabels.js';
-import { formatCurrencyCLP } from '../utils/formatters.js';
+import { formatCurrencyCLP, csvCell } from '../utils/formatters.js';
 
 const PAGE_SIZE = 20;
 
@@ -49,13 +49,6 @@ function KpiCard({ label, value, hint, icon: Icon, accent }) {
       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>{hint}</div>
     </div>
   );
-}
-
-// Celda CSV segura: comillas escapadas y sin fórmulas (=, +, -, @) que Excel ejecutaría
-function csvCell(value) {
-  let text = String(value ?? '');
-  if (/^[=+\-@]/.test(text)) text = `'${text}`;
-  return `"${text.replace(/"/g, '""')}"`;
 }
 
 export function SociasPage() {

@@ -19,6 +19,8 @@ node_modules/
 # Compilaciones y builds
 dist/
 build/
+# Frontend compilado copiado junto al backend para el paquete de despliegue
+backend/public/
 .next/
 out/
 

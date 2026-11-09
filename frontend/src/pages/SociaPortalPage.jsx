@@ -171,7 +171,7 @@ export function SociaPortalPage() {
 
   const handleCerrarSesion = async () => {
     await logout();
-    navigate('/login', { replace: true });
+    navigate('/socia/login', { replace: true });
   };
 
   const getCategoriaBadge = (cat) => {

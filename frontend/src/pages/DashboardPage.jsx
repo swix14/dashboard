@@ -80,8 +80,12 @@ export function DashboardPage() {
   }
 
   const inicioData = data.inicio || {};
-  const monthlyData = inicioData.graficos?.recaudacionMensual?.[selectedYear] || [];
-  const maxMonthValue = Math.max(...monthlyData.map((d) => Math.max(d.ingresos, d.egresos)), 1400000);
+  // Años con movimientos reales; si el elegido no existe se muestra el más reciente
+  const recaudacion = inicioData.graficos?.recaudacionMensual || {};
+  const aniosDisponibles = Object.keys(recaudacion).sort().reverse();
+  const anioVisible = recaudacion[selectedYear] ? selectedYear : aniosDisponibles[0] || selectedYear;
+  const monthlyData = recaudacion[anioVisible] || [];
+  const maxMonthValue = Math.max(...monthlyData.map((d) => Math.max(d.ingresos, d.egresos)), 1);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -504,7 +508,7 @@ export function DashboardPage() {
         {/* GRÁFICO RECAUDACIÓN MENSUAL */}
         <Card
           title="Recaudación Mensual (Ingresos vs Egresos)"
-          subtitle={`Flujo financiero consolidado correspondiente al período ${selectedYear}`}
+          subtitle={`Flujo financiero consolidado correspondiente al período ${anioVisible}`}
         >
           {/* Filtro superior por año */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
@@ -523,7 +527,7 @@ export function DashboardPage() {
               <Filter size={14} style={{ color: 'var(--text-muted)' }} />
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Año:</span>
               <select
-                value={selectedYear}
+                value={anioVisible}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 style={{
                   padding: '0.25rem 0.625rem',
@@ -536,8 +540,11 @@ export function DashboardPage() {
                   cursor: 'pointer'
                 }}
               >
-                <option value="2026">2026</option>
-                <option value="2025">2025</option>
+                {(aniosDisponibles.length ? aniosDisponibles : [anioVisible]).map((anio) => (
+                  <option key={anio} value={anio}>
+                    {anio}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -610,65 +617,31 @@ export function DashboardPage() {
           subtitle={`Distribución del padrón de ${inicioData.sociasActivas ?? '—'} socias activas`}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.5rem' }}>
-            {/* Convenio Isi Mundo */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                  Activas con Crédito Vigente ISI MUNDO
-                </span>
-                <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>
-                  38 socias (13.7%)
-                </span>
-              </div>
-              <div style={{ height: '8px', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                <div style={{ width: '13.7%', height: '100%', backgroundColor: 'var(--primary-500)', borderRadius: 'var(--radius-full)' }} />
-              </div>
-            </div>
-
-            {/* Convenio S.O.S */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                  Activas con Crédito Vigente S.O.S (Fondo Cena Anual)
-                </span>
-                <span style={{ fontWeight: 700, color: 'var(--accent-pink-600)' }}>
-                  24 socias (8.7%)
-                </span>
-              </div>
-              <div style={{ height: '8px', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                <div style={{ width: '8.7%', height: '100%', backgroundColor: 'var(--accent-pink-500)', borderRadius: 'var(--radius-full)' }} />
-              </div>
-            </div>
-
-            {/* Convenios Salud (Óptica y Dental) */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                  Activas con Convenio ÓPTICA y DENTAL
-                </span>
-                <span style={{ fontWeight: 700, color: 'var(--sand-700)' }}>
-                  19 socias (6.9%)
-                </span>
-              </div>
-              <div style={{ height: '8px', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                <div style={{ width: '6.9%', height: '100%', backgroundColor: 'var(--sand-500)', borderRadius: 'var(--radius-full)' }} />
-              </div>
-            </div>
-
-            {/* Sin Crédito Vigente */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                  Activas sin Créditos Vigentes (Solo Cuota Social)
-                </span>
-                <span style={{ fontWeight: 700, color: 'var(--success-text)' }}>
-                  195 socias (70.7%)
-                </span>
-              </div>
-              <div style={{ height: '8px', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                <div style={{ width: '70.7%', height: '100%', backgroundColor: 'hsl(145, 45%, 45%)', borderRadius: 'var(--radius-full)' }} />
-              </div>
-            </div>
+            {/* Barras calculadas con los datos reales (antes eran números fijos: 38, 24, 19 y 195) */}
+            {(() => {
+              const stats = inicioData.graficos?.estadoSociasCreditos || {};
+              const base = stats.totalActivas || 0;
+              const pct = (n) => (base > 0 ? Math.round(((n || 0) / base) * 1000) / 10 : 0);
+              const filas = [
+                { key: 'isi', label: 'Activas con Crédito Vigente ISI MUNDO', n: stats.activasConIsimundo, color: 'var(--primary-500)', text: 'var(--primary-700)' },
+                { key: 'sos', label: 'Activas con Crédito Vigente S.O.S (Fondo Cena Anual)', n: stats.activasConSos, color: 'var(--accent-pink-500)', text: 'var(--accent-pink-600)' },
+                { key: 'otros', label: 'Activas con Convenio ÓPTICA, DENTAL o ABOGADA', n: stats.activasConDentalOptica, color: 'var(--sand-500)', text: 'var(--sand-700)' },
+                { key: 'sin', label: 'Activas sin Créditos Vigentes (Solo Cuota Social)', n: stats.activasSinCredito, color: 'hsl(145, 45%, 45%)', text: 'var(--success-text)' }
+              ];
+              return filas.map((f) => (
+                <div key={f.key}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{f.label}</span>
+                    <span style={{ fontWeight: 700, color: f.text, whiteSpace: 'nowrap' }}>
+                      {f.n ?? 0} socias ({pct(f.n).toLocaleString('es-CL')}%)
+                    </span>
+                  </div>
+                  <div style={{ height: '8px', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                    <div style={{ width: `${pct(f.n)}%`, height: '100%', backgroundColor: f.color, borderRadius: 'var(--radius-full)' }} />
+                  </div>
+                </div>
+              ));
+            })()}
 
             <div
               style={{

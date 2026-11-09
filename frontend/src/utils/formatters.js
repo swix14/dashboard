@@ -53,3 +53,13 @@ export function formatFileSize(bytes) {
   }
   return `${(num / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/**
+ * Celda CSV segura para Excel: comillas escapadas (un ";" no corre las columnas)
+ * y sin fórmulas (=, +, -, @) que Excel ejecutaría al abrir el archivo.
+ */
+export function csvCell(value) {
+  let text = String(value ?? '');
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
