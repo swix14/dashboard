@@ -1,33 +1,30 @@
 import { api } from './api.js';
 
 export const SociaApiService = {
-  /**
-   * Resumen del padrón (recuadros KPI)
-   */
+  /** Resumen del padrón (recuadros KPI) */
   async getSummary() {
     const res = await api.get('/socias/resumen');
     return res.data.data;
   },
 
   /**
-   * Lista de socias con filtros (search, jardinId, estado, cargo, credito)
+   * Página del padrón con filtros (search, jardinId, estado, cargo, credito, page, limit).
+   * limit = 0 devuelve todas las coincidencias (exportación).
+   * Respuesta: { items, total, page, limit }
    */
   async getSocias(filters = {}) {
     const res = await api.get('/socias', { params: filters });
-    return res.data.data;
+    const { data, total, page, limit } = res.data;
+    return { items: data, total, page, limit };
   },
 
-  /**
-   * Ficha completa de una socia con créditos e historial de traslados
-   */
+  /** Ficha completa de una socia con créditos e historial de traslados */
   async getSocia(id) {
     const res = await api.get(`/socias/${id}`);
     return res.data.data;
   },
 
-  /**
-   * Catálogo de los 23 jardines con conteo de socias y delegada
-   */
+  /** Catálogo de jardines con conteo de socias y delegada */
   async getJardines() {
     const res = await api.get('/socias/jardines');
     return res.data.data;
@@ -40,6 +37,39 @@ export const SociaApiService = {
 
   async updateSocia(id, data) {
     const res = await api.put(`/socias/${id}`, data);
+    return res.data.data;
+  },
+
+  /** Baja lógica: la socia queda RETIRADA, conservando créditos e historial */
+  async retirarSocia(id, motivo) {
+    const res = await api.delete(`/socias/${id}`, { data: { motivo } });
+    return res.data.data;
+  },
+
+  /** Carga de la planilla Maestra Socias: vista previa (no modifica nada) */
+  async previsualizarPlanilla(file) {
+    const form = new FormData();
+    form.append('planilla', file);
+    const res = await api.post('/socias/importar/previsualizar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000
+    });
+    return res.data.data;
+  },
+
+  /** Carga de la planilla Maestra Socias: aplica los cambios del mismo archivo */
+  async aplicarPlanilla(file) {
+    const form = new FormData();
+    form.append('planilla', file);
+    const res = await api.post('/socias/importar/aplicar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000
+    });
+    return res.data;
+  },
+
+  async historialCargas() {
+    const res = await api.get('/socias/importar/historial');
     return res.data.data;
   }
 };

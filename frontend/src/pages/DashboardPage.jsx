@@ -202,14 +202,16 @@ export function DashboardPage() {
               </div>
             </div>
             <div style={{ fontSize: 'var(--metric-size)', fontWeight: 700, color: 'var(--primary-500)', fontVariantNumeric: 'tabular-nums' }}>
-              {inicioData.sociasActivas ?? 276}
+              {inicioData.sociasActivas ?? '—'}
             </div>
           </div>
           <div style={{ marginTop: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>De un padrón de 280</span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success-text)', backgroundColor: 'var(--success-bg)', padding: '0.125rem 0.5rem', borderRadius: 'var(--radius-full)' }}>
-              98.6% al día
-            </span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>De un padrón de {data.totalSocias ?? '—'}</span>
+            {data.totalSocias > 0 && (
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success-text)', backgroundColor: 'var(--success-bg)', padding: '0.125rem 0.5rem', borderRadius: 'var(--radius-full)' }}>
+                {(((inicioData.sociasActivas || 0) / data.totalSocias) * 100).toLocaleString('es-CL', { maximumFractionDigits: 1 })}% activas
+              </span>
+            )}
           </div>
         </div>
 
@@ -245,7 +247,7 @@ export function DashboardPage() {
               </div>
             </div>
             <div style={{ fontSize: 'var(--metric-size)', fontWeight: 700, color: 'var(--primary-500)', fontVariantNumeric: 'tabular-nums' }}>
-              {inicioData.sociasSuspendidas ?? 4}
+              {inicioData.sociasSuspendidas ?? '—'}
             </div>
           </div>
           <div style={{ marginTop: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -605,7 +607,7 @@ export function DashboardPage() {
         {/* GRÁFICO ESTADO DE SOCIAS Y CRÉDITOS VIGENTES */}
         <Card
           title="Estado de Socias y Convenios Vigentes"
-          subtitle="Distribución del padrón de 276 socias activas"
+          subtitle={`Distribución del padrón de ${inicioData.sociasActivas ?? '—'} socias activas`}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.5rem' }}>
             {/* Convenio Isi Mundo */}

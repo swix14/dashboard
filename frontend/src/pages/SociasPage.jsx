@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Users,
   UserCheck,
@@ -9,14 +9,14 @@ import {
   PlusCircle,
   Download,
   Lock,
-  X,
   AlertCircle,
   Eye,
   Pencil,
-  ArrowRightLeft,
+  UserMinus,
   ChevronLeft,
   ChevronRight,
-  Star
+  FileSpreadsheet,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { SociaApiService } from '../services/sociaService.js';
@@ -25,39 +25,12 @@ import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { SociaDetailModal } from '../components/socias/SociaDetailModal.jsx';
 import { SociaFormModal } from '../components/socias/SociaFormModal.jsx';
+import { RetirarSociaModal } from '../components/socias/RetirarSociaModal.jsx';
+import { ImportPadronModal } from '../components/socias/ImportPadronModal.jsx';
+import { CARGOS, CARGO_LABELS, ESTADO_BADGE, labelStyle, nombreCompleto } from '../components/socias/sociaLabels.js';
 import { formatCurrencyCLP } from '../utils/formatters.js';
 
 const PAGE_SIZE = 20;
-
-const CARGO_LABELS = {
-  DIRECTORA: 'Directora',
-  EDUCADORA: 'Educadora',
-  TECNICO: 'Técnico',
-  ASISTENTE: 'Asistente',
-  AUXILIAR: 'Auxiliar'
-};
-const CREDITO_LABELS = {
-  ISIMUNDO: 'Isi Mundo',
-  'S.O.S': 'S.O.S',
-  SOS: 'S.O.S',
-  OPTICA: 'Óptica',
-  'ÓPTICA': 'Óptica',
-  DENTAL: 'Dental'
-};
-const DIRECTIVA_LABELS = {
-  PRESIDENTA: 'Presidenta',
-  TESORERA: 'Tesorera',
-  SECRETARIA: 'Secretaria',
-  DIRECTORA: 'Directora Directiva'
-};
-
-const labelStyle = {
-  display: 'block',
-  fontSize: '0.75rem',
-  fontWeight: 700,
-  color: 'var(--text-muted)',
-  marginBottom: '0.375rem'
-};
 
 function KpiCard({ label, value, hint, icon: Icon, accent }) {
   return (
@@ -78,15 +51,23 @@ function KpiCard({ label, value, hint, icon: Icon, accent }) {
   );
 }
 
+// Celda CSV segura: comillas escapadas y sin fórmulas (=, +, -, @) que Excel ejecutaría
+function csvCell(value) {
+  let text = String(value ?? '');
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
 export function SociasPage() {
   const { hasRole } = useAuth();
   const canModify = hasRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA');
 
-  // Estados de datos
   const [summary, setSummary] = useState(null);
   const [jardines, setJardines] = useState([]);
   const [socias, setSocias] = useState([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('PADRON'); // PADRON | JARDINES
 
@@ -99,35 +80,35 @@ export function SociasPage() {
   const [filterCredito, setFilterCredito] = useState('TODOS');
   const [page, setPage] = useState(1);
 
-  // Ficha de socia
+  // Modales
   const [detail, setDetail] = useState(null);
   const [detailLoadingId, setDetailLoadingId] = useState(null);
-
-  // Formulario alta / edición
   const [formMode, setFormMode] = useState(null); // null | 'create' | 'edit'
   const [editing, setEditing] = useState(null);
+  const [retirando, setRetirando] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
 
-  const loadOverview = async () => {
-    const [summaryRes, jardinesRes] = await Promise.all([
-      SociaApiService.getSummary(),
-      SociaApiService.getJardines()
-    ]);
-    setSummary(summaryRes);
-    setJardines(jardinesRes);
+  const filters = {
+    search: debouncedSearch || undefined,
+    jardinId: filterJardin,
+    estado: filterEstado,
+    cargo: filterCargo,
+    credito: filterCredito
   };
 
-  const loadSocias = async () => {
+  const loadOverview = useCallback(async () => {
+    const [summaryRes, jardinesRes] = await Promise.all([SociaApiService.getSummary(), SociaApiService.getJardines()]);
+    setSummary(summaryRes);
+    setJardines(jardinesRes);
+  }, []);
+
+  const loadSocias = async (targetPage = page) => {
     try {
       setIsLoading(true);
       setError(null);
-      const list = await SociaApiService.getSocias({
-        search: debouncedSearch || undefined,
-        jardinId: filterJardin,
-        estado: filterEstado,
-        cargo: filterCargo,
-        credito: filterCredito
-      });
-      setSocias(list);
+      const res = await SociaApiService.getSocias({ ...filters, page: targetPage, limit: PAGE_SIZE });
+      setSocias(res.items);
+      setTotal(res.total);
     } catch (err) {
       setError(err.response?.data?.message || 'Error al cargar el padrón de socias');
     } finally {
@@ -136,10 +117,8 @@ export function SociasPage() {
   };
 
   useEffect(() => {
-    loadOverview().catch((err) =>
-      setError(err.response?.data?.message || 'Error al cargar el resumen del padrón')
-    );
-  }, []);
+    loadOverview().catch((err) => setError(err.response?.data?.message || 'Error al cargar el resumen del padrón'));
+  }, [loadOverview]);
 
   // Búsqueda con retardo para no consultar en cada tecla
   useEffect(() => {
@@ -147,13 +126,24 @@ export function SociasPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Un cambio de filtros vuelve a la página 1
   useEffect(() => {
     setPage(1);
-    loadSocias();
+    loadSocias(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, filterJardin, filterEstado, filterCargo, filterCredito]);
 
-  const totalPages = Math.max(1, Math.ceil(socias.length / PAGE_SIZE));
-  const pageItems = socias.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const goToPage = (p) => {
+    setPage(p);
+    loadSocias(p);
+  };
+
+  const refresh = () => {
+    loadOverview().catch(() => {});
+    loadSocias(page);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hasActiveFilters =
     search || filterJardin !== 'TODOS' || filterEstado !== 'TODOS' || filterCargo !== 'TODOS' || filterCredito !== 'TODOS';
 
@@ -170,15 +160,10 @@ export function SociasPage() {
       setDetailLoadingId(sociaId);
       setDetail(await SociaApiService.getSocia(sociaId));
     } catch (err) {
-      alert(err.response?.data?.message || 'No fue posible cargar la ficha de la socia.');
+      setError(err.response?.data?.message || 'No fue posible cargar la ficha de la socia.');
     } finally {
       setDetailLoadingId(null);
     }
-  };
-
-  const openCreate = () => {
-    setEditing(null);
-    setFormMode('create');
   };
 
   const openEdit = (socia) => {
@@ -187,36 +172,50 @@ export function SociasPage() {
     setFormMode('edit');
   };
 
-  // Exportar padrón filtrado a CSV compatible con Excel
-  const handleExportCSV = () => {
-    if (socias.length === 0) {
-      alert('No hay socias para exportar con los filtros seleccionados.');
-      return;
+  const openRetirar = (socia) => {
+    setDetail(null);
+    setRetirando(socia);
+  };
+
+  // Exporta TODAS las socias que cumplen los filtros (no solo la página visible)
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+      const { items } = await SociaApiService.getSocias({ ...filters, limit: 0 });
+      if (items.length === 0) {
+        setError('No hay socias para exportar con los filtros seleccionados.');
+        return;
+      }
+      const headers = ['RUT', 'Nombres', 'Apellido Paterno', 'Apellido Materno', 'Correo', 'Celular', 'Jardin', 'Cargo', 'Estado', 'Cuota Mensual (CLP)', 'Credito', 'Fecha Ingreso'];
+      const rows = items.map((s) => [
+        s.rut,
+        s.nombres,
+        s.apellidoPaterno,
+        s.apellidoMaterno,
+        s.correo,
+        s.celular,
+        s.jardin?.name || '',
+        CARGO_LABELS[s.cargo] || s.cargo,
+        ESTADO_BADGE[s.estado]?.label || s.estado,
+        s.cuotaMensual,
+        s.tieneCredito ? 'SI' : 'NO',
+        s.fechaIngreso || ''
+      ]);
+      const csvContent = '﻿' + [headers, ...rows].map((r) => r.map(csvCell).join(';')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Padron_Socias_VTF_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.response?.data?.message || 'No fue posible exportar el padrón.');
+    } finally {
+      setIsExporting(false);
     }
-
-    const headers = ['RUT', 'Nombres', 'Apellidos', 'Cargo', 'Jardin', 'Estado', 'Cuota Mensual (CLP)', 'Credito', 'Delegada'];
-    const rows = socias.map((s) => [
-      s.rut,
-      `"${s.firstName}"`,
-      `"${s.lastName}"`,
-      CARGO_LABELS[s.cargo] || s.cargo || 'Sin cargo',
-      `"${s.jardin?.name || ''}"`,
-      s.estado,
-      s.cuotaMensual,
-      s.tieneCredito ? 'SI' : 'NO',
-      s.esDelegada ? 'SI' : 'NO'
-    ]);
-
-    const csvContent = '﻿' + [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Padron_Socias_VTF_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const tabStyle = (tab) => ({
@@ -230,8 +229,11 @@ export function SociasPage() {
     cursor: 'pointer',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '0.5rem'
+    gap: '0.5rem',
+    whiteSpace: 'nowrap'
   });
+
+  const pendientes = (summary?.sociasSinJardin || 0) + (summary?.sociasSinCargo || 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -246,65 +248,43 @@ export function SociasPage() {
           backgroundColor: 'var(--bg-surface)',
           border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-xl)',
-          padding: '1.5rem 2rem',
+          padding: '1.5rem clamp(1rem, 4vw, 2rem)',
           boxShadow: 'var(--shadow-sm)'
         }}
       >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.375rem', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                padding: '0.2rem 0.6rem',
-                borderRadius: 'var(--radius-full)',
-                backgroundColor: 'var(--primary-100)',
-                color: 'var(--primary-800)',
-                letterSpacing: '0.04em'
-              }}
-            >
-              Módulo Padrón V3
-            </span>
-            {!canModify && (
+        <div style={{ minWidth: 0 }}>
+          {!canModify && (
+            <div style={{ marginBottom: '0.375rem' }}>
               <Badge variant="warning" icon={Lock}>
                 Modo Consulta: Solo Lectura
               </Badge>
-            )}
-          </div>
-          <h1 style={{ fontSize: '1.625rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.2 }}>
-            Padrón de Socias y Créditos
-          </h1>
+            </div>
+          )}
+          <h1 style={{ fontSize: '1.625rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.2 }}>Socias</h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Socias activas y suspendidas de los {summary?.totalJardines ?? 23} jardines VTF de Temuco, con su estado de cuota y créditos por convenio.
+            Padrón de los {summary?.totalJardines ?? '—'} jardines VTF de Temuco y Labranza, con su cuota y créditos por convenio.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexWrap: 'wrap' }}>
-          <Button variant="outline" icon={Download} onClick={handleExportCSV}>
-            Exportar Padrón
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Button variant="outline" icon={Download} onClick={handleExportCSV} isLoading={isExporting}>
+            Exportar
           </Button>
           {canModify && (
-            <Button variant="primary" icon={PlusCircle} onClick={openCreate} disabled={jardines.length === 0}>
-              Nueva Socia
-            </Button>
+            <>
+              <Button variant="outline" icon={FileSpreadsheet} onClick={() => setImportOpen(true)}>
+                Cargar Excel
+              </Button>
+              <Button variant="primary" icon={PlusCircle} onClick={() => { setEditing(null); setFormMode('create'); }} disabled={jardines.length === 0}>
+                Agregar Socia
+              </Button>
+            </>
           )}
         </div>
       </div>
 
-      {/* Recuadros KPI */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-        <KpiCard
-          label="Total Socias"
-          value={summary?.totalSocias ?? '—'}
-          hint={
-            summary?.porCargo
-              ? `${summary.porCargo.DIRECTORA || 0} directoras · ${summary.porCargo.EDUCADORA || 0} educadoras · ${summary.porCargo.TECNICO || 0} técnicos`
-              : ''
-          }
-          icon={Users}
-          accent="var(--primary-500)"
-        />
+      {/* Recuadros KPI (según especificación de la sección Socias) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1.25rem' }}>
         <KpiCard
           label="Socias Activas"
           value={summary?.sociasActivas ?? '—'}
@@ -315,7 +295,7 @@ export function SociasPage() {
         <KpiCard
           label="Socias Suspendidas"
           value={summary?.sociasSuspendidas ?? '—'}
-          hint="Sin cobro de cuota social"
+          hint={summary ? `Sin cobro de cuota · ${summary.sociasRetiradas} retiradas` : ''}
           icon={UserX}
           accent="var(--accent-pink-500)"
         />
@@ -326,7 +306,46 @@ export function SociasPage() {
           icon={CreditCard}
           accent="var(--sand-500)"
         />
+        <KpiCard
+          label="Valor Cuota Mensual"
+          value={summary ? formatCurrencyCLP(summary.valorCuotaMensual) : '—'}
+          hint="Federación $1.000 · Asociación $1.000 · Cena $2.000"
+          icon={Wallet}
+          accent="var(--primary-500)"
+        />
       </div>
+
+      {canModify && pendientes > 0 && (
+        <div
+          style={{
+            padding: '0.875rem 1rem',
+            backgroundColor: 'var(--warning-bg)',
+            border: '1px solid var(--warning-border)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--warning-text)',
+            fontSize: '0.875rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            flexWrap: 'wrap'
+          }}
+        >
+          <AlertCircle size={16} style={{ flexShrink: 0 }} />
+          <span style={{ flex: '1 1 260px' }}>
+            Datos por completar: {summary.sociasSinJardin} socias sin jardín y {summary.sociasSinCargo} sin cargo.
+          </span>
+          {summary.sociasSinJardin > 0 && (
+            <Button variant="outline" size="sm" onClick={() => { clearFilters(); setFilterJardin('SIN_JARDIN'); setActiveTab('PADRON'); }}>
+              Ver sin jardín
+            </Button>
+          )}
+          {summary.sociasSinCargo > 0 && (
+            <Button variant="outline" size="sm" onClick={() => { clearFilters(); setFilterCargo('SIN DATO'); setActiveTab('PADRON'); }}>
+              Ver sin cargo
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Pestañas */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', overflowX: 'auto' }}>
@@ -340,6 +359,7 @@ export function SociasPage() {
 
       {error && (
         <div
+          role="alert"
           style={{
             padding: '0.875rem 1rem',
             backgroundColor: 'var(--error-bg)',
@@ -359,14 +379,14 @@ export function SociasPage() {
 
       {activeTab === 'PADRON' && (
         <>
-          {/* Filtros */}
-          <Card title="Búsqueda y Filtros" subtitle="Busque por nombre o RUT y combine filtros para segmentar el padrón">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+          <Card title="Búsqueda y Filtros" subtitle="Busque por nombre, RUT, jardín o correo y combine filtros">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
               <div style={{ minWidth: 0 }}>
-                <label style={labelStyle}>Nombre o RUT</label>
+                <label style={labelStyle} htmlFor="filtro-busqueda">Buscar</label>
                 <div style={{ position: 'relative' }}>
                   <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
                   <input
+                    id="filtro-busqueda"
                     type="search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -378,11 +398,12 @@ export function SociasPage() {
               </div>
 
               <div>
-                <label style={labelStyle}>Jardín</label>
-                <select value={filterJardin} onChange={(e) => setFilterJardin(e.target.value)} className="vtf-input">
-                  <option value="TODOS">Todos los Jardines</option>
+                <label style={labelStyle} htmlFor="filtro-jardin">Jardín</label>
+                <select id="filtro-jardin" value={filterJardin} onChange={(e) => setFilterJardin(e.target.value)} className="vtf-input">
+                  <option value="TODOS">Todos los jardines</option>
+                  <option value="SIN_JARDIN">Sin jardín asignado</option>
                   {jardines.map((j) => (
-                    <option key={j.id} value={j.id}>
+                    <option key={j.id} value={String(j.id)}>
                       {j.code} · {j.name}
                     </option>
                   ))}
@@ -390,27 +411,28 @@ export function SociasPage() {
               </div>
 
               <div>
-                <label style={labelStyle}>Estado</label>
-                <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} className="vtf-input">
-                  <option value="TODOS">Todos</option>
+                <label style={labelStyle} htmlFor="filtro-estado">Estado</label>
+                <select id="filtro-estado" value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} className="vtf-input">
+                  <option value="TODOS">Activas y suspendidas</option>
                   <option value="ACTIVA">Activas</option>
                   <option value="SUSPENDIDA">Suspendidas</option>
+                  <option value="RETIRADA">Retiradas</option>
                 </select>
               </div>
 
               <div>
-                <label style={labelStyle}>Cargo</label>
-                <select value={filterCargo} onChange={(e) => setFilterCargo(e.target.value)} className="vtf-input">
+                <label style={labelStyle} htmlFor="filtro-cargo">Cargo</label>
+                <select id="filtro-cargo" value={filterCargo} onChange={(e) => setFilterCargo(e.target.value)} className="vtf-input">
                   <option value="TODOS">Todos</option>
-                  <option value="DIRECTORA">Directora</option>
-                  <option value="EDUCADORA">Educadora</option>
-                  <option value="TECNICO">Técnico</option>
+                  {CARGOS.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label style={labelStyle}>Crédito</label>
-                <select value={filterCredito} onChange={(e) => setFilterCredito(e.target.value)} className="vtf-input">
+                <label style={labelStyle} htmlFor="filtro-credito">Crédito</label>
+                <select id="filtro-credito" value={filterCredito} onChange={(e) => setFilterCredito(e.target.value)} className="vtf-input">
                   <option value="TODOS">Todos</option>
                   <option value="SI">Con crédito (SI)</option>
                   <option value="NO">Sin crédito (NO)</option>
@@ -419,140 +441,127 @@ export function SociasPage() {
             </div>
 
             {hasActiveFilters && (
-              <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  {socias.length} socias coinciden con los filtros
-                </span>
+              <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{total} socias coinciden con los filtros</span>
                 <Button variant="outline" size="sm" onClick={clearFilters}>
-                  Limpiar Filtros
+                  Limpiar filtros
                 </Button>
               </div>
             )}
           </Card>
 
-          {/* Tabla del padrón */}
-          <Card title="Padrón Oficial de Socias" subtitle="Cuota social fija de $4.000 CLP mensuales; las socias suspendidas no generan cobro">
+          <Card title="Listado de Socias" subtitle="Cuota social de $4.000 mensuales; las suspendidas y retiradas no generan cobro">
             <div className="vtf-table-container" style={{ opacity: isLoading ? 0.6 : 1, transition: 'opacity 0.15s' }}>
               <table className="vtf-table">
                 <thead>
                   <tr>
                     <th>Socia</th>
-                    <th style={{ whiteSpace: 'nowrap' }}>Cargo</th>
                     <th>Jardín</th>
+                    <th style={{ whiteSpace: 'nowrap' }}>Cargo</th>
                     <th style={{ whiteSpace: 'nowrap' }}>Estado</th>
-                    <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Cuota</th>
                     <th style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Crédito</th>
                     <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pageItems.length === 0 ? (
+                  {socias.length === 0 ? (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                        {isLoading ? 'Cargando padrón de socias...' : 'No se encontraron socias para los filtros seleccionados.'}
+                      <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                        {isLoading ? 'Cargando padrón de socias…' : 'No se encontraron socias para los filtros seleccionados.'}
                       </td>
                     </tr>
                   ) : (
-                    pageItems.map((s) => (
-                      <tr key={s.id}>
-                        <td>
-                          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                            {s.firstName} {s.lastName}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap', marginTop: '2px' }}>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{s.rut}</span>
-                            {s.cargoDirectiva && <Badge variant="info" icon={Star}>{DIRECTIVA_LABELS[s.cargoDirectiva]}</Badge>}
-                            {s.esDelegada && <Badge variant="info">Delegada</Badge>}
-                          </div>
-                        </td>
-                        <td style={{ whiteSpace: 'nowrap' }}>{CARGO_LABELS[s.cargo] || s.cargo || 'Sin cargo'}</td>
-                        <td style={{ fontSize: '0.8125rem' }}>
-                          <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>{s.jardin?.code}</span>{' '}
-                          {s.jardin?.name?.replace('Jardín ', '')}
-                        </td>
-                        <td>
-                          <Badge variant={s.estado === 'ACTIVA' ? 'success' : 'error'}>
-                            {s.estado === 'ACTIVA' ? 'Activa' : 'Suspendida'}
-                          </Badge>
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', color: s.cuotaMensual ? 'var(--text-main)' : 'var(--text-muted)' }}>
-                          {s.cuotaMensual ? formatCurrencyCLP(s.cuotaMensual) : 'Sin cobro'}
-                        </td>
-                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                          {s.tieneCredito ? (
-                            <button
-                              type="button"
-                              onClick={() => openDetail(s.id)}
-                              title="Ver créditos vigentes"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                padding: '0.25rem 0.625rem',
-                                borderRadius: 'var(--radius-sm)',
-                                backgroundColor: 'var(--sand-50)',
-                                border: '1px solid var(--sand-300)',
-                                fontSize: '0.6875rem',
-                                fontWeight: 700,
-                                color: 'var(--sand-800)',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              SI ·{' '}
-                              {s.creditosActivos
-                                .map((c) => `${CREDITO_LABELS[c.tipo] || c.tipo} ${c.cuotasPagadas}/${c.totalCuotas}`)
-                                .join(', ')}
-                            </button>
-                          ) : (
-                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>NO</span>
-                          )}
-                        </td>
-                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'inline-flex', gap: '0.375rem' }}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              icon={Eye}
-                              isLoading={detailLoadingId === s.id}
-                              onClick={() => openDetail(s.id)}
-                              aria-label={`Ver ficha de ${s.firstName} ${s.lastName}`}
-                            >
-                              Ficha
-                            </Button>
-                            {canModify && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                icon={Pencil}
-                                onClick={() => openEdit(s)}
-                                aria-label={`Editar a ${s.firstName} ${s.lastName}`}
+                    socias.map((s) => {
+                      const estado = ESTADO_BADGE[s.estado] || ESTADO_BADGE.ACTIVA;
+                      return (
+                        <tr key={s.id}>
+                          <td>
+                            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{nombreCompleto(s)}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap', marginTop: '2px' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{s.rut}</span>
+                              {s.esDelegada && <Badge variant="info">Delegada</Badge>}
+                            </div>
+                          </td>
+                          <td style={{ fontSize: '0.8125rem' }}>
+                            {s.jardin ? s.jardin.name : <span style={{ color: 'var(--warning-text)', fontWeight: 600 }}>Sin jardín</span>}
+                          </td>
+                          <td style={{ whiteSpace: 'nowrap' }}>
+                            {s.cargo === 'SIN DATO' ? <span style={{ color: 'var(--text-muted)' }}>Sin dato</span> : CARGO_LABELS[s.cargo] || s.cargo}
+                          </td>
+                          <td>
+                            <Badge variant={estado.variant}>{estado.label}</Badge>
+                          </td>
+                          <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                            {s.tieneCredito ? (
+                              <button
+                                type="button"
+                                onClick={() => openDetail(s.id)}
+                                title="Ver créditos vigentes"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  padding: '0.25rem 0.625rem',
+                                  borderRadius: 'var(--radius-sm)',
+                                  backgroundColor: 'var(--warning-bg)',
+                                  border: '1px solid var(--warning-border)',
+                                  fontSize: '0.6875rem',
+                                  fontWeight: 700,
+                                  color: 'var(--warning-text)',
+                                  cursor: 'pointer'
+                                }}
                               >
-                                Editar
-                              </Button>
+                                SI · {s.creditosActivos.map((c) => `${c.tipo} ${c.cuotasPagadas}/${c.totalCuotas}`).join(', ')}
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>NO</span>
                             )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'inline-flex', gap: '0.375rem' }}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon={Eye}
+                                isLoading={detailLoadingId === s.id}
+                                onClick={() => openDetail(s.id)}
+                                aria-label={`Ver ficha de ${nombreCompleto(s)}`}
+                              >
+                                Ficha
+                              </Button>
+                              {canModify && (
+                                <Button variant="outline" size="sm" icon={Pencil} onClick={() => openEdit(s)} aria-label={`Editar a ${nombreCompleto(s)}`}>
+                                  Editar
+                                </Button>
+                              )}
+                              {canModify && s.estado !== 'RETIRADA' && (
+                                <Button variant="ghost" size="sm" icon={UserMinus} onClick={() => openRetirar(s)} aria-label={`Retirar a ${nombreCompleto(s)}`}>
+                                  Retirar
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
             </div>
 
-            {/* Paginación */}
-            {socias.length > PAGE_SIZE && (
+            {total > PAGE_SIZE && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginTop: '1rem' }}>
                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                  Mostrando {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, socias.length)} de {socias.length} socias
+                  Mostrando {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} de {total} socias
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Button variant="outline" size="sm" icon={ChevronLeft} disabled={page === 1} onClick={() => setPage(page - 1)}>
+                  <Button variant="outline" size="sm" icon={ChevronLeft} disabled={page === 1 || isLoading} onClick={() => goToPage(page - 1)}>
                     Anterior
                   </Button>
                   <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
                     {page} / {totalPages}
                   </span>
-                  <Button variant="outline" size="sm" icon={ChevronRight} disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+                  <Button variant="outline" size="sm" icon={ChevronRight} disabled={page === totalPages || isLoading} onClick={() => goToPage(page + 1)}>
                     Siguiente
                   </Button>
                 </div>
@@ -563,8 +572,8 @@ export function SociasPage() {
       )}
 
       {activeTab === 'JARDINES' && (
-        <Card title="Catálogo de Jardines VTF Temuco" subtitle="Socias por establecimiento y delegada electa que lo representa ante la asamblea">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+        <Card title="Jardines VTF Temuco y Labranza" subtitle="Socias por establecimiento y delegada que lo representa ante la asamblea">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(250px, 100%), 1fr))', gap: '1rem' }}>
             {jardines.map((j) => (
               <div
                 key={j.id}
@@ -584,20 +593,18 @@ export function SociasPage() {
                     {j.sociasActivas} / {j.totalSocias} activas
                   </span>
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{j.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{j.address}</div>
-                </div>
+                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{j.name}</div>
                 <div style={{ fontSize: '0.8125rem', color: 'var(--text-main)' }}>
                   <span style={{ fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.6875rem', textTransform: 'uppercase' }}>Delegada: </span>
-                  {j.delegada ? j.delegada.nombre : <span style={{ color: 'var(--error-text)' }}>Sin asignar</span>}
+                  {j.delegada ? j.delegada.nombre : <span style={{ color: 'var(--text-muted)' }}>Sin asignar</span>}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   icon={Users}
                   onClick={() => {
-                    setFilterJardin(j.id);
+                    clearFilters();
+                    setFilterJardin(String(j.id));
                     setActiveTab('PADRON');
                   }}
                 >
@@ -609,25 +616,25 @@ export function SociasPage() {
         </Card>
       )}
 
-      {/* Modal Ficha Detallada de Socia */}
       <SociaDetailModal
         detail={detail}
         onClose={() => setDetail(null)}
         canModify={canModify}
         onEdit={openEdit}
+        onRetirar={openRetirar}
       />
 
-      {/* Modal Formulario Alta / Edición de Socia */}
       <SociaFormModal
         formMode={formMode}
         editing={editing}
         jardines={jardines}
         onClose={() => setFormMode(null)}
-        onSuccess={() => {
-          loadOverview();
-          loadSocias();
-        }}
+        onSuccess={refresh}
       />
+
+      <RetirarSociaModal socia={retirando} onClose={() => setRetirando(null)} onSuccess={refresh} />
+
+      <ImportPadronModal open={importOpen} onClose={() => setImportOpen(false)} onApplied={refresh} />
     </div>
   );
 }
