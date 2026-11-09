@@ -1,6 +1,8 @@
 # Reglas locales y agentes
 AGENTS.md
 docs/BITACORA_DESARROLLO.md
+docs/*Bitacora*.docx
+docs/*bitacora*.docx
 
 # Dependencias
 node_modules/
