@@ -20,6 +20,7 @@ export function LoginPage() {
   const location = useLocation();
   const [authError, setAuthError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotHelp, setShowForgotHelp] = useState(false);
 
   const {
     register,
@@ -175,7 +176,7 @@ export function LoginPage() {
         <form onSubmit={handleSubmit(onSubmit)}>
           <Input
             label="Correo Electrónico o RUT"
-            placeholder="ej. tesorera@vtf.cl o 14.567.890-2"
+            placeholder="ej. tesorera@vtftemuco.cl o 14.567.890-2"
             icon={Mail}
             error={errors.identifier?.message}
             {...register('identifier')}
@@ -212,8 +213,14 @@ export function LoginPage() {
               <span>Recordar sesión</span>
             </label>
 
-            <span
+            <button
+              type="button"
+              onClick={() => setShowForgotHelp((v) => !v)}
+              aria-expanded={showForgotHelp}
               style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
                 color: 'var(--primary-600)',
                 fontWeight: 600,
                 fontSize: '0.8125rem',
@@ -221,8 +228,26 @@ export function LoginPage() {
               }}
             >
               ¿Olvidó su contraseña?
-            </span>
+            </button>
           </div>
+
+          {showForgotHelp && (
+            <p
+              role="note"
+              style={{
+                margin: 0,
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--bg-surface-subtle)',
+                border: '1px solid var(--border-light)',
+                fontSize: '0.8125rem',
+                color: 'var(--text-muted)'
+              }}
+            >
+              Por seguridad, las claves de la directiva solo las restablece el administrador del sistema.
+              Escríbale indicando su nombre y RUT; recibirá una clave temporal que deberá cambiar al ingresar.
+            </p>
+          )}
 
           <Button
             type="submit"

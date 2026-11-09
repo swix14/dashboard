@@ -5,16 +5,17 @@ import { X } from 'lucide-react';
  * Componente modal accesible y reutilizable
  * Diseñado bajo los estándares del sistema VTF con backdrop difuminado y cierre con ESC
  */
-export function Modal({ title, subtitle, onClose, children, maxWidth = '560px', footer = null }) {
+export function Modal({ title, subtitle, onClose, children, maxWidth = '560px', footer = null, dismissible = true }) {
   useEffect(() => {
+    if (!dismissible) return undefined;
     const handleKey = (e) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
+  }, [onClose, dismissible]);
 
   return (
     <div
-      onClick={onClose}
+      onClick={dismissible ? onClose : undefined}
       style={{
         position: 'fixed',
         inset: 0,
@@ -67,22 +68,24 @@ export function Modal({ title, subtitle, onClose, children, maxWidth = '560px', 
               </span>
             )}
           </div>
-          <button
-            type="button"
-            aria-label="Cerrar modal"
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text-muted)',
-              display: 'flex',
-              padding: '0.25rem',
-              borderRadius: 'var(--radius-sm)'
-            }}
-          >
-            <X size={20} />
-          </button>
+          {dismissible && (
+            <button
+              type="button"
+              aria-label="Cerrar modal"
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                padding: '0.25rem',
+                borderRadius: 'var(--radius-sm)'
+              }}
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         {/* Cuerpo con scroll independiente */}

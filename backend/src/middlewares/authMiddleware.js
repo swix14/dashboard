@@ -2,6 +2,9 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { AuthService } from '../services/authService.js';
 
+// Rutas permitidas mientras la persona no haya cambiado su clave inicial
+const PASSWORD_CHANGE_ALLOWED = ['/api/auth/me', '/api/auth/logout', '/api/auth/cambiar-clave', '/api/socia/cambiar-clave'];
+
 export async function authMiddleware(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
@@ -37,6 +40,16 @@ export async function authMiddleware(req, res, next) {
       return res.status(403).json({
         success: false,
         message: 'Acceso denegado: Su usuario se encuentra inactivo o suspendido. Contacte a la directiva.'
+      });
+    }
+
+    // Primer ingreso: bloquear todo salvo el cambio de clave (validado en servidor, no solo en pantalla)
+    const path = req.originalUrl.split('?')[0];
+    if (userProfile.mustChangePassword && !PASSWORD_CHANGE_ALLOWED.includes(path)) {
+      return res.status(403).json({
+        success: false,
+        code: 'PASSWORD_CHANGE_REQUIRED',
+        message: 'Debe cambiar su contraseña inicial antes de continuar.'
       });
     }
 

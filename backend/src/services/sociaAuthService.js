@@ -107,18 +107,15 @@ export const SociaAuthService = {
       } catch {
         passwordValid = false;
       }
-      // Si por alguna razón ingresa con la inicial, también permitimos y pedimos cambiar
-      if (!passwordValid && password === defaultInitialPass) {
-        passwordValid = true;
-        socia.primer_ingreso = 1;
-      }
+      // Una vez cambiada, la clave inicial (6 dígitos del RUT) deja de servir:
+      // cualquiera que conozca el RUT podría entrar con ella.
     }
 
     if (!passwordValid) {
       if (isFirstTime) {
         throw new Error(`Contraseña incorrecta. Recuerde que para su primer ingreso su contraseña son los primeros 6 dígitos de su RUT (ej. ${defaultInitialPass}).`);
       }
-      throw new Error('Contraseña incorrecta.');
+      throw new Error('Contraseña incorrecta. Si olvidó su clave personal, pida a la directiva que la restablezca.');
     }
 
     const payload = {
@@ -153,9 +150,12 @@ export const SociaAuthService = {
   /**
    * Cambia la contraseña obligatoria en primer ingreso o actualización voluntaria
    */
-  async cambiarClave(sociaId, nuevaClave) {
+  async cambiarClave(sociaId, nuevaClave, rut) {
     if (!nuevaClave || nuevaClave.trim().length < 6) {
       throw new Error('La nueva contraseña debe tener al menos 6 caracteres.');
+    }
+    if (rut && nuevaClave.trim() === getInitialPasswordFromRut(rut)) {
+      throw new Error('La nueva contraseña no puede ser la clave inicial (6 primeros dígitos del RUT).');
     }
 
     const hash = await bcrypt.hash(nuevaClave.trim(), 10);

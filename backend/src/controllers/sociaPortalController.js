@@ -37,7 +37,8 @@ export const SociaPortalController = {
       const rawId = req.user?.sociaId || req.user?.id;
       const cleanId = String(rawId || '').replace('socia-', '');
 
-      if (!cleanId) {
+      // La directiva cambia su clave en /api/auth/cambiar-clave, nunca sobre la tabla socias
+      if (!cleanId || req.user?.role?.code !== 'SOCIA') {
         return res.status(401).json({
           success: false,
           message: 'Sesión no válida o no identificada como socia.'
@@ -45,7 +46,7 @@ export const SociaPortalController = {
       }
 
       const { nuevaClave } = req.body;
-      const result = await SociaAuthService.cambiarClave(cleanId, nuevaClave);
+      const result = await SociaAuthService.cambiarClave(cleanId, nuevaClave, req.user?.rut);
 
       res.json({
         success: true,

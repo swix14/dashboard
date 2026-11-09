@@ -6,7 +6,41 @@ import { INITIAL_USERS, INITIAL_ROLES, INITIAL_JARDINES } from './seedData.js';
 import { AuditService } from './auditService.js';
 
 // Almacén en memoria sincronizado con seed para pruebas locales de desarrollo
-const memoryUsers = [...INITIAL_USERS];
+const memoryUsers = INITIAL_USERS.map((u) => ({ ...u }));
+
+// Dominio oficial primero; los otros se mantienen por compatibilidad con accesos ya entregados
+export const INSTITUTIONAL_DOMAINS = ['vtftemuco.cl', 'vtf.cl', 'asociacionvtf.cl'];
+
+// Claves conocidas que nunca pueden quedar como definitivas
+const FORBIDDEN_PASSWORDS = ['admin123!', '12345678', 'password', 'contraseña'];
+
+export class PasswordChangeError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/**
+ * Política mínima de contraseñas de la directiva.
+ * Devuelve el mensaje de error o null si la contraseña es aceptable.
+ */
+export function validatePasswordPolicy(password, rut) {
+  if (typeof password !== 'string' || password.length < 8) {
+    return 'La nueva contraseña debe tener al menos 8 caracteres.';
+  }
+  if (!/[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(password) || !/\d/.test(password)) {
+    return 'La nueva contraseña debe combinar letras y números.';
+  }
+  if (FORBIDDEN_PASSWORDS.includes(password.toLowerCase())) {
+    return 'Esa contraseña es la clave inicial o es demasiado común. Elija otra.';
+  }
+  const rutDigits = String(rut || '').replace(/[^0-9kK]/g, '');
+  if (rutDigits && password.replace(/[^0-9kK]/g, '') === rutDigits) {
+    return 'La contraseña no puede ser su RUT.';
+  }
+  return null;
+}
 
 function normalizeRoleCode(rawRole) {
   if (!rawRole) return 'SOCIA';
@@ -23,11 +57,12 @@ export const AuthService = {
     const cleanId = identifier.trim().toLowerCase();
     const cleanRut = cleanId.replace(/[^0-9kK]/g, '');
 
-    // Variantes de correo y alias para permitir inicio flexible (@vtf.cl y @asociacionvtf.cl)
+    // Variantes de correo y alias: el dominio oficial es @vtftemuco.cl; se aceptan además
+    // los dominios usados en versiones anteriores. Un dominio ajeno solo coincide exacto.
     const emailsToMatch = [cleanId];
-    if (cleanId.includes('@')) {
-      const [userPart] = cleanId.split('@');
-      const domains = ['vtf.cl', 'asociacionvtf.cl'];
+    const [userPart, domainPart] = cleanId.split('@');
+    if (domainPart && INSTITUTIONAL_DOMAINS.includes(domainPart)) {
+      const domains = INSTITUTIONAL_DOMAINS;
       const aliases = [userPart];
       if (userPart === 'tesorera' || userPart === 'tesoreria' || userPart === 'alejandra.sias') {
         aliases.push('tesoreria', 'tesorera', 'alejandra.sias');
@@ -64,12 +99,12 @@ export const AuthService = {
     if (isDatabaseReady()) {
       try {
         const placeholders = uniqueEmails.map(() => '?').join(', ');
+        // a.* incluye primer_ingreso cuando la migración ya fue aplicada (si no, se asume 0)
         const rows = await query(
-          `SELECT a.id, a.rut, a.nombres, a.apellidos, a.correo, a.rol, a.contrasena, a.activo,
-                  s.cargo, s.jardin
+          `SELECT a.*, s.cargo, s.jardin
            FROM administradores a
            LEFT JOIN socias s ON a.rut = s.rut
-           WHERE LOWER(a.rut) = ? 
+           WHERE LOWER(a.rut) = ?
               OR LOWER(REPLACE(REPLACE(a.rut, '.', ''), '-', '')) = ?
               OR LOWER(a.correo) IN (${placeholders})`,
           [cleanId, cleanRut, ...uniqueEmails]
@@ -88,11 +123,12 @@ export const AuthService = {
             id: `admin-${row.id}`,
             dbId: row.id,
             rut: row.rut,
-            email: row.correo || `${row.rut.toLowerCase()}@asociacionvtf.cl`,
+            email: row.correo || `${row.rut.toLowerCase()}@vtftemuco.cl`,
             firstName: row.nombres,
             lastName: row.apellidos,
             passwordHash: row.contrasena,
             isActive: Boolean(row.activo === 1 || row.activo === null),
+            mustChangePassword: Number(row.primer_ingreso) === 1,
             role: roleObj,
             socia: {
               id: `socia-${row.id}`,
@@ -114,7 +150,7 @@ export const AuthService = {
     if (!user && !isDatabaseReady()) {
       const found = memoryUsers.find(
         (u) =>
-          u.email.toLowerCase() === cleanId ||
+          uniqueEmails.includes(u.email.toLowerCase()) ||
           u.rut.replace(/[^0-9kK]/g, '').toLowerCase() === cleanRut
       );
 
@@ -197,10 +233,70 @@ export const AuthService = {
         firstName: user.firstName,
         lastName: user.lastName,
         isActive: user.isActive,
+        mustChangePassword: Boolean(user.mustChangePassword),
         role: user.role,
         socia: user.socia
       }
     };
+  },
+
+  /**
+   * Cambio de contraseña de la directiva (obligatorio en el primer ingreso).
+   * Exige la contraseña actual y deja registro en la bitácora.
+   */
+  async changePassword({ user, currentPassword, newPassword, ipAddress, userAgent }) {
+    const policyError = validatePasswordPolicy(newPassword, user.rut);
+    if (policyError) {
+      throw new PasswordChangeError(policyError, 400);
+    }
+    if (currentPassword === newPassword) {
+      throw new PasswordChangeError('La nueva contraseña debe ser distinta de la actual.', 400);
+    }
+
+    const isDbUser = String(user.id).startsWith('admin-');
+    let currentHash = null;
+
+    if (isDbUser) {
+      const rows = await query('SELECT contrasena FROM administradores WHERE id = ?', [
+        String(user.id).replace('admin-', '')
+      ]);
+      currentHash = rows[0]?.contrasena || null;
+    } else {
+      currentHash = memoryUsers.find((u) => u.id === user.id)?.passwordHash || null;
+    }
+
+    const matches = currentHash ? await bcrypt.compare(currentPassword, currentHash).catch(() => false) : false;
+    if (!matches) {
+      throw new PasswordChangeError('La contraseña actual no es correcta.', 401);
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+
+    if (isDbUser) {
+      const dbId = String(user.id).replace('admin-', '');
+      try {
+        await query('UPDATE administradores SET contrasena = ?, primer_ingreso = 0 WHERE id = ?', [newHash, dbId]);
+      } catch (err) {
+        // Base aún sin la columna primer_ingreso: se actualiza solo la contraseña
+        if (err.code !== 'ER_BAD_FIELD_ERROR') throw err;
+        await query('UPDATE administradores SET contrasena = ? WHERE id = ?', [newHash, dbId]);
+      }
+    } else {
+      const memUser = memoryUsers.find((u) => u.id === user.id);
+      memUser.passwordHash = newHash;
+      memUser.mustChangePassword = false;
+    }
+
+    await AuditService.log({
+      userId: user.id,
+      rut: user.rut,
+      action: 'PASSWORD_CHANGED',
+      details: { role: user.role?.code },
+      ipAddress,
+      userAgent
+    });
+
+    return { success: true };
   },
 
   /**
@@ -235,7 +331,8 @@ export const AuthService = {
               role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
               cargo: row.cargo,
               jardin: row.jardin,
-              primerIngreso: Boolean(row.primer_ingreso)
+              primerIngreso: Boolean(row.primer_ingreso),
+              mustChangePassword: Number(row.primer_ingreso) === 1
             };
           }
         } catch (err) {
@@ -261,8 +358,7 @@ export const AuthService = {
       const rawId = userId.replace('admin-', '');
       try {
         const rows = await query(
-          `SELECT a.id, a.rut, a.nombres, a.apellidos, a.correo, a.rol, a.activo,
-                  s.cargo, s.jardin
+          `SELECT a.*, s.cargo, s.jardin
            FROM administradores a
            LEFT JOIN socias s ON a.rut = s.rut
            WHERE a.id = ?`,
@@ -286,10 +382,11 @@ export const AuthService = {
           user = {
             id: `admin-${row.id}`,
             rut: row.rut,
-            email: row.correo || `${row.rut.toLowerCase()}@asociacionvtf.cl`,
+            email: row.correo || `${row.rut.toLowerCase()}@vtftemuco.cl`,
             firstName: row.nombres,
             lastName: row.apellidos,
             isActive: true,
+            mustChangePassword: Number(row.primer_ingreso) === 1,
             role: roleObj,
             socia: {
               id: `socia-${row.id}`,
@@ -346,6 +443,7 @@ export const AuthService = {
       firstName: user.firstName,
       lastName: user.lastName,
       isActive: user.isActive !== false,
+      mustChangePassword: Boolean(user.mustChangePassword),
       role: user.role,
       socia: user.socia
     };

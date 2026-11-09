@@ -1,6 +1,6 @@
-import { AuthService } from '../services/authService.js';
+import { AuthService, PasswordChangeError } from '../services/authService.js';
 import { AuditService } from '../services/auditService.js';
-import { loginSchema } from '../validators/authValidator.js';
+import { loginSchema, changePasswordSchema } from '../validators/authValidator.js';
 
 export const AuthController = {
   /**
@@ -60,6 +60,41 @@ export const AuthController = {
         message: 'Sesión cerrada correctamente'
       });
     } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/auth/cambiar-clave
+   */
+  async changePassword(req, res, next) {
+    try {
+      const parsed = changePasswordSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          message: parsed.error.issues[0]?.message || 'Datos inválidos para el cambio de contraseña'
+        });
+      }
+
+      await AuthService.changePassword({
+        user: req.user,
+        currentPassword: parsed.data.currentPassword,
+        newPassword: parsed.data.newPassword,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Contraseña actualizada correctamente.',
+        data: { user: { ...req.user, mustChangePassword: false } }
+      });
+    } catch (error) {
+      if (error instanceof PasswordChangeError) {
+        // 401 reservado para sesión inválida en el frontend: la clave actual errónea responde 400
+        return res.status(error.status === 401 ? 400 : error.status).json({ success: false, message: error.message });
+      }
       next(error);
     }
   },

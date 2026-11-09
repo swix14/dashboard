@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { ChangePasswordModal } from '../auth/ChangePasswordModal.jsx';
 import {
+  KeyRound,
   LayoutDashboard,
   Users,
   DollarSign,
@@ -16,6 +18,7 @@ export function Sidebar({ isOpen, onClose }) {
   const { user, logout, isDirectiva, isTesorera, isSecretaria } = useAuth();
 
   const roleCode = user?.role?.code;
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const navItems = [
     {
@@ -227,7 +230,28 @@ export function Sidebar({ isOpen, onClose }) {
         </nav>
 
         {/* Footer Sidebar */}
-        <div style={{ padding: '1rem', borderTop: '1px solid var(--border-light)' }}>
+        <div style={{ padding: '1rem', borderTop: '1px solid var(--border-light)', display: 'grid', gap: '0.5rem' }}>
+          <button
+            type="button"
+            onClick={() => setShowPasswordModal(true)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.625rem',
+              padding: '0.625rem 0.875rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-light)',
+              background: 'transparent',
+              color: 'var(--text-main)',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            <KeyRound size={16} />
+            <span>Cambiar contraseña</span>
+          </button>
           <button
             onClick={logout}
             style={{
@@ -253,6 +277,13 @@ export function Sidebar({ isOpen, onClose }) {
           </button>
         </div>
       </aside>
+
+      {showPasswordModal && (
+        <ChangePasswordModal
+          onClose={() => setShowPasswordModal(false)}
+          onDone={() => setShowPasswordModal(false)}
+        />
+      )}
 
       <style>{`
         @media (max-width: 1023px) {

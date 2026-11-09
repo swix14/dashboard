@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS `administradores` (
     `correo` VARCHAR(100) UNIQUE NULL,
     `rol` VARCHAR(50),
     `contrasena` VARCHAR(100),
-    `activo` TINYINT(1) DEFAULT 1
+    `activo` TINYINT(1) DEFAULT 1,
+    -- 1 = debe cambiar la clave inicial antes de usar el sistema
+    `primer_ingreso` TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 1. Tabla de Socias (con id numérico para FKs y RUT único)
