@@ -26,20 +26,68 @@ CREATE TABLE IF NOT EXISTS `administradores` (
     `primer_ingreso` TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
+-- 0. Catálogo de Jardines VTF (23 establecimientos de Temuco y Labranza)
+CREATE TABLE IF NOT EXISTS `jardines` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `codigo` VARCHAR(10) NOT NULL UNIQUE,
+    `nombre` VARCHAR(150) NOT NULL UNIQUE,
+    `activo` TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
 -- 1. Tabla de Socias (con id numérico para FKs y RUT único)
+--    Estado RETIRADA = baja lógica: no cuenta ni cobra cuota, pero conserva créditos e historial.
 CREATE TABLE IF NOT EXISTS `socias` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `rut` VARCHAR(12) NOT NULL UNIQUE,
     `apellido_paterno` VARCHAR(50),
     `apellido_materno` VARCHAR(50),
     `nombres` VARCHAR(100),
-    `cargo` VARCHAR(50),
+    `cargo` ENUM('DIRECTORA', 'EDUCADORA', 'TECNICO', 'ASISTENTE', 'AUXILIAR', 'SIN DATO') NOT NULL DEFAULT 'SIN DATO',
     `celular` VARCHAR(20),
     `correo` VARCHAR(100),
     `password` VARCHAR(255) NULL,
     `primer_ingreso` TINYINT(1) DEFAULT 1,
-    `jardin` VARCHAR(150),
-    `estado` ENUM('ACTIVA', 'SUSPENDIDA') DEFAULT 'ACTIVA'
+    `jardin_id` INT NULL,
+    `estado` ENUM('ACTIVA', 'SUSPENDIDA', 'RETIRADA') NOT NULL DEFAULT 'ACTIVA',
+    `fecha_ingreso` DATE NULL,
+    `es_delegada` TINYINT(1) NOT NULL DEFAULT 0,
+    `fecha_retiro` DATE NULL,
+    `motivo_retiro` VARCHAR(255) NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_socias_estado` (`estado`),
+    CONSTRAINT `fk_socias_jardin` FOREIGN KEY (`jardin_id`) REFERENCES `jardines` (`id`) ON DELETE SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 1b. Historial de traslados de jardín (motivo obligatorio)
+CREATE TABLE IF NOT EXISTS `historial_traslados` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `socia_id` INT NOT NULL,
+    `jardin_anterior_id` INT NULL,
+    `jardin_nuevo_id` INT NULL,
+    `motivo` VARCHAR(255) NOT NULL,
+    `realizado_por` VARCHAR(150) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_traslados_socia` (`socia_id`),
+    CONSTRAINT `fk_traslados_socia` FOREIGN KEY (`socia_id`) REFERENCES `socias` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_traslados_jardin_ant` FOREIGN KEY (`jardin_anterior_id`) REFERENCES `jardines` (`id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_traslados_jardin_nuevo` FOREIGN KEY (`jardin_nuevo_id`) REFERENCES `jardines` (`id`) ON DELETE SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 1c. Cargas mensuales de la planilla "Maestra Socias" (cada archivo se conserva, nunca se sobrescribe)
+CREATE TABLE IF NOT EXISTS `cargas_padron` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `archivo_original` VARCHAR(255) NOT NULL,
+    `archivo_guardado` VARCHAR(255) NOT NULL,
+    `subido_por` VARCHAR(150) NOT NULL,
+    `total_filas` INT NOT NULL DEFAULT 0,
+    `nuevas` INT NOT NULL DEFAULT 0,
+    `actualizadas` INT NOT NULL DEFAULT 0,
+    `sin_cambios` INT NOT NULL DEFAULT 0,
+    `no_incluidas` INT NOT NULL DEFAULT 0,
+    `con_error` INT NOT NULL DEFAULT 0,
+    `detalle` LONGTEXT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 2. Tabla de Convenios / Proveedores
@@ -68,7 +116,8 @@ CREATE TABLE IF NOT EXISTS `creditos` (
         'anulado'
     ) DEFAULT 'vigente',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT `fk_creditos_socias` FOREIGN KEY (`socia_id`) REFERENCES `socias` (`id`) ON DELETE CASCADE,
+    -- RESTRICT: una socia con créditos no se puede borrar físicamente (se usa la baja RETIRADA)
+    CONSTRAINT `fk_creditos_socias` FOREIGN KEY (`socia_id`) REFERENCES `socias` (`id`) ON DELETE RESTRICT,
     CONSTRAINT `fk_creditos_convenios` FOREIGN KEY (`convenio_id`) REFERENCES `convenios` (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
