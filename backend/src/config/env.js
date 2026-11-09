@@ -19,6 +19,12 @@ export const env = {
   UPLOADS_DIR: process.env.UPLOADS_DIR || path.join(backendRoot, 'uploads')
 };
 
+// Datos de memoria (semillas de prueba) cuando MySQL no responde.
+// Solo para desarrollo y tests: en producción mostraría datos falsos y no guardaría nada.
+env.ALLOW_MEMORY_FALLBACK = process.env.ALLOW_MEMORY_FALLBACK
+  ? process.env.ALLOW_MEMORY_FALLBACK === 'true'
+  : env.NODE_ENV !== 'production';
+
 // Salvaguarda de seguridad en producción
 if (env.NODE_ENV === 'production') {
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET.includes('vtf-gestion-super-secret-key')) {

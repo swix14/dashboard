@@ -36,15 +36,27 @@ Para garantizar máxima estabilidad, rendimiento y evitar colisiones entre el se
 ## 2. Paso 1: Configurar la Base de Datos MySQL en cPanel
 
 1. Inicia sesión en tu cuenta de **cPanel**.
+> [!IMPORTANT]
+> **cPanel antepone el nombre de la cuenta a la base de datos Y al usuario.** En la cuenta de `vtftemuco.cl` el prefijo es `vtftemuc_` (los primeros 8 caracteres del usuario de cPanel). Si escribes `jardines_vtf` y `vtf`, lo que realmente se crea es:
+>
+> | Lo que escribes | Lo que crea cPanel (y lo que va en las variables) |
+> | :--- | :--- |
+> | Base: `jardines_vtf` | `DB_NAME=vtftemuc_jardines_vtf` |
+> | Usuario: `vtf` | `DB_USER=vtftemuc_vtf` |
+>
+> Copia los nombres **exactamente como aparecen en la lista "Bases de datos actuales" / "Usuarios actuales"** de cPanel; nunca los nombres de ejemplo de esta guía. Si no coinciden, la app no se conecta (antes de esta versión, además, entraba con datos de prueba en memoria y no guardaba nada; ahora responde un error claro).
+
 2. Ve a la sección **Bases de datos** $\rightarrow$ **Bases de datos MySQL**:
-   - **Crear una nueva base de datos:** Escribe un nombre identificativo (ejemplo: `jardines_vtf`). cPanel le antepondrá tu usuario (quedando algo como `usuario_jardines_vtf`). Haz clic en *Crear una base de datos*.
-   - **Crear nuevo usuario de MySQL:** Crea un usuario (ejemplo: `usuario_vtf_user`) y genera una contraseña segura. **Guarda esta contraseña**, la necesitarás en el Backend.
-   - **Añadir usuario a la base de datos:** En la sección inferior, selecciona el usuario recién creado y la base de datos recién creada, haz clic en *Añadir*, marca la casilla **TODOS LOS PRIVILEGIOS** y confirma los cambios.
+   - **Crear una nueva base de datos:** escribe `jardines_vtf`. cPanel la crea como `PREFIJO_jardines_vtf` (ej.: `vtftemuc_jardines_vtf`). Anota el nombre completo.
+   - **Crear nuevo usuario de MySQL:** escribe `vtf` y genera una contraseña segura. cPanel lo crea como `PREFIJO_vtf` (ej.: `vtftemuc_vtf`). **Guarda la contraseña y el nombre completo.**
+   - **Añadir usuario a la base de datos:** selecciona ese usuario y esa base, haz clic en *Añadir*, marca **TODOS LOS PRIVILEGIOS** y confirma.
 3. Abre la herramienta **phpMyAdmin** desde la pantalla principal de cPanel:
-   - En la columna izquierda, haz clic sobre la base de datos creada (`usuario_jardines_vtf`).
-   - Ve a la pestaña **Importar** en la parte superior.
-   - Haz clic en *Seleccionar archivo*, busca y sube el archivo **`database/database.sql`** del repositorio y pulsa *Continuar*.
-   - Repite el proceso de importación subiendo el archivo **`database/data.sql`** (esto cargará los convenios, el padrón inicial de 277 socias, administradores y noticias con codificación UTF-8 nativa).
+   - En la columna izquierda, haz clic sobre la base de datos creada (`vtftemuc_jardines_vtf`).
+   - Ve a la pestaña **Importar** e importa, **en este orden**:
+     1. **`database/database.sql`** (tablas)
+     2. **`database/data.sql`** (convenios, padrón de 277 socias, movimientos de apertura y noticias)
+     3. **`database/admin.sql`** (6 cuentas de directiva con clave inicial `Admin123!` y cambio obligatorio al primer ingreso)
+   - **Base ya instalada antes del 09-11-2026:** no reimportes; ejecuta en la pestaña *SQL* el archivo `database/migraciones/2026-11-09_directiva_y_primer_ingreso.sql`.
 
 ---
 
@@ -85,8 +97,8 @@ Para garantizar máxima estabilidad, rendimiento y evitar colisiones entre el se
 | `NODE_ENV` | `production` | Modo optimizado de ejecución |
 | `DB_HOST` | `localhost` | Host local de MySQL en cPanel |
 | `DB_PORT` | `3306` | Puerto por defecto de MySQL |
-| `DB_NAME` | `usuario_jardines_vtf` | Nombre completo creado en el Paso 1 |
-| `DB_USER` | `usuario_vtf_user` | Usuario de base de datos creado |
+| `DB_NAME` | `vtftemuc_jardines_vtf` | Nombre **con prefijo**, tal como lo muestra cPanel |
+| `DB_USER` | `vtftemuc_vtf` | Usuario **con prefijo**, tal como lo muestra cPanel |
 | `DB_PASSWORD` | `TuContraseñaSegura!` | Contraseña asignada al usuario MySQL |
 | `JWT_SECRET` | *(cadena aleatoria de 64 chars)* | Clave criptográfica para firmas JWT |
 | `JWT_EXPIRES_IN` | `8h` | Duración de sesión activa |
@@ -106,9 +118,23 @@ Debe responder con un JSON similar a:
 {
   "status": "ok",
   "system": "Sistema Web de Gestión — Asociación de Jardines VTF",
+  "database": { "conectada": true, "error": null },
   "timestamp": "2026-11-03T21:00:00.000Z"
 }
 ```
+
+**Revisa `database.conectada`.** Si es `false`, el campo `error` dice por qué:
+
+| `error` | Significado | Qué corregir |
+| :--- | :--- | :--- |
+| `ER_ACCESS_DENIED_ERROR` | Usuario o contraseña incorrectos | `DB_USER` con prefijo y `DB_PASSWORD` |
+| `ER_DBACCESS_DENIED_ERROR` | El usuario no tiene permisos sobre esa base | Paso 1: "Añadir usuario a la base de datos" |
+| `ER_BAD_DB_ERROR` | La base no existe con ese nombre | `DB_NAME` con prefijo |
+| `ECONNREFUSED` / `ETIMEDOUT` | MySQL no responde | `DB_HOST=localhost`, `DB_PORT=3306` |
+
+Mientras no haya conexión, la app responde **503 "El sistema no tiene conexión con la base de datos"** y no deja entrar. Reintenta sola cada 15 segundos, pero tras cambiar variables hay que pulsar **Restart**.
+
+> **Despliegue en una sola app (recomendado, el que usa vtftemuco.cl):** si la carpeta `backend/public/` contiene el frontend compilado (`npm run build` en `frontend/` y copiar `dist/` como `public/`), la misma app Node sirve la página y la API en el mismo dominio. En ese caso el *Application startup file* es **`app.cjs`**, no hace falta subdominio `api.` ni `CORS_ORIGIN`, y el frontend se compila con `VITE_API_URL=/api`.
 
 ---
 
@@ -195,7 +221,9 @@ El Frontend es una Single Page Application (SPA) construida con Vite y React Rou
 ## 8. Checklist de Seguridad Final
 
 Antes de entregar los accesos definitivos a las socias y directiva:
-- [ ] Cambiar la contraseña del usuario `Super_Admin` inicial en la tabla `administradores`.
+- [ ] `https://DOMINIO/api/health` responde `"database": { "conectada": true }`.
+- [ ] Cada integrante de la directiva entra con su correo `@vtftemuco.cl` (o RUT) y la clave inicial `Admin123!`, y el sistema la obliga a crear su contraseña personal antes de mostrar cualquier sección.
+- [ ] Desactivar (`activo = 0`) o reemplazar la cuenta de delegada de demostración (`17.890.123-1`) cuando estén las delegadas reales.
 - [ ] Asegurarse de que `JWT_SECRET` sea una clave privada única y no el valor por defecto de desarrollo.
 - [ ] Verificar que el candado HTTPS esté activo en ambos dominios (`https://tu-dominio.cl` y `https://api.tu-dominio.cl`).
 - [ ] Realizar una prueba de ingreso como socia (`/socia/login`) con cambio de clave obligatorio.

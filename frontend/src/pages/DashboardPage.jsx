@@ -31,7 +31,10 @@ export function DashboardPage() {
         const res = await api.get('/dashboard/metrics');
         setData(res.data.data);
       } catch (err) {
-        setError('No fue posible cargar las métricas del dashboard');
+        const detalle =
+          err.response?.data?.message ||
+          (err.code === 'ECONNABORTED' ? 'El servidor tardó demasiado en responder.' : err.message);
+        setError(`No fue posible cargar las métricas del dashboard. ${detalle || ''}`.trim());
       } finally {
         setIsLoading(false);
       }
