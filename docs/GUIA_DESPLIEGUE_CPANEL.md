@@ -23,7 +23,7 @@ Tiempo estimado: 45 a 60 minutos.
 
 - [ ] **Acceso a cPanel** de vtftemuco.cl, con permiso para *Bases de datos MySQL*, *phpMyAdmin*, *Administrador de archivos* y *Setup Node.js App*.
 - [ ] **Node.js 18 o superior** disponible en *Setup Node.js App* (recomendado: 20).
-- [ ] **Datos de ejemplo en `database/data.sql`.** Hoy el archivo trae, además del padrón real (277 socias, 23 jardines y créditos), datos de demostración: 10 movimientos de tesorería (pagos a Federación de junio a octubre, recaudaciones de octubre, un S.O.S del "Jardín Campanita", papelería), 3 noticias y las liquidaciones de octubre. Los saldos de apertura de 2026 ($5.103.000 Asociación y $8.856.000 Cena Anual) sí son los oficiales. **Decidir con la Tesorera qué se carga en producción** y ajustar `data.sql` antes de armar el paquete: lo que se importe aparecerá en Tesorería, el Inicio y el portal de socias.
+- [ ] **Tesorería parte solo con los saldos de apertura 2026** ($5.103.000 Asociación y $8.856.000 Cena Anual). `data.sql` ya no trae movimientos ni noticias de demostración: la Tesorera debe registrar en el sistema, con su comprobante, los movimientos reales de 2026 (pagos a Federación, recaudaciones, S.O.S, etc.) para que los saldos queden al día. Confirmar con ella que los saldos de apertura son correctos.
 - [ ] **La directiva disponible el mismo día.** Las 5 cuentas de directiva parten con la clave inicial `Admin123!`, y la primera persona que entre con ella elige la clave definitiva. Cada integrante debe entrar y cambiarla **el mismo día del despliegue** (paso 8).
 - [ ] En el PC: Git, Node.js 18 o superior, y el repositorio actualizado.
 

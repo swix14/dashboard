@@ -330,6 +330,11 @@ export function DashboardPage() {
           subtitle="Correlativo de los últimos 5 pagos oficiales"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            {(inicioData.ultimosPagosFederacion || []).length === 0 && (
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>
+                Aún no hay pagos a Federación registrados en Tesorería.
+              </p>
+            )}
             {(inicioData.ultimosPagosFederacion || []).map((pago) => (
               <div
                 key={pago.correlativo}
@@ -463,12 +468,18 @@ export function DashboardPage() {
               </Button>
             </div>
 
-            {/* Botón / Indicador Pago Federación al Día */}
+            {/* Indicador Pago Federación: calculado con el último pago real (antes siempre decía "Al Día") */}
+            {(() => {
+              const alDia = Boolean(inicioData.alertas?.pagoFederacionAlDia);
+              const fecha = inicioData.alertas?.pagoFederacionFecha;
+              const tono = alDia ? 'success' : 'warning';
+              const Icono = alDia ? CheckCircle2 : AlertTriangle;
+              return (
             <div
               style={{
                 padding: '1rem',
-                backgroundColor: 'var(--success-bg)',
-                border: '1px solid var(--success-border)',
+                backgroundColor: `var(--${tono}-bg)`,
+                border: `1px solid var(--${tono}-border)`,
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
                 alignItems: 'center',
@@ -477,18 +488,20 @@ export function DashboardPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <CheckCircle2 size={24} style={{ color: 'var(--success-text)', flexShrink: 0 }} />
+                <Icono size={24} style={{ color: `var(--${tono}-text)`, flexShrink: 0 }} />
                 <div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--success-text)' }}>
-                    Pago Federación al Día
+                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: `var(--${tono}-text)` }}>
+                    {alDia ? 'Pago Federación al Día' : 'Pago Federación pendiente'}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--success-text)', opacity: 0.9 }}>
-                    Aporte mensual verificado (Último: {inicioData.alertas?.pagoFederacionFecha || '02/10/2026'})
+                  <div style={{ fontSize: '0.75rem', color: `var(--${tono}-text)`, opacity: 0.9 }}>
+                    {fecha ? `Último pago registrado: ${formatDateCLP(fecha)}` : 'Sin pagos a Federación registrados'}
                   </div>
                 </div>
               </div>
-              <Badge variant="success">Al Día</Badge>
+              <Badge variant={tono}>{alDia ? 'Al Día' : 'Revisar'}</Badge>
             </div>
+              );
+            })()}
           </div>
         </Card>
       </div>

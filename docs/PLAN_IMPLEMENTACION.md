@@ -208,6 +208,10 @@ flowchart TD
 - **CSV de Tesorería:** un `;` en la categoría o el comprobante corría las columnas, y no se protegía contra fórmulas de Excel.
 - **Build sin `VITE_API_URL`** apuntaba a `localhost:4000`. Ahora el build de producción usa `/api` del mismo dominio.
 
+#### 2. Datos para producción
+- `data.sql` deja en Tesorería solo los 2 saldos de apertura oficiales de 2026. Se quitaron 10 movimientos y 3 noticias de demostración (por ejemplo, un S.O.S del inexistente "Jardín Campanita"). La Tesorera registra en el sistema los movimientos reales con su comprobante.
+- Se conservan las liquidaciones de octubre de 2026: coinciden con la cuota más los créditos reales en 259 de 277 socias.
+
 ---
 
 ### Versión 4: Módulo Independiente de Créditos y Convenios Sociales

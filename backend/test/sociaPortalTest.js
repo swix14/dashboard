@@ -45,8 +45,8 @@ test('Suite de Pruebas: Portal Diferenciado de Socias y Buzón', async (t) => {
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.strictEqual(body.success, true);
+    // data.sql ya no trae noticias de demostración: la lista puede venir vacía
     assert.ok(Array.isArray(body.data));
-    assert.ok(body.data.length >= 3);
   });
 
   // 2. Login con contraseña inicial (primeros 6 dígitos de RUT)

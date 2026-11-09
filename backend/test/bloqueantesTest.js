@@ -174,6 +174,15 @@ await test('hoyChile usa la fecha de Chile, no la de UTC', async () => {
   assert.strictEqual(hoyChile(new Date('2026-11-10T12:00:00Z')), '2026-11-10');
 });
 
+await test('pagoFederacionAlDia: al día solo con pago de este mes o del anterior', async () => {
+  const { pagoFederacionAlDia } = await import('../src/services/dashboardService.js');
+  assert.strictEqual(pagoFederacionAlDia('2026-11-02', '2026-11-20'), true);
+  assert.strictEqual(pagoFederacionAlDia('2026-10-02', '2026-11-20'), true);
+  assert.strictEqual(pagoFederacionAlDia('2026-09-02', '2026-11-20'), false);
+  assert.strictEqual(pagoFederacionAlDia('2025-12-03', '2026-01-10'), true);
+  assert.strictEqual(pagoFederacionAlDia(null, '2026-11-20'), false);
+});
+
 console.log(`\n[RESULTADOS BLOQUEANTES] ${passed} pasados, ${failed} fallidos`);
 server.closeAllConnections?.();
 server.close();

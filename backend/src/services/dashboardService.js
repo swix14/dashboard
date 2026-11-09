@@ -1,6 +1,16 @@
 import { isDatabaseReady, query } from '../config/db.js';
 import { INITIAL_JARDINES } from './seedData.js';
 import { TreasuryService } from './treasuryService.js';
+import { hoyChile } from '../utils/fecha.js';
+
+/** El aporte a Federación está al día si se pagó este mes o el mes anterior */
+export function pagoFederacionAlDia(fechaUltimoPago, hoy = hoyChile()) {
+  if (!fechaUltimoPago) return false;
+  const [anio, mes] = hoy.split('-').map(Number);
+  const anterior = mes === 1 ? `${anio - 1}-12` : `${anio}-${String(mes - 1).padStart(2, '0')}`;
+  const periodo = String(fechaUltimoPago).slice(0, 7);
+  return periodo === hoy.slice(0, 7) || periodo === anterior;
+}
 
 export const DashboardService = {
   /**
@@ -70,9 +80,8 @@ export const DashboardService = {
            ORDER BY fecha DESC
            LIMIT 5`
         );
-        if (fedRows.length > 0) {
-          ultimosPagosFederacion = fedRows;
-        }
+        // Con base de datos se muestran solo los pagos reales (aunque no haya ninguno todavía)
+        ultimosPagosFederacion = fedRows;
 
         // Socias distintas (no créditos) del padrón vigente. Antes un 0 real se reemplazaba por
         // números fijos (38/24/19) y una socia con dos créditos se restaba dos veces.
@@ -187,8 +196,9 @@ export const DashboardService = {
           alertas: {
             sociasUltimaCuotaIsimundo: alertasCuotas.isi,
             sociasUltimaCuotaSos: alertasCuotas.sos,
-            pagoFederacionAlDia: true,
-            pagoFederacionFecha: ultimosPagosFederacion[0]?.fecha || '02/10/2026'
+            // Al día si el último pago a Federación es de este mes o del anterior (hora de Chile)
+            pagoFederacionAlDia: pagoFederacionAlDia(ultimosPagosFederacion[0]?.fecha),
+            pagoFederacionFecha: ultimosPagosFederacion[0]?.fecha || null
           },
 
           // Fila 3: Gráficos Analíticos
