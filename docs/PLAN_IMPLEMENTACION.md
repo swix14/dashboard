@@ -188,6 +188,28 @@ flowchart TD
 
 ---
 
+### Revisión previa al despliegue desde cero (09-11-2026)
+> [!IMPORTANT]
+> **Estado:** **Terminado ✓**  
+> **Resultados:** 77 pruebas de backend aprobadas en 7 suites (`npm test`). Build Vite limpio. Paquete de producción probado en local con `NODE_ENV=production`. La guía `docs/GUIA_DESPLIEGUE_CPANEL.md` se reescribió para una instalación desde cero.
+
+#### 1. Bugs corregidos y causa
+- **Tesorería "guardaba" en memoria si MySQL fallaba:** si una consulta fallaba con la base conectada, el movimiento quedaba solo en memoria, se respondía "registrado exitosamente" y se perdía al reiniciar. El resumen y el libro mostraban además movimientos de ejemplo. Ahora el error se informa; la memoria se usa solo sin base de datos (desarrollo y tests).
+- **Saldos y comisión con montos fijos:** sin asientos de apertura se usaban $5.103.000 y $8.856.000 escritos en el código, y la comisión Isi Mundo mostraba $54.200 cuando era 0. Ahora todo sale de la base.
+- **El Inicio mostraba créditos, alertas y gráfico inventados:** la pantalla tenía 38/24/19/195 fijos; el backend reemplazaba un 0 real por esos números y restaba dos veces a una socia con dos créditos. Las alertas de última cuota (6 y 3) y el gráfico mensual también eran fijos. Ahora se calculan con socias distintas, cuotas restantes y movimientos reales por mes.
+- **La socia con clave equivocada era enviada al login de la directiva:** el interceptor de 401 recargaba la página hacia `/login` y la socia nunca veía el error. También cerraba la sesión de quien usara el mismo navegador.
+- **El mensaje de clave incorrecta revelaba la clave inicial del RUT ingresado.** Ahora muestra un ejemplo genérico.
+- **Tras el primer cambio de clave, el portal quedaba sin nombre, RUT ni jardín** hasta recargar, y "Cerrar sesión" llevaba al login de la directiva.
+- **`JWT_SECRET` por defecto en producción solo daba un aviso:** la clave está en el repositorio y permitía fabricar sesiones. Ahora la app no arranca en producción sin una clave propia de 32 caracteres o más.
+- **Cuenta de delegada de demostración activa con `Admin123!`:** en una instalación nueva cualquiera podía tomarla. `admin.sql` la crea desactivada.
+- **Fechas en UTC:** la fecha de ingreso, el retiro (`CURDATE()` del servidor), las cargas de planilla y las noticias quedaban con el día siguiente después de las 21:00 en Chile. Ahora usan la hora de Chile (`utils/fecha.js`).
+- **Bitácora del Inicio vacía en MySQL 8:** `LIMIT ?` con `execute` falla en MySQL 8 y caía en silencio a la memoria; un detalle no JSON también la vaciaba.
+- **Noticias:** el autor quedaba como "Nombre ([object Object])" y, al borrar todas las noticias, reaparecían las de ejemplo.
+- **CSV de Tesorería:** un `;` en la categoría o el comprobante corría las columnas, y no se protegía contra fórmulas de Excel.
+- **Build sin `VITE_API_URL`** apuntaba a `localhost:4000`. Ahora el build de producción usa `/api` del mismo dominio.
+
+---
+
 ### Versión 4: Módulo Independiente de Créditos y Convenios Sociales
 > [!NOTE]
 > **Estado:** Pendiente — **Asignado para resolución del equipo** (Carlos S., Luis C.)  

@@ -1,234 +1,302 @@
-# Guía Oficial de Despliegue en Producción — cPanel / INA Networks
-**Sistema Web de Gestión — Asociación Gremial de Jardines Infantiles VTF Temuco**
+# Guía de despliegue desde cero — cPanel (INA Networks)
+**SIGAV — Asociación Gremial de Jardines Infantiles VTF Temuco**
 
-Esta guía detalla el procedimiento paso a paso para desplegar la plataforma completa (Frontend React SPA, Backend Node.js Express y Base de Datos MySQL) en un entorno de **Web Hosting SSD con cPanel** (como INA Networks u otros proveedores cPanel con soporte para Node.js y LiteSpeed/Apache).
+Esta guía instala la plataforma completa en un hosting cPanel **desde cero**, con una base de datos vacía y sin restos de instalaciones anteriores. Corresponde a la rama `develop` con la V3 del padrón (socias 100 % en MySQL).
+
+Se instala como **una sola aplicación Node.js**: la misma app sirve la página web y la API en el mismo dominio (`https://vtftemuco.cl` y `https://vtftemuco.cl/api`). No hace falta un subdominio `api.` ni configurar CORS.
+
+```
+Navegador ──HTTPS──> vtftemuco.cl ──> App Node.js "sigav-app" (Passenger, app.cjs)
+                                        ├── /            página web (carpeta public/)
+                                        ├── /api/...     API Express
+                                        └── uploads/     comprobantes y planillas (privado)
+                                               │
+                                               ▼
+                                      MySQL de cPanel (localhost:3306)
+```
+
+Tiempo estimado: 45 a 60 minutos.
 
 ---
 
-## 1. Arquitectura de Despliegue en cPanel
+## 0. Antes del martes
 
-Para garantizar máxima estabilidad, rendimiento y evitar colisiones entre el servidor web y la API, se utiliza la siguiente separación recomendada:
-
-```
-                          ┌──────────────────────────┐
-                          │   Dominio de la App      │
-                          └─────────────┬────────────┘
-                                        │
-                 ┌──────────────────────┴──────────────────────┐
-                 ▼                                             ▼
-     https://tu-dominio.cl                         https://api.tu-dominio.cl
-    ┌─────────────────────────┐                   ┌─────────────────────────┐
-    │     FRONTEND REACT      │                   │    BACKEND EXPRESS      │
-    │  Carpeta: public_html/  │ ── Peticiones ──> │   cPanel Node.js App    │
-    │  (Archivos estáticos    │     HTTPS         │   (Phusion Passenger)   │
-    │   HTML/JS/CSS/.htaccess)│                   └────────────┬────────────┘
-    └─────────────────────────┘                                │
-                                                               ▼
-                                                  ┌─────────────────────────┐
-                                                  │       MYSQL XAMPP /     │
-                                                  │      cPanel Database    │
-                                                  │     (localhost:3306)    │
-                                                  └─────────────────────────┘
-```
+- [ ] **Acceso a cPanel** de vtftemuco.cl, con permiso para *Bases de datos MySQL*, *phpMyAdmin*, *Administrador de archivos* y *Setup Node.js App*.
+- [ ] **Node.js 18 o superior** disponible en *Setup Node.js App* (recomendado: 20).
+- [ ] **Datos de ejemplo en `database/data.sql`.** Hoy el archivo trae, además del padrón real (277 socias, 23 jardines y créditos), datos de demostración: 10 movimientos de tesorería (pagos a Federación de junio a octubre, recaudaciones de octubre, un S.O.S del "Jardín Campanita", papelería), 3 noticias y las liquidaciones de octubre. Los saldos de apertura de 2026 ($5.103.000 Asociación y $8.856.000 Cena Anual) sí son los oficiales. **Decidir con la Tesorera qué se carga en producción** y ajustar `data.sql` antes de armar el paquete: lo que se importe aparecerá en Tesorería, el Inicio y el portal de socias.
+- [ ] **La directiva disponible el mismo día.** Las 5 cuentas de directiva parten con la clave inicial `Admin123!`, y la primera persona que entre con ella elige la clave definitiva. Cada integrante debe entrar y cambiarla **el mismo día del despliegue** (paso 8).
+- [ ] En el PC: Git, Node.js 18 o superior, y el repositorio actualizado.
 
 ---
 
-## 2. Paso 1: Configurar la Base de Datos MySQL en cPanel
+## 1. Preparar el paquete en el PC
 
-1. Inicia sesión en tu cuenta de **cPanel**.
+Abrir **PowerShell** y ejecutar, en este orden:
+
+```powershell
+cd C:\Users\sebas\Documents\GitHub\dashboard
+git checkout develop
+git pull
+```
+
+```powershell
+npm --prefix backend test
+```
+
+Las 7 suites deben terminar con `✓ 7 suites aprobadas.` (requiere el MySQL de XAMPP encendido). Si alguna falla, no se despliega.
+
+```powershell
+npm --prefix frontend ci
+npm --prefix frontend run build
+```
+
+Arma la carpeta `despliegue\` con la app y los 3 archivos SQL. El ZIP se crea con `tar`, porque el `Compress-Archive` de Windows guarda las rutas con `\` y cPanel no lo extrae bien.
+
+```powershell
+$repo = "C:\Users\sebas\Documents\GitHub\dashboard"
+$salida = "$env:USERPROFILE\Desktop\despliegue"
+Remove-Item -Recurse -Force $salida -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force "$salida\sigav-app" | Out-Null
+Copy-Item "$repo\backend\app.cjs", "$repo\backend\package.json", "$repo\backend\package-lock.json" "$salida\sigav-app\"
+Copy-Item -Recurse "$repo\backend\src" "$salida\sigav-app\src"
+Copy-Item -Recurse "$repo\frontend\dist" "$salida\sigav-app\public"
+Copy-Item "$repo\database\database.sql", "$repo\database\data.sql", "$repo\database\admin.sql" "$salida\"
+cd $salida
+tar -a -c -f sigav-app.zip sigav-app
+```
+
+En el escritorio queda la carpeta `despliegue` con:
+
+| Archivo | Para qué |
+| :--- | :--- |
+| `sigav-app.zip` | La aplicación: `app.cjs`, `package.json`, `package-lock.json`, `src/` y `public/` (la página ya compilada) |
+| `database.sql` | 1.º: crea las tablas |
+| `data.sql` | 2.º: jardines, padrón, convenios, créditos y tesorería |
+| `admin.sql` | 3.º: cuentas de la directiva |
+
+> **No van en el paquete:** `node_modules` (se instala en el servidor), `.env` (las variables se configuran en cPanel) ni el contenido de `uploads/`.
+
+---
+
+## 2. Dejar el hosting limpio
+
+Como la instalación es desde cero, primero hay que quitar lo anterior. **Antes de borrar, respaldar.**
+
+1. **Respaldar la base anterior** (si existe): phpMyAdmin → clic en la base → pestaña **Exportar** → *Rápido* → **Exportar**. Guardar el `.sql`.
+2. **Respaldar los comprobantes** (si existen): en el Administrador de archivos, comprimir y descargar la carpeta `uploads` de la app anterior.
+3. **Detener y eliminar la app Node anterior:** *Setup Node.js App* → en la app existente, **Stop App** y luego el ícono de papelera (**Destroy**). Esto no borra los archivos.
+4. **Borrar la carpeta de la app anterior** en el Administrador de archivos (por ejemplo `/home/USUARIO/sigav-app`).
+5. **Borrar la base anterior:** *Bases de datos MySQL* → *Bases de datos actuales* → **Eliminar**. El usuario MySQL se puede conservar; si se conserva, anotar su contraseña.
+6. **Revisar `public_html/`:** si quedaron `index.html`, `assets/` o un `.htaccess` de un despliegue anterior del frontend, moverlos a una carpeta `public_html/_respaldo/`. La app Node tiene prioridad, pero esos archivos confunden si algo falla.
+
+---
+
+## 3. Base de datos
+
+### A. Crear la base y el usuario
+*cPanel → Bases de datos → Bases de datos MySQL*
+
 > [!IMPORTANT]
-> **cPanel antepone el nombre de la cuenta a la base de datos Y al usuario.** En la cuenta de `vtftemuco.cl` el prefijo es `vtftemuc_` (los primeros 8 caracteres del usuario de cPanel). Si escribes `jardines_vtf` y `vtf`, lo que realmente se crea es:
+> **cPanel antepone el prefijo de la cuenta a la base Y al usuario.** En vtftemuco.cl el prefijo es `vtftemuc_`:
 >
 > | Lo que escribes | Lo que crea cPanel (y lo que va en las variables) |
 > | :--- | :--- |
 > | Base: `jardines_vtf` | `DB_NAME=vtftemuc_jardines_vtf` |
 > | Usuario: `vtf` | `DB_USER=vtftemuc_vtf` |
 >
-> Copia los nombres **exactamente como aparecen en la lista "Bases de datos actuales" / "Usuarios actuales"** de cPanel; nunca los nombres de ejemplo de esta guía. Si no coinciden, la app no se conecta (antes de esta versión, además, entraba con datos de prueba en memoria y no guardaba nada; ahora responde un error claro).
+> Copiar los nombres **exactamente como aparecen** en "Bases de datos actuales" y "Usuarios actuales". Si no coinciden, la app no se conecta.
 
-2. Ve a la sección **Bases de datos** $\rightarrow$ **Bases de datos MySQL**:
-   - **Crear una nueva base de datos:** escribe `jardines_vtf`. cPanel la crea como `PREFIJO_jardines_vtf` (ej.: `vtftemuc_jardines_vtf`). Anota el nombre completo.
-   - **Crear nuevo usuario de MySQL:** escribe `vtf` y genera una contraseña segura. cPanel lo crea como `PREFIJO_vtf` (ej.: `vtftemuc_vtf`). **Guarda la contraseña y el nombre completo.**
-   - **Añadir usuario a la base de datos:** selecciona ese usuario y esa base, haz clic en *Añadir*, marca **TODOS LOS PRIVILEGIOS** y confirma.
-3. Abre la herramienta **phpMyAdmin** desde la pantalla principal de cPanel:
-   - En la columna izquierda, haz clic sobre la base de datos creada (`vtftemuc_jardines_vtf`).
-   - Ve a la pestaña **Importar** e importa, **en este orden**:
-     1. **`database/database.sql`** (tablas)
-     2. **`database/data.sql`** (convenios, padrón de 277 socias, movimientos de apertura y noticias)
-     3. **`database/admin.sql`** (6 cuentas de directiva con clave inicial `Admin123!` y cambio obligatorio al primer ingreso)
-   - **Base ya instalada antes del 09-11-2026:** no reimportes. Primero exporta un respaldo (pestaña *Exportar*) y luego ejecuta en la pestaña *SQL*, en este orden y una sola vez cada uno:
-     1. `database/migraciones/2026-11-09_directiva_y_primer_ingreso.sql`
-     2. `database/migraciones/2026-11-09_v3_padron_mysql.sql` (padrón V3). **Súbelo junto con el código nuevo:** el código anterior deja de funcionar con esta migración, porque reemplaza la columna `socias.jardin` por `jardin_id`.
-   - La carpeta `uploads/` debe permitir escritura: ahí se guardan los comprobantes y, en `uploads/padron/AAAA/MM/`, cada planilla Maestra Socias cargada.
+1. **Crear nueva base de datos:** `jardines_vtf`. Anotar el nombre completo (`vtftemuc_jardines_vtf`).
+2. **Crear usuario:** `vtf`, con el **Generador de contraseñas** de cPanel. Guardar la contraseña en un lugar seguro.
+3. **Añadir usuario a la base de datos:** elegir ese usuario y esa base → **Añadir** → marcar **TODOS LOS PRIVILEGIOS** → **Hacer cambios**.
+
+### B. Importar los 3 scripts
+*cPanel → phpMyAdmin → clic en `vtftemuc_jardines_vtf` (columna izquierda) → pestaña **Importar***
+
+Importar **uno por uno y en este orden**, esperando el mensaje verde "La importación se ejecutó exitosamente":
+
+1. `database.sql`
+2. `data.sql`
+3. `admin.sql`
+
+> En una base nueva **no** se ejecutan las migraciones de `database/migraciones/`: esos cambios ya vienen incluidos en `database.sql`. Las migraciones son solo para actualizar una base que ya estaba instalada.
+
+### C. Comprobar
+Pestaña **SQL**, pegar y **Continuar**:
+
+```sql
+SELECT
+  (SELECT COUNT(*) FROM jardines)                          AS jardines,
+  (SELECT COUNT(*) FROM socias)                            AS socias,
+  (SELECT COUNT(*) FROM creditos WHERE estado = 'vigente') AS creditos_vigentes,
+  (SELECT COUNT(*) FROM administradores WHERE activo = 1)  AS directiva_activa,
+  (SELECT COUNT(*) FROM movimientos_tesoreria WHERE tipo = 'SALDO_APERTURA') AS aperturas;
+```
+
+Con el `data.sql` actual debe dar **23 jardines, 277 socias, 5 cuentas de directiva activas y 2 aperturas**. La cuenta de delegada de demostración (`delegada@vtftemuco.cl`) queda creada pero **desactivada**.
 
 ---
 
-## 3. Paso 2: Crear el Subdominio para la API
+## 4. Subir la aplicación
 
-1. En cPanel, dirígete a la sección **Dominios** $\rightarrow$ **Dominios** (o *Subdominios* según la versión de cPanel).
-2. Haz clic en **Create A New Domain**:
-   - Nombre de dominio: `api.tu-dominio.cl` *(reemplaza con tu dominio real)*.
-   - **Importante:** Desmarca la casilla *"Share document root (/home/usuario/public_html) with another domain"*.
-   - Define un directorio independiente (ejemplo: `api_subdomain` o `subdominios/api`).
-3. Guarda los cambios.
+*cPanel → Administrador de archivos*
+
+1. Entrar a la carpeta de la cuenta, `/home/USUARIO/`, **fuera de `public_html`**: así los comprobantes y planillas no quedan expuestos en la web.
+2. **Cargar** `sigav-app.zip`, seleccionarlo y pulsar **Extraer**.
+3. Comprobar que exista `/home/USUARIO/sigav-app/app.cjs` y, junto a él, las carpetas `src/` y `public/`. Si se extrajo como `sigav-app/sigav-app/`, mover el contenido un nivel arriba.
+4. Crear la carpeta `/home/USUARIO/sigav-app/uploads` (botón **+ Carpeta**) con permisos `755`. Ahí se guardan los comprobantes de Tesorería, los adjuntos del buzón y, en `uploads/padron/AAAA/MM/`, cada planilla Maestra Socias cargada. La app la crea sola si no existe, pero conviene dejarla lista.
 
 ---
 
-## 4. Paso 3: Desplegar el Backend Node.js en cPanel
+## 5. Crear la app Node.js
 
-### A. Subir el código del Backend
-1. Abre el **Administrador de Archivos** de cPanel.
-2. En la raíz de tu cuenta de alojamiento (`/home/usuario/`), crea una carpeta llamada **`backend`** (o súbela comprimida en ZIP y extráela allí).
-3. Sube únicamente los archivos de la carpeta `backend` del repositorio:
-   - Carpeta `src/` (con todos sus controladores, rutas, servicios y middlewares).
-   - Archivo `package.json` y `package-lock.json`.
-4. **No subas:** la carpeta `node_modules` local (se instalarán limpios en Linux) ni archivos `.git`.
-5. Asegúrate de que exista la carpeta vacía `uploads` dentro de `backend/` (o créala: `/home/usuario/backend/uploads`) con permisos `755` para almacenar comprobantes de tesorería y archivos del buzón de socias.
+*cPanel → Software → **Setup Node.js App** → **Create Application***
 
-### B. Configurar la aplicación en cPanel Node.js
-1. En cPanel, busca y abre la herramienta **Setup Node.js App** (o *Configurar aplicación Node.js*).
-2. Haz clic en el botón **Create Application**:
-   - **Node.js version:** Selecciona la versión LTS más reciente disponible (recomendado: `Node.js 20.x` o `18.x`).
-   - **Application mode:** `Production`.
-   - **Application root:** `backend` (o la ruta donde subiste la carpeta).
-   - **Application URL:** Selecciona del desplegable tu subdominio `api.tu-dominio.cl`.
-   - **Application startup file:** `src/server.js`.
-3. En la sección **Environment variables** (Variables de entorno), haz clic en **Add Variable** y añade cada una de las siguientes claves:
+| Campo | Valor |
+| :--- | :--- |
+| Node.js version | **20** (o la más nueva disponible; mínimo 18) |
+| Application mode | **Production** |
+| Application root | `sigav-app` |
+| Application URL | `vtftemuco.cl` (dejar vacía la ruta a la derecha) |
+| Application startup file | **`app.cjs`** |
 
-| Variable | Valor de Producción | Descripción |
+**Variables de entorno** (botón **Add Variable**, una por una):
+
+| Variable | Valor | Nota |
 | :--- | :--- | :--- |
-| `NODE_ENV` | `production` | Modo optimizado de ejecución |
-| `DB_HOST` | `localhost` | Host local de MySQL en cPanel |
-| `DB_PORT` | `3306` | Puerto por defecto de MySQL |
-| `DB_NAME` | `vtftemuc_jardines_vtf` | Nombre **con prefijo**, tal como lo muestra cPanel |
-| `DB_USER` | `vtftemuc_vtf` | Usuario **con prefijo**, tal como lo muestra cPanel |
-| `DB_PASSWORD` | `TuContraseñaSegura!` | Contraseña asignada al usuario MySQL |
-| `JWT_SECRET` | *(cadena aleatoria de 64 chars)* | Clave criptográfica para firmas JWT |
-| `JWT_EXPIRES_IN` | `8h` | Duración de sesión activa |
-| `CORS_ORIGIN` | `https://tu-dominio.cl` | Dominio frontend autorizado |
+| `NODE_ENV` | `production` | |
+| `DB_HOST` | `localhost` | |
+| `DB_PORT` | `3306` | |
+| `DB_NAME` | `vtftemuc_jardines_vtf` | **con prefijo**, tal como aparece en cPanel |
+| `DB_USER` | `vtftemuc_vtf` | **con prefijo** |
+| `DB_PASSWORD` | *(la contraseña del paso 3)* | |
+| `JWT_SECRET` | *(cadena aleatoria, ver abajo)* | **obligatoria**: sin ella la app no arranca |
+| `JWT_EXPIRES_IN` | `8h` | duración de la sesión |
 
-4. Haz clic en el botón superior **Create**.
-5. Tras crearse la aplicación, pulsa el botón **Run NPM Install** que aparecerá en la parte superior. Esto descargará automáticamente los paquetes necesarios en el servidor (`express`, `mysql2`, `bcryptjs`, `jsonwebtoken`, `multer`, etc.).
-6. Haz clic en **Restart Application**.
+**Generar `JWT_SECRET`** en el PC (PowerShell) y pegar el resultado:
 
-### C. Verificar que la API responda
-Abre una pestaña en tu navegador e ingresa a:
-```
-https://api.tu-dominio.cl/api/health
-```
-Debe responder con un JSON similar a:
-```json
-{
-  "status": "ok",
-  "system": "Sistema Web de Gestión — Asociación de Jardines VTF",
-  "database": { "conectada": true, "error": null },
-  "timestamp": "2026-11-03T21:00:00.000Z"
-}
+```powershell
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-**Revisa `database.conectada`.** Si es `false`, el campo `error` dice por qué:
+> [!IMPORTANT]
+> `JWT_SECRET` es la llave que firma las sesiones. En producción la app **se niega a arrancar** si falta, si tiene menos de 32 caracteres o si es la clave de ejemplo del repositorio, porque con esa clave pública cualquiera podría fabricarse una sesión de Tesorera. No compartirla ni guardarla en el repositorio.
 
-| `error` | Significado | Qué corregir |
+Luego:
+
+1. **Create**.
+2. **Run NPM Install** (botón que aparece arriba, junto a `package.json`). Espere a que termine; puede tardar 1 o 2 minutos.
+3. **Restart**.
+
+---
+
+## 6. Certificado SSL
+
+*cPanel → Seguridad → **SSL/TLS Status*** → marcar `vtftemuco.cl` y `www.vtftemuco.cl` → **Run AutoSSL**. En 1 o 2 minutos el candado debe aparecer en el navegador.
+
+---
+
+## 7. Verificar
+
+1. **Salud de la API:** abrir `https://vtftemuco.cl/api/health`. Debe responder:
+   ```json
+   { "status": "ok", "database": { "conectada": true, "error": null }, ... }
+   ```
+   Si `conectada` es `false`, ver la tabla del paso 9.
+2. **Página:** `https://vtftemuco.cl/login` muestra el ingreso de la directiva. Recargar con **F5** en `https://vtftemuco.cl/socias` no debe dar error 404.
+3. **Socias:** al entrar como Tesorera, el Inicio y *Socias y Créditos* deben mostrar **277 socias** y los jardines reales (nunca "Jardín Rayito de Sol": ese nombre solo existe en los datos de prueba del código).
+4. **Comprobante:** en *Tesorería → Agregar Movimiento*, registrar un egreso de prueba con un PDF adjunto y abrirlo con **Ver**. Si se usa un movimiento de prueba, anotarlo para que la Tesorera lo compense o se elimine desde phpMyAdmin.
+5. **Portal de socias:** en `https://vtftemuco.cl/socia/login`, entrar con el RUT de una socia y los 6 primeros dígitos de su RUT. Debe pedir crear una contraseña propia. Una clave equivocada debe mostrar el error **en la misma pantalla**.
+6. **Persistencia:** en *Setup Node.js App* pulsar **Restart** y comprobar que el movimiento y la clave de la socia siguen ahí.
+
+---
+
+## 8. Primer ingreso de la directiva (mismo día)
+
+Cada integrante entra en `https://vtftemuco.cl/login` con su correo (o RUT) y la clave inicial `Admin123!`. El sistema la obliga a crear su contraseña personal antes de mostrar cualquier sección.
+
+| Cargo | Correo | RUT |
+| :--- | :--- | :--- |
+| Administración | `admin@vtftemuco.cl` | 17.260.651-2 |
+| Tesorera | `tesorera@vtftemuco.cl` | 16.947.343-9 |
+| Presidenta | `presidenta@vtftemuco.cl` | 13.963.291-5 |
+| Secretaria | `secretaria@vtftemuco.cl` | 11.354.669-7 |
+| Directora | `directora@vtftemuco.cl` | 20.081.109-7 |
+
+> [!WARNING]
+> Mientras una cuenta conserve `Admin123!`, cualquiera que conozca el correo puede tomarla. Si alguien no puede entrar ese día, desactivar su cuenta en phpMyAdmin hasta que pueda:
+> `UPDATE administradores SET activo = 0 WHERE correo = 'directora@vtftemuco.cl';`
+> y reactivarla (`activo = 1`) cuando vaya a hacer su primer ingreso.
+
+**Restablecer la clave de alguien de la directiva** (olvido): en phpMyAdmin, pestaña SQL:
+
+```sql
+UPDATE administradores
+SET contrasena = '$2b$10$crgtkhpm9nlcizsbRFp.6.Xc2zzMyBxkJu7eRpE5yn58ZByMWv8M6', primer_ingreso = 1
+WHERE correo = 'tesorera@vtftemuco.cl';
+```
+
+Vuelve a `Admin123!` con cambio obligatorio al entrar.
+
+**Restablecer la clave de una socia:** `UPDATE socias SET password = NULL, primer_ingreso = 1 WHERE rut = '12.345.678-5';` Vuelve a los 6 primeros dígitos de su RUT.
+
+---
+
+## 9. Problemas frecuentes
+
+### `/api/health` responde `"conectada": false`
+
+| `error` | Significa | Qué corregir |
 | :--- | :--- | :--- |
 | `ER_ACCESS_DENIED_ERROR` | Usuario o contraseña incorrectos | `DB_USER` con prefijo y `DB_PASSWORD` |
-| `ER_DBACCESS_DENIED_ERROR` | El usuario no tiene permisos sobre esa base | Paso 1: "Añadir usuario a la base de datos" |
-| `ER_BAD_DB_ERROR` | La base no existe con ese nombre | `DB_NAME` con prefijo |
+| `ER_DBACCESS_DENIED_ERROR` | El usuario no tiene permisos sobre esa base | Paso 3A, "Añadir usuario a la base de datos" |
+| `ER_BAD_DB_ERROR` | No existe una base con ese nombre | `DB_NAME` con prefijo |
 | `ECONNREFUSED` / `ETIMEDOUT` | MySQL no responde | `DB_HOST=localhost`, `DB_PORT=3306` |
 
-Mientras no haya conexión, la app responde **503 "El sistema no tiene conexión con la base de datos"** y no deja entrar. Reintenta sola cada 15 segundos, pero tras cambiar variables hay que pulsar **Restart**.
+Mientras no haya conexión, la app responde **503 "El sistema no tiene conexión con la base de datos"** y no deja entrar (nunca muestra datos de prueba en producción). Reintenta sola cada 15 segundos, pero **después de cambiar variables hay que pulsar Restart**.
 
-> **Despliegue en una sola app (recomendado, el que usa vtftemuco.cl):** si la carpeta `backend/public/` contiene el frontend compilado (`npm run build` en `frontend/` y copiar `dist/` como `public/`), la misma app Node sirve la página y la API en el mismo dominio. En ese caso el *Application startup file* es **`app.cjs`**, no hace falta subdominio `api.` ni `CORS_ORIGIN`, y el frontend se compila con `VITE_API_URL=/api`.
+### "We're sorry, but something went wrong" / la app no arranca
+Abrir `/home/USUARIO/sigav-app/stderr.log` en el Administrador de archivos:
 
----
+- `JWT_SECRET no configurado o inseguro` → paso 5: agregar `JWT_SECRET` (mínimo 32 caracteres) y **Restart**.
+- `Cannot find module 'express'` (u otro paquete) → faltó **Run NPM Install**; ejecutarlo y **Restart**.
+- `Cannot find module .../app.cjs` → el *Application root* o el *startup file* no coinciden con la carpeta extraída (paso 4).
 
-## 5. Paso 4: Compilar y Desplegar el Frontend React SPA
+### Error 404 al recargar `/socias` o `/socia/portal`
+Falta la carpeta `public/` dentro de `sigav-app` (debe contener `index.html` y `assets/`). Volver a armar el paquete (paso 1) y subirlo.
 
-El Frontend es una Single Page Application (SPA) construida con Vite y React Router. Para desplegarla, se compila en un bundle estático ultra rápido.
+### La página carga pero el ingreso dice "Network Error"
+El navegador no llega a la API. Si `/api/health` sí responde, el frontend se compiló con una `VITE_API_URL` antigua (por ejemplo, apuntando a `localhost` o a un subdominio `api.`). No crear `frontend/.env.production`: sin esa variable, el build usa `/api` del mismo dominio. Recompilar (paso 1) y volver a subir `public/`.
 
-### A. Compilar en tu máquina local
-1. Abre tu terminal en la raíz del proyecto.
-2. Crea el archivo `frontend/.env.production` indicando la URL pública de la API que configuraste en el Paso 3:
-   ```env
-   VITE_API_URL=https://api.tu-dominio.cl/api
-   ```
-3. Ejecuta la compilación de producción:
-   ```bash
-   npm --prefix frontend run build
-   ```
-4. Se generará la carpeta optimizada **`frontend/dist/`**. Dentro de ella ya se encuentra automáticamente incluido el archivo **`.htaccess`**, el cual le indica a LiteSpeed/Apache que redirija todas las peticiones internas (`/login`, `/socias`, `/socia/portal`, etc.) hacia `index.html` para que React Router funcione al recargar la página sin dar error 404.
-
-### B. Subir los archivos estáticos a cPanel
-1. Entra al **Administrador de Archivos** de cPanel.
-2. Ingresa a la carpeta pública principal: **`public_html/`**.
-   *(Si hay archivos por defecto de cPanel como `default.html`, elimínalos o muévelos)*.
-3. Sube y descomprime el contenido interior de `frontend/dist/`.
-4. Confirma que en `public_html/` queden directamente:
-   - `index.html`
-   - `.htaccess`
-   - `logo-vtf.png`
-   - Carpeta `assets/` (con los archivos CSS y JS compilados).
+### No se pueden subir comprobantes o planillas
+La carpeta `/home/USUARIO/sigav-app/uploads` no existe o no tiene permisos de escritura: crearla con `755` (si no basta, `775`).
 
 ---
 
-## 6. Paso 5: Certificados SSL HTTPS Gratuitos
+## 10. Después del despliegue
 
-1. En cPanel, busca la herramienta **Estado de SSL/TLS** (*SSL/TLS Status*).
-2. Selecciona las casillas correspondientes a:
-   - `tu-dominio.cl` y `www.tu-dominio.cl`
-   - `api.tu-dominio.cl`
-3. Haz clic en el botón azul **Run AutoSSL**.
-4. En 1 o 2 minutos, cPanel (vía Sectigo o Let's Encrypt) instalará automáticamente los certificados SSL gratuitos con renovación automática.
-
----
-
-## 7. Solución de Problemas Comunes (Troubleshooting)
-
-### Error 503 "Service Unavailable" al llamar a la API
-- **Causa:** Phusion Passenger no pudo arrancar Node.js o falló la conexión con la base de datos.
-- **Solución:**
-  1. En cPanel ve a *Setup Node.js App* y haz clic en *Restart*.
-  2. Revisa el archivo de log de errores ubicado en `/home/usuario/backend/stderr.log`.
-  3. Verifica que las credenciales de `DB_NAME`, `DB_USER` y `DB_PASSWORD` en las variables de entorno coincidan con las creadas en cPanel MySQL.
-
-### Error 404 al recargar páginas internas como `/socias` o `/socia/portal`
-- **Causa:** Falta el archivo `.htaccess` en `public_html/` o el Administrador de Archivos tiene oculta la visualización de archivos con punto.
-- **Solución:**
-  - En el Administrador de Archivos de cPanel, haz clic en *Configuración* (arriba a la derecha) y marca *"Mostrar archivos ocultos (dotfiles)"*.
-  - Comprueba que el archivo `.htaccess` esté presente en `public_html/` con la siguiente regla de reescritura:
-    ```apache
-    <IfModule mod_rewrite.c>
-      RewriteEngine On
-      RewriteBase /
-      RewriteRule ^index\.html$ - [L]
-      RewriteCond %{REQUEST_FILENAME} !-f
-      RewriteCond %{REQUEST_FILENAME} !-d
-      RewriteCond %{REQUEST_FILENAME} !-l
-      RewriteRule . /index.html [L]
-    </IfModule>
-    ```
-
-### Error de CORS en el navegador (`Cross-Origin Request Blocked`)
-- **Causa:** El backend no tiene configurado el dominio exacto del frontend en su variable `CORS_ORIGIN`.
-- **Solución:**
-  - En *Setup Node.js App*, edita la variable `CORS_ORIGIN` y asegúrate de que sea exactamente `https://tu-dominio.cl` (con `https://` y sin barra diagonal al final).
-  - Haz clic en *Save* y luego en *Restart*.
-
-### Error al subir comprobantes o adjuntos en el buzón
-- **Causa:** La carpeta de subida de archivos no existe o no tiene permisos de escritura.
-- **Solución:**
-  - Crea la carpeta `/home/usuario/backend/uploads`.
-  - Asegúrate de que sus permisos de Linux sean `755` o `775`.
+- [ ] `https://vtftemuco.cl/api/health` → `"conectada": true`.
+- [ ] Las 5 cuentas de la directiva cambiaron `Admin123!` (o están desactivadas).
+- [ ] La cuenta de delegada de demostración sigue desactivada; crear las delegadas reales cuando estén confirmadas.
+- [ ] Candado HTTPS activo en `vtftemuco.cl` y `www.vtftemuco.cl`.
+- [ ] Prueba de egreso con PDF y de ingreso de una socia hechas y anotadas.
+- [ ] **Respaldo semanal:** phpMyAdmin → Exportar, y descargar la carpeta `uploads/`. (Si el plan de INA Networks incluye *JetBackup*, confirmar que respalda base y archivos).
 
 ---
 
-## 8. Checklist de Seguridad Final
+## Anexo A. Actualizar una instalación existente (versiones futuras)
 
-Antes de entregar los accesos definitivos a las socias y directiva:
-- [ ] `https://DOMINIO/api/health` responde `"database": { "conectada": true }`.
-- [ ] Cada integrante de la directiva entra con su correo `@vtftemuco.cl` (o RUT) y la clave inicial `Admin123!`, y el sistema la obliga a crear su contraseña personal antes de mostrar cualquier sección.
-- [ ] Desactivar (`activo = 0`) o reemplazar la cuenta de delegada de demostración (`17.890.123-1`) cuando estén las delegadas reales.
-- [ ] Asegurarse de que `JWT_SECRET` sea una clave privada única y no el valor por defecto de desarrollo.
-- [ ] Verificar que el candado HTTPS esté activo en ambos dominios (`https://tu-dominio.cl` y `https://api.tu-dominio.cl`).
-- [ ] Realizar una prueba de ingreso como socia (`/socia/login`) con cambio de clave obligatorio.
-- [ ] Realizar una prueba de registro de egreso en Tesorería adjuntando un comprobante PDF.
+Para subir una versión nueva **sin perder datos**:
 
+1. Respaldar la base (phpMyAdmin → Exportar) y la carpeta `uploads/`.
+2. Ejecutar en la pestaña SQL, una sola vez y en orden de fecha, solo las migraciones nuevas de `database/migraciones/` que aún no se hayan aplicado.
+3. Armar el paquete (paso 1) y reemplazar en el servidor **solo** `src/`, `public/`, `app.cjs`, `package.json` y `package-lock.json`. **No tocar `uploads/`.**
+4. **Run NPM Install** (si cambió `package.json`) y **Restart**.
+5. Verificar con el paso 7.
+
+## Anexo B. Variante con subdominio `api.`
+
+No se usa en vtftemuco.cl. Si algún día se separa la página (en `public_html/`) de la API (en `api.vtftemuco.cl`):
+- Startup file `src/server.js`, Application URL `api.vtftemuco.cl` y variable `CORS_ORIGIN=https://vtftemuco.cl` (sin barra final).
+- Compilar el frontend con `frontend/.env.production` que contenga `VITE_API_URL=https://api.vtftemuco.cl/api` y subir el contenido de `frontend/dist/` (incluido `.htaccess`) a `public_html/`.
+- Activar AutoSSL también para `api.vtftemuco.cl`.
