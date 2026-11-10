@@ -22,10 +22,10 @@ export const SociaPortalController = {
         data
       });
     } catch (err) {
-      res.status(401).json({
-        success: false,
-        message: err.message
-      });
+      if (err.statusCode) {
+        return res.status(err.statusCode).json({ success: false, message: err.message });
+      }
+      next(err);
     }
   },
 

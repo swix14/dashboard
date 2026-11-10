@@ -13,8 +13,9 @@ export const CENTROS_COSTO_VALIDOS = [
  * Soporta JSON y multipart/form-data.
  */
 export const movementSchema = z.object({
-  tipo: z.enum(['INGRESO', 'EGRESO', 'SALDO_APERTURA'], {
-    errorMap: () => ({ message: 'El tipo de movimiento debe ser INGRESO, EGRESO o SALDO_APERTURA' })
+  // SALDO_APERTURA no se acepta por la API: los saldos de apertura se cargan solo con data.sql
+  tipo: z.enum(['INGRESO', 'EGRESO'], {
+    errorMap: () => ({ message: 'El tipo de movimiento debe ser INGRESO o EGRESO' })
   }),
   fecha: z
     .string()

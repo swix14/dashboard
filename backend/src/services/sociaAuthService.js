@@ -3,6 +3,14 @@ import jwt from 'jsonwebtoken';
 import { isDatabaseReady, query } from '../config/db.js';
 import { env } from '../config/env.js';
 
+// Rechazo de inicio de sesión de socia: 401 (o 503 si el portal no tiene base de datos)
+export class LoginError extends Error {
+  constructor(message, statusCode = 401) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
 /**
  * Normaliza un RUT removiendo puntos, espacios y guion, dejando solo dígitos y K
  */
@@ -28,12 +36,12 @@ export const SociaAuthService = {
   async loginSocia({ rut, password }) {
     const cleanedInputRut = cleanRut(rut);
     if (!cleanedInputRut || cleanedInputRut.length < 7) {
-      throw new Error('Ingrese un RUT válido para acceder al portal.');
+      throw new LoginError('Ingrese un RUT válido para acceder al portal.');
     }
 
     // El portal de socias trabaja solo con el padrón real de MySQL (V3: sin padrón de memoria)
     if (!isDatabaseReady()) {
-      throw new Error('El portal de socias no está disponible en este momento. Intente más tarde.');
+      throw new LoginError('El portal de socias no está disponible en este momento. Intente más tarde.', 503);
     }
 
     const rows = await query(
@@ -47,10 +55,10 @@ export const SociaAuthService = {
     const socia = rows[0];
 
     if (!socia || socia.estado === 'RETIRADA') {
-      throw new Error('El RUT ingresado no figura en el padrón activo de socias de la Asociación.');
+      throw new LoginError('El RUT ingresado no figura en el padrón activo de socias de la Asociación.');
     }
     if (socia.estado !== 'ACTIVA') {
-      throw new Error('Su membresía se encuentra suspendida. Comuníquese con la directiva.');
+      throw new LoginError('Su membresía se encuentra suspendida. Comuníquese con la directiva.');
     }
 
     const defaultInitialPass = getInitialPasswordFromRut(socia.rut);
@@ -75,12 +83,12 @@ export const SociaAuthService = {
     if (!passwordValid) {
       if (isFirstTime) {
         // Ejemplo genérico: antes se mostraba la clave inicial real del RUT ingresado
-        throw new Error(
+        throw new LoginError(
           'Contraseña incorrecta. Para su primer ingreso, la contraseña son los primeros 6 dígitos de su RUT ' +
             '(ej. si su RUT es 12.345.678-5, la clave es 123456).'
         );
       }
-      throw new Error('Contraseña incorrecta. Si olvidó su clave personal, pida a la directiva que la restablezca.');
+      throw new LoginError('Contraseña incorrecta. Si olvidó su clave personal, pida a la directiva que la restablezca.');
     }
 
     const payload = {

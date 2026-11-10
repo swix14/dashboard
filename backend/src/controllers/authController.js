@@ -33,10 +33,11 @@ export const AuthController = {
         data: result
       });
     } catch (error) {
-      return res.status(401).json({
-        success: false,
-        message: error.message
-      });
+      // Rechazos de acceso (LoginError) → 401; fallas internas → middleware central (500)
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
     }
   },
 

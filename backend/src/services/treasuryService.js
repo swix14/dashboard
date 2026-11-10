@@ -16,6 +16,14 @@
 import { isDatabaseReady, query } from '../config/db.js';
 import { hoyChile } from '../utils/fecha.js';
 
+// Error de regla de negocio (400). Cualquier otro error (por ejemplo, de MySQL) es interno (500).
+export class TreasuryError extends Error {
+  constructor(message, statusCode = 400) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
 // Movimientos iniciales históricos de la tesorería de la Asociación (fallback y contingencia)
 let treasuryMovements = [
   {
@@ -430,13 +438,17 @@ export const TreasuryService = {
     const cleanTipo = tipo.toUpperCase();
     const cleanMonto = Math.round(Number(monto));
 
+    if (cleanTipo !== 'INGRESO' && cleanTipo !== 'EGRESO') {
+      throw new TreasuryError('Solo se pueden registrar movimientos de tipo INGRESO o EGRESO.');
+    }
+
     if (!cleanMonto || cleanMonto <= 0) {
-      throw new Error('El monto del movimiento debe ser un valor numérico mayor a cero.');
+      throw new TreasuryError('El monto del movimiento debe ser un valor numérico mayor a cero.');
     }
 
     // Regla de Negocio: En caso de EGRESO, el comprobante es estrictamente OBLIGATORIO
     if (cleanTipo === 'EGRESO' && (!comprobante || comprobante.trim() === '')) {
-      throw new Error('No es posible registrar un egreso sin comprobante de respaldo obligatorio.');
+      throw new TreasuryError('No es posible registrar un egreso sin comprobante de respaldo obligatorio.');
     }
 
     // Determinación del centro de costo y categoría según especificaciones de la Asociación

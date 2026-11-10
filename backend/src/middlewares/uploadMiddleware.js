@@ -14,6 +14,40 @@ const ALLOWED_TYPES = {
 
 export const MAX_FILE_SIZE_MB = 5;
 
+/**
+ * Comprueba la firma real del archivo (primeros bytes), no solo el tipo que declara el navegador.
+ * Así un ejecutable o un HTML renombrado a .pdf no queda guardado como comprobante.
+ */
+export function contenidoCoincide(header, mimeType) {
+  const ascii = (start, end) => header.subarray(start, end).toString('latin1');
+  switch (mimeType) {
+    case 'application/pdf':
+      return ascii(0, 5) === '%PDF-';
+    case 'image/jpeg':
+      return header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
+    case 'image/png':
+      return header.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    case 'image/webp':
+      return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
+    case 'xlsx':
+      // Un .xlsx es un ZIP
+      return header[0] === 0x50 && header[1] === 0x4b && header[2] === 0x03 && header[3] === 0x04;
+    default:
+      return false;
+  }
+}
+
+async function leerCabecera(filePath) {
+  const handle = await fs.promises.open(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(16);
+    const { bytesRead } = await handle.read(buffer, 0, 16, 0);
+    return buffer.subarray(0, bytesRead);
+  } finally {
+    await handle.close();
+  }
+}
+
 fs.mkdirSync(env.UPLOADS_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -44,8 +78,21 @@ export function uploadComprobante(fieldName = 'comprobante') {
   const handler = uploader.single(fieldName);
 
   return (req, res, next) => {
-    handler(req, res, (err) => {
-      if (!err) return next();
+    handler(req, res, async (err) => {
+      if (!err) {
+        if (!req.file) return next();
+        try {
+          const header = await leerCabecera(req.file.path);
+          if (contenidoCoincide(header, req.file.mimetype)) return next();
+        } catch {
+          // Si no se puede leer, se trata como archivo no válido
+        }
+        discardUploadedFile(req.file);
+        return res.status(400).json({
+          success: false,
+          message: 'El contenido del archivo no corresponde a un PDF, JPG, PNG o WEBP válido.'
+        });
+      }
 
       const message =
         err.code === 'LIMIT_FILE_SIZE'
@@ -74,7 +121,15 @@ export function uploadPlanilla(fieldName = 'planilla') {
   const handler = planillaUploader.single(fieldName);
   return (req, res, next) => {
     handler(req, res, (err) => {
-      if (!err) return next();
+      if (!err) {
+        if (req.file && !contenidoCoincide(req.file.buffer, 'xlsx')) {
+          return res.status(400).json({
+            success: false,
+            message: 'El archivo no es una planilla Excel .xlsx válida.'
+          });
+        }
+        return next();
+      }
       const message =
         err.code === 'LIMIT_FILE_SIZE' ? `La planilla supera el tamaño máximo de ${MAX_FILE_SIZE_MB} MB.` : err.message;
       return res.status(400).json({ success: false, message });

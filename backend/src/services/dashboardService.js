@@ -24,6 +24,7 @@ export const DashboardService = {
     let totalJardines = 23;
     let sociasActivasCount = 273;
     let sociasSuspendidasCount = 4;
+    let totalDelegadas = 23;
 
     let ultimosPagosFederacion = [
       { correlativo: 'FED-2026-005', fecha: '2026-10-02', monto: 280000, descripcion: 'Cuota Federación Octubre 2026', comprobante: 'comprobante_fed_oct_2026.pdf' },
@@ -65,9 +66,11 @@ export const DashboardService = {
           `SELECT SUM(estado <> 'RETIRADA') AS total,
                   SUM(estado = 'ACTIVA') AS activas,
                   SUM(estado = 'SUSPENDIDA') AS suspendidas,
+                  SUM(es_delegada = 1 AND estado <> 'RETIRADA') AS delegadas,
                   (SELECT COUNT(*) FROM jardines WHERE activo = 1) AS jardines
            FROM socias`
         );
+        totalDelegadas = Number(sociaCount?.delegadas || 0);
         totalSocias = Number(sociaCount?.total || 0);
         sociasActivasCount = Number(sociaCount?.activas || 0);
         sociasSuspendidasCount = Number(sociaCount?.suspendidas || 0);
@@ -155,7 +158,7 @@ export const DashboardService = {
       asociacion: 'Asociación de Jardines VTF',
       totalJardines,
       totalSocias,
-      totalDelegadas: totalJardines,
+      totalDelegadas,
       valorCuotaMensual: 4000,
       distribucionCuota: {
         federacion: 1000,
@@ -165,7 +168,7 @@ export const DashboardService = {
     };
 
     // 1. Roles con acceso a información contable y financiera (ADMIN, PRESIDENTA, TESORERA, SECRETARIA)
-    const hasFinancialAccess = ['ADMIN', 'SUPER_ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode);
+    const hasFinancialAccess = ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode);
 
     if (hasFinancialAccess) {
       const treasurySummary = await TreasuryService.getSummary();
@@ -176,8 +179,8 @@ export const DashboardService = {
         totalIngresosPeriodo: treasurySummary.totalIngresos,
         totalEgresosPeriodo: treasurySummary.totalEgresos,
         nivelAcceso: 'DIRECTIVA_ADMINISTRATIVA',
-        puedeGestionarFinanzas: roleCode === 'TESORERA' || roleCode === 'ADMIN' || roleCode === 'SUPER_ADMIN',
-        puedeGestionarSocias: roleCode === 'SECRETARIA' || roleCode === 'ADMIN' || roleCode === 'SUPER_ADMIN' || roleCode === 'PRESIDENTA',
+        puedeGestionarFinanzas: roleCode === 'TESORERA' || roleCode === 'ADMIN',
+        puedeGestionarSocias: roleCode === 'SECRETARIA' || roleCode === 'ADMIN' || roleCode === 'PRESIDENTA',
         inicio: {
           // Fila 1: KPIs Principales
           sociasActivas: sociasActivasCount,

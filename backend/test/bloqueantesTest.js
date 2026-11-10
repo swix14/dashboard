@@ -112,6 +112,92 @@ await test('GET /api/health informa el estado de la base de datos', async () => 
   assert.ok(body.database.error);
 });
 
+// --- Correcciones de la auditoría (10-11-2026) ---
+const tesoreraToken = (await post('/auth/login', { identifier: 'tesorera@vtftemuco.cl', password: 'Admin123!' })).body.data.token;
+
+async function postMovimiento(campos, archivo) {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(campos)) form.append(k, v);
+  if (archivo) form.append('comprobante', new Blob([archivo.contenido], { type: archivo.tipo }), archivo.nombre);
+  const res = await fetch(`${baseUrl}/tesoreria/movimientos`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${tesoreraToken}` },
+    body: form
+  });
+  return { status: res.status, body: await res.json() };
+}
+
+const movimientoBase = {
+  fecha: '2026-11-10',
+  descripcion: 'Prueba de auditoría',
+  centroCosto: 'ASOCIACION',
+  monto: '1000',
+  metodo: 'TRANSFERENCIA'
+};
+
+await test('La API no permite crear asientos SALDO_APERTURA', async () => {
+  const { status } = await postMovimiento({ ...movimientoBase, tipo: 'SALDO_APERTURA' });
+  assert.strictEqual(status, 400);
+});
+
+await test('Un comprobante cuyo contenido no es PDF se rechaza aunque diga application/pdf', async () => {
+  const { status, body } = await postMovimiento(
+    { ...movimientoBase, tipo: 'EGRESO' },
+    { contenido: '<html><script>alert(1)</script></html>', tipo: 'application/pdf', nombre: 'falso.pdf' }
+  );
+  assert.strictEqual(status, 400);
+  assert.match(body.message, /contenido del archivo/);
+});
+
+await test('contenidoCoincide reconoce las firmas de PDF, JPG, PNG, WEBP y XLSX', async () => {
+  const { contenidoCoincide } = await import('../src/middlewares/uploadMiddleware.js');
+  assert.ok(contenidoCoincide(Buffer.from('%PDF-1.7'), 'application/pdf'));
+  assert.ok(contenidoCoincide(Buffer.from([0xff, 0xd8, 0xff, 0xe0]), 'image/jpeg'));
+  assert.ok(contenidoCoincide(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), 'image/png'));
+  assert.ok(contenidoCoincide(Buffer.from('RIFF\0\0\0\0WEBPVP8 '), 'image/webp'));
+  assert.ok(contenidoCoincide(Buffer.from([0x50, 0x4b, 0x03, 0x04]), 'xlsx'));
+  assert.ok(!contenidoCoincide(Buffer.from('MZ\x90\0'), 'application/pdf'));
+  assert.ok(!contenidoCoincide(Buffer.from('%PDF-1.7'), 'image/png'));
+});
+
+await test('Tras 5 intentos fallidos la cuenta queda bloqueada (429), incluso con la clave correcta', async () => {
+  for (let i = 0; i < 5; i++) {
+    const { status } = await post('/auth/login', { identifier: 'presidenta@vtftemuco.cl', password: 'ClaveMala1' });
+    assert.strictEqual(status, 401, `intento ${i + 1}`);
+  }
+  const bloqueado = await post('/auth/login', { identifier: 'presidenta@vtftemuco.cl', password: 'Admin123!' });
+  assert.strictEqual(bloqueado.status, 429);
+  assert.strictEqual(bloqueado.body.code, 'DEMASIADOS_INTENTOS');
+  // El bloqueo es por cuenta: otra cuenta sigue entrando
+  const otra = await post('/auth/login', { identifier: 'secretaria@vtftemuco.cl', password: 'Secretaria2026' });
+  assert.strictEqual(otra.status, 200);
+});
+
+await test('El RUT con o sin puntos cuenta como la misma cuenta en el límite de intentos', async () => {
+  const { createLoginLimiter } = await import('../src/middlewares/loginLimiter.js');
+  const limiter = createLoginLimiter({ maxFallos: 2 });
+  const llamar = (rut, status) =>
+    new Promise((resolve) => {
+      const handlers = {};
+      const res = {
+        statusCode: 200,
+        set() {},
+        status(code) { this.statusCode = code; return this; },
+        json(body) { resolve({ bloqueado: true, body }); },
+        on(evento, fn) { handlers[evento] = fn; }
+      };
+      limiter({ body: { identifier: rut }, ip: '1.1.1.1' }, res, () => {
+        res.statusCode = status;
+        handlers.finish?.();
+        resolve({ bloqueado: false });
+      });
+    });
+  await llamar('12.345.678-5', 401);
+  await llamar('123456785', 401);
+  const tercero = await llamar('12345678-5', 200);
+  assert.strictEqual(tercero.bloqueado, true);
+});
+
 // Proceso aparte en modo producción: sin MySQL nunca debe responder con datos de memoria
 await test('En producción sin MySQL: health avisa y el login responde 503', async () => {
   const port = 40000 + Math.floor(Math.random() * 10000);

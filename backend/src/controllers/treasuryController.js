@@ -114,10 +114,12 @@ export const TreasuryController = {
         data: created
       });
     } catch (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
+      // Reglas de negocio → 400 con su mensaje; fallas internas (MySQL, disco) → middleware central,
+      // que en producción responde 500 sin exponer detalles técnicos
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
     }
   },
 

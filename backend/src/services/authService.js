@@ -14,6 +14,14 @@ export const INSTITUTIONAL_DOMAIN = 'vtftemuco.cl';
 // Claves conocidas que nunca pueden quedar como definitivas
 const FORBIDDEN_PASSWORDS = ['admin123!', '12345678', 'password', 'contraseña'];
 
+// Rechazo de inicio de sesión (credenciales, dominio o cuenta inactiva): 401
+export class LoginError extends Error {
+  constructor(message, statusCode = 401) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
 export class PasswordChangeError extends Error {
   constructor(message, status) {
     super(message);
@@ -59,12 +67,12 @@ export const AuthService = {
     // Identificador estricto: correo institucional exacto (@vtftemuco.cl) o RUT. Sin alias ni otros dominios.
     const isEmail = cleanId.includes('@');
     if (isEmail && !cleanId.endsWith(`@${INSTITUTIONAL_DOMAIN}`)) {
-      throw new Error(`Use su correo institucional @${INSTITUTIONAL_DOMAIN} o su RUT.`);
+      throw new LoginError(`Use su correo institucional @${INSTITUTIONAL_DOMAIN} o su RUT.`);
     }
     const email = isEmail ? cleanId : null;
     const cleanRut = isEmail ? null : cleanId.replace(/[^0-9k]/g, '');
     if (!isEmail && (!cleanRut || cleanRut.length < 7)) {
-      throw new Error('Credenciales inválidas. Compruebe su correo/RUT y contraseña.');
+      throw new LoginError('Credenciales inválidas. Compruebe su correo/RUT y contraseña.');
     }
     let user = null;
 
@@ -119,7 +127,10 @@ export const AuthService = {
           };
         }
       } catch (err) {
-        console.warn('Error consultando administradores en MySQL, usando contingencia:', err.message);
+        // Con la base conectada, una falla de consulta es un error del servidor (500),
+        // no "credenciales inválidas": así no se confunde ni cuenta como intento fallido
+        console.error('Error consultando administradores en MySQL:', err.message);
+        throw err;
       }
     }
 
@@ -151,11 +162,11 @@ export const AuthService = {
     }
 
     if (!user) {
-      throw new Error('Credenciales inválidas. Compruebe su correo/RUT y contraseña.');
+      throw new LoginError('Credenciales inválidas. Compruebe su correo/RUT y contraseña.');
     }
 
     if (!user.isActive) {
-      throw new Error('Su usuario se encuentra inactivo o suspendido. Contacte a la directiva.');
+      throw new LoginError('Su usuario se encuentra inactivo o suspendido. Contacte a la directiva.');
     }
 
     // 3. Verificar contraseña mediante hash bcrypt exclusivamente (sin texto plano)
@@ -175,7 +186,7 @@ export const AuthService = {
         ipAddress,
         userAgent
       });
-      throw new Error('Credenciales inválidas. Compruebe su correo/RUT y contraseña.');
+      throw new LoginError('Credenciales inválidas. Compruebe su correo/RUT y contraseña.');
     }
 
     // 4. Generar JWT firmado
