@@ -9,7 +9,6 @@ import {
   KeyRound,
   ShieldCheck,
   ArrowRight,
-  ArrowLeft,
   AlertCircle,
   Info,
   CheckCircle2,
@@ -21,6 +20,7 @@ import { Input } from '../components/common/Input.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { ThemeToggle } from '../components/common/ThemeToggle.jsx';
 import { Modal } from '../components/common/Modal.jsx';
+import { DIRECTIVA_OFICIAL } from '../utils/directiva.js';
 
 const sociaLoginSchema = z.object({
   rut: z.string().min(8, 'Ingrese un RUT válido (ej. 12.345.678-5)'),
@@ -173,10 +173,71 @@ export function SociaLoginPage() {
         padding: '2rem 1rem'
       }}
     >
+      <div className="socia-login-layout">
+      {/* Directiva oficial: canales de contacto de la Asociación */}
+      <aside
+        className="socia-directiva-panel"
+        aria-labelledby="directiva-titulo"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-xl)',
+          padding: '2rem 1.75rem',
+          border: '1px solid var(--border-light)',
+          boxShadow: 'var(--shadow-card)'
+        }}
+      >
+        <img
+          src="/logo-vtf.png"
+          alt="Logo Asociación VTF Temuco"
+          style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            objectFit: 'cover',
+            backgroundColor: 'white',
+            padding: '2px',
+            boxShadow: 'var(--shadow-sm)',
+            marginBottom: '1rem'
+          }}
+        />
+        <h2
+          id="directiva-titulo"
+          style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}
+        >
+          Directiva
+        </h2>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: '0.25rem 0 1.5rem' }}>
+          Ante cualquier duda, escríbele a la directiva.
+        </p>
+
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {DIRECTIVA_OFICIAL.map((dir) => (
+            <li
+              key={dir.correo}
+              style={{ borderLeft: `3px solid ${dir.color}`, paddingLeft: '0.875rem', lineHeight: 1.45 }}
+            >
+              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>{dir.nombre}</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{dir.cargo}</div>
+              <a
+                href={`mailto:${dir.correo}`}
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--primary-600)',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  overflowWrap: 'anywhere'
+                }}
+              >
+                {dir.correo}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </aside>
+
       <div
         style={{
           width: '100%',
-          maxWidth: '480px',
           backgroundColor: 'var(--bg-surface)',
           borderRadius: 'var(--radius-xl)',
           padding: '2.5rem 2rem',
@@ -343,31 +404,7 @@ export function SociaLoginPage() {
             Ingresar a mi Portal
           </Button>
         </form>
-
-        {/* Botón de retorno al Login Institucional de Directiva */}
-        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.35rem 0.75rem',
-              borderRadius: 'var(--radius-sm)'
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.color = 'var(--primary-600)')}
-            onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-          >
-            <ArrowLeft size={14} />
-            <span>Volver al acceso institucional (Directiva / Admin)</span>
-          </button>
-        </div>
+      </div>
       </div>
 
       {/* Modal Obligatorio de Cambio de Contraseña en Primer Ingreso */}

@@ -30,28 +30,7 @@ import { Card } from '../components/common/Card.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { ThemeToggle } from '../components/common/ThemeToggle.jsx';
-
-// Directiva Oficial de la Asociación (Visualización estrictamente restringida a las 3 directivas con correo institucional)
-const DIRECTIVA_OFICIAL = [
-  {
-    nombre: 'YERTIE',
-    cargo: 'PRESIDENTA',
-    correo: 'presidenta@vtftemuco.cl',
-    color: '#725682'
-  },
-  {
-    nombre: 'ALEJANDRA',
-    cargo: 'TESORERA',
-    correo: 'tesorera@vtftemuco.cl',
-    color: '#2e7d32'
-  },
-  {
-    nombre: 'NELLY',
-    cargo: 'SECRETARIA',
-    correo: 'secretaria@vtftemuco.cl',
-    color: '#1976d2'
-  }
-];
+import { DIRECTIVA_OFICIAL } from '../utils/directiva.js';
 
 export function SociaPortalPage() {
   const { user, logout } = useAuth();
@@ -314,7 +293,7 @@ export function SociaPortalPage() {
           gap: '1.5rem'
         }}
       >
-        {/* 2. Banner de Directiva Oficial (Estricto: Yertie, Alejandra, Nelly con @vtftemuco.cl) */}
+        {/* 2. Banner de Directiva Oficial (datos en utils/directiva.js) */}
         <div
           style={{
             backgroundColor: 'var(--bg-surface)',
@@ -416,7 +395,8 @@ export function SociaPortalPage() {
                         color: 'var(--text-main)',
                         padding: '0.1rem 0.4rem',
                         borderRadius: 'var(--radius-sm)',
-                        letterSpacing: '0.04em'
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase'
                       }}
                     >
                       {dir.cargo}

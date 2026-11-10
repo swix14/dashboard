@@ -448,6 +448,18 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; letter-spacing: normal; }
 .login-demo-account svg { flex-shrink: 0; margin-left: 8px; }
 .login-demo-account:focus-visible { outline-offset: 3px; }
 .login-form-panel { box-shadow: var(--shadow-lg) !important; }
+/* Acceso de socias: directiva a la izquierda y formulario a la derecha, centrados */
+.socia-login-layout {
+  width: 100%; max-width: 920px; display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 460px);
+  justify-content: center; align-items: stretch; gap: 1.5rem;
+}
+.socia-directiva-panel { display: flex; flex-direction: column; justify-content: center; }
+@media (max-width: 860px) {
+  .socia-login-layout { grid-template-columns: minmax(0, 480px); }
+  /* En móvil primero el formulario y debajo la directiva */
+  .socia-directiva-panel { order: 2; }
+}
 input[type="checkbox"] { accent-color: var(--primary-500); }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 3px solid var(--border-focus); outline-offset: 3px;
