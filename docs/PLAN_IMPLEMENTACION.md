@@ -214,6 +214,24 @@ flowchart TD
 
 ---
 
+### Cierre de hallazgos de la auditoría preliminar (10-11-2026)
+> [!IMPORTANT]
+> **Estado:** **Terminado ✓**  
+> **Resultados:** 83 pruebas de backend aprobadas en 7 suites (`npm test`). Build Vite limpio.
+
+Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el código. Los hallazgos críticos ya estaban resueltos por V1, V2, V3 y la revisión del 09-11. Se corrigieron los pendientes menores:
+- **Tesorería respondía 400 ante cualquier error**, incluso fallas de MySQL, y mostraba el mensaje técnico. Ahora las reglas de negocio (`TreasuryError`) responden 400 y las fallas internas pasan al middleware central (500 sin detalles en producción).
+- **La API aceptaba `SALDO_APERTURA`** como tipo de movimiento. Ahora solo `INGRESO` o `EGRESO`; los saldos de apertura se cargan con `data.sql`.
+- **Login:** cualquier error respondía 401, y una falla de MySQL parecía "credenciales inválidas". Ahora los rechazos (`LoginError`) responden 401 y las fallas internas 500.
+- **Límite de intentos** (`middlewares/loginLimiter.js`) en el login de directiva y de socias: 5 intentos fallidos en 15 minutos bloquean la cuenta (RUT o correo, por IP) durante 15 minutos con respuesta 429.
+- **Contenido real de los archivos:** comprobantes y adjuntos del buzón se validan por su firma (PDF, JPG, PNG, WEBP) y las planillas como `.xlsx` real, no solo por el tipo que declara el navegador.
+- **Delegadas:** el Inicio las cuenta con `socias.es_delegada` en vez de usar el número de jardines. *En el padrón real ninguna socia está marcada aún como delegada: la directiva debe marcarlas.*
+- Se eliminó código sin uso (`registerUserSchema`, con roles inexistentes, y referencias a `SUPER_ADMIN` en el dashboard).
+
+**Pendiente de decisión de la directiva:** alcance de la Directora en el padrón (hoy ve el padrón completo) y si se necesita cerrar sesiones al instante (hoy el token vence a las 8 horas).
+
+---
+
 ### Versión 4: Módulo Independiente de Créditos y Convenios Sociales
 > [!NOTE]
 > **Estado:** Pendiente — **Asignado para resolución del equipo** (Carlos S., Luis C.)  
