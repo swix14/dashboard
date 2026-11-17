@@ -1,7 +1,16 @@
 import { CreditService } from '../services/creditService.js';
 import { CreditImportService } from '../services/creditImportService.js';
+import { CreditManualService } from '../services/creditManualService.js';
 import { AuditService } from '../services/auditService.js';
-import { periodoSchema, listCreditosSchema } from '../validators/creditValidator.js';
+import { hoyChile } from '../utils/fecha.js';
+import {
+  periodoSchema,
+  listCreditosSchema,
+  crearCreditoSchema,
+  editarCreditoSchema,
+  anularCreditoSchema,
+  prepagoSchema
+} from '../validators/creditValidator.js';
 
 const responsable = (req) => `${req.user.firstName} ${req.user.lastName || ''}`.trim();
 
@@ -103,6 +112,46 @@ export const CreditController = {
       message: `Pagos verificados: ${data.map((d) => d.nombre).join(', ')}.`,
       data
     });
+  }),
+
+  /** POST /api/creditos — nuevo crédito ingresado a mano */
+  crear: handle(async (req, res) => {
+    const parsed = crearCreditoSchema.safeParse(req.body || {});
+    if (!parsed.success) return invalid(res, parsed);
+    const data = await CreditManualService.crear(parsed.data, hoyChile());
+    await audit(req, 'CREDITO_CREATED', { creditoId: data.id, ...parsed.data });
+    res.status(201).json({ success: true, message: 'Crédito ingresado.', data });
+  }),
+
+  /** PUT /api/creditos/:id — corrige un crédito vigente (solo sus cuotas pendientes) */
+  editar: handle(async (req, res) => {
+    const parsed = editarCreditoSchema.safeParse(req.body || {});
+    if (!parsed.success) return invalid(res, parsed);
+    const id = Number(req.params.id);
+    const data = await CreditManualService.editar(id, parsed.data, hoyChile());
+    await audit(req, 'CREDITO_UPDATED', { creditoId: id, ...parsed.data });
+    res.json({ success: true, message: 'Crédito actualizado.', data });
+  }),
+
+  /** POST /api/creditos/:id/anular — { motivo } */
+  anular: handle(async (req, res) => {
+    const parsed = anularCreditoSchema.safeParse(req.body || {});
+    if (!parsed.success) return invalid(res, parsed);
+    const id = Number(req.params.id);
+    const data = await CreditManualService.anular(id, parsed.data.motivo, hoyChile());
+    await audit(req, 'CREDITO_ANULADO', { creditoId: id, motivo: parsed.data.motivo });
+    res.json({ success: true, message: 'Crédito anulado.', data });
+  }),
+
+  /** POST /api/creditos/:id/prepago — { fecha }: la socia paga todo el saldo */
+  prepagar: handle(async (req, res) => {
+    const parsed = prepagoSchema.safeParse(req.body || {});
+    if (!parsed.success) return invalid(res, parsed);
+    if (parsed.data.fecha > hoyChile()) return res.status(400).json({ success: false, message: 'La fecha del pago no puede ser futura.' });
+    const id = Number(req.params.id);
+    const data = await CreditManualService.prepagar(id, parsed.data.fecha);
+    await audit(req, 'CREDITO_PREPAGADO', { creditoId: id, ...data, fecha: parsed.data.fecha });
+    res.json({ success: true, message: 'Prepago registrado: el crédito quedó pagado.', data });
   }),
 
   /** GET /api/creditos/pagos/:id/comprobante */

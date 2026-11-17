@@ -27,4 +27,10 @@ router.get('/pagos/:id/comprobante', canView, validateIdParam, CreditController.
 router.get('/', canView, CreditController.getCreditos);
 router.get('/:id', canView, validateIdParam, CreditController.getCredito);
 
+// Créditos a mano (sin planilla): nuevo, editar, anular y prepago. Admin y Tesorera
+router.post('/', canManage, CreditController.crear);
+router.put('/:id', canManage, validateIdParam, CreditController.editar);
+router.post('/:id/anular', canManage, validateIdParam, CreditController.anular);
+router.post('/:id/prepago', canManage, validateIdParam, CreditController.prepagar);
+
 export default router;

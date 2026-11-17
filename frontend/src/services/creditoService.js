@@ -19,6 +19,27 @@ export const CreditoApiService = {
     return res.data.data;
   },
 
+  /** Créditos a mano (sin planilla) */
+  async crearCredito(datos) {
+    const res = await api.post('/creditos', datos);
+    return res.data;
+  },
+
+  async editarCredito(id, datos) {
+    const res = await api.put(`/creditos/${id}`, datos);
+    return res.data;
+  },
+
+  async anularCredito(id, motivo) {
+    const res = await api.post(`/creditos/${id}/anular`, { motivo });
+    return res.data;
+  },
+
+  async prepagarCredito(id, fecha) {
+    const res = await api.post(`/creditos/${id}/prepago`, { fecha });
+    return res.data;
+  },
+
   async getPeriodo(mes, anio) {
     const res = await api.get('/creditos/periodo', { params: { mes, anio } });
     return res.data.data;

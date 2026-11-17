@@ -57,9 +57,9 @@ export class CreditoError extends Error {
 // ---------------------------------------------------------------------------
 const pad = (n) => String(n).padStart(2, '0');
 const periodoKey = (anio, mes) => anio * 100 + mes;
-const claveMes = (anio, mes) => `${anio}-${pad(mes)}`;
+export const claveMes = (anio, mes) => `${anio}-${pad(mes)}`;
 
-function sumarMeses(anio, mes, delta) {
+export function sumarMeses(anio, mes, delta) {
   const total = anio * 12 + (mes - 1) + delta;
   return { anio: Math.floor(total / 12), mes: (total % 12) + 1 };
 }
@@ -492,7 +492,7 @@ function estadoInicial(cuota, credito, periodo) {
 export async function recalcularCredito(tx, creditoId, hoy) {
   const [r] = await tx(
     `SELECT c.total_cuotas, c.estado, c.fecha_finalizacion,
-            (SELECT COUNT(*) FROM cuotas_credito q WHERE q.credito_id = c.id AND q.estado IN ('descontada', 'condonada')) AS pagadas
+            (SELECT COUNT(*) FROM cuotas_credito q WHERE q.credito_id = c.id AND q.estado IN ('descontada', 'condonada', 'prepagada')) AS pagadas
      FROM creditos c WHERE c.id = ?`,
     [creditoId]
   );

@@ -13,11 +13,11 @@ const LIMIT = 15;
  * Historial de créditos: una fila por crédito (una socia con SOS e ISIMUNDO aparece dos veces).
  * Los pagados se muestran solo hasta un mes después de pagarse.
  */
-export function CreditosHistorial({ onOpen, refreshKey }) {
+export function CreditosHistorial({ onOpen, refreshKey, estadoInicial = 'TODOS' }) {
   const [search, setSearch] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [convenio, setConvenio] = useState('TODOS');
-  const [estado, setEstado] = useState('TODOS');
+  const [estado, setEstado] = useState(estadoInicial);
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ items: [], total: 0 });
   const [loading, setLoading] = useState(true);

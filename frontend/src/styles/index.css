@@ -865,6 +865,40 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .cred-dato dt { font-size: .6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
 .cred-dato dd { margin: .2rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--text-main); font-variant-numeric: tabular-nums; }
 .cred-cuotas { max-height: 300px; overflow-y: auto; }
+
+/* Créditos a mano: formulario, buscador de socia y acciones de la ficha */
+.cred-header-actions { display: flex; flex-wrap: wrap; gap: .625rem; }
+@media (max-width: 560px) { .cred-header-actions { width: 100%; } .cred-header-actions .vtf-btn { flex: 1; } }
+.cred-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .875rem 1rem; }
+.cred-campo { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.cred-campo .vtf-label { margin: 0; }
+.cred-hint { font-size: .6875rem; color: var(--text-muted); }
+.cred-form-resumen { margin: 0; padding: .625rem .875rem; border-radius: var(--radius-md); background: var(--primary-50); color: var(--primary-700); font-size: .8125rem; line-height: 1.45; }
+.cred-socia-picker { position: relative; }
+.cred-socia-lista { list-style: none; margin: .375rem 0 0; padding: .25rem; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-md); max-height: 232px; overflow-y: auto; }
+.cred-socia-lista button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .5rem .625rem; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-main); font: inherit; font-size: .875rem; text-align: left; cursor: pointer; transition: background .12s; }
+.cred-socia-lista button:hover, .cred-socia-lista button:focus-visible { background: var(--primary-50); outline: none; }
+.cred-socia-vacio { padding: .5rem .625rem; }
+.cred-socia-elegida { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .625rem .875rem; border: 1px solid var(--success-border); border-radius: var(--radius-md); background: var(--success-bg); }
+.cred-ficha-acciones { display: flex; flex-wrap: wrap; gap: .5rem; padding-top: .25rem; }
+.cred-btn-anular { color: var(--error-text); margin-left: auto; }
+.cred-btn-anular:hover { background: var(--error-bg); color: var(--error-text); }
+.cred-accion-panel { display: flex; flex-direction: column; gap: .625rem; padding: 1rem; border: 1px solid var(--primary-200, var(--border-light)); border-radius: var(--radius-lg); background: var(--bg-surface-subtle); animation: fadeIn .18s ease-out; }
+.cred-accion-panel-danger { border-color: var(--error-border); background: var(--error-bg); }
+.cred-accion-titulo { font-weight: 800; color: var(--text-main); }
+.cred-accion-texto { margin: 0; font-size: .8125rem; color: var(--text-main); line-height: 1.5; }
+.cred-accion-error { margin: 0; font-size: .8125rem; font-weight: 600; color: var(--error-text); }
+.cred-accion-fila { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; }
+.cred-accion-botones { display: flex; gap: .5rem; margin-left: auto; flex-wrap: wrap; }
+.cred-dato-nota { display: block; font-weight: 500; margin-top: .15rem; }
+.vtf-btn-danger { background: var(--error-text); color: var(--bg-surface); }
+.vtf-btn-danger:hover { filter: brightness(1.08); }
+@media (max-width: 560px) {
+  .cred-form-grid { grid-template-columns: 1fr; }
+  .cred-btn-anular { margin-left: 0; }
+  .cred-accion-botones { margin-left: 0; width: 100%; }
+  .cred-accion-botones .vtf-btn { flex: 1; }
+}
 .cred-view-toggle { display: inline-flex; border: 1px solid var(--border-light); border-radius: var(--radius-md); overflow: hidden; }
 .cred-view-toggle button { display: inline-flex; align-items: center; gap: .3rem; padding: .375rem .625rem; border: 0; background: transparent; color: var(--text-muted); font: inherit; font-size: .75rem; font-weight: 600; cursor: pointer; }
 .cred-view-toggle button[aria-pressed="true"] { background: var(--primary-50); color: var(--primary-700); }

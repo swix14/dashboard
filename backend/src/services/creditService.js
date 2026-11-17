@@ -18,12 +18,15 @@ const pad = (n) => String(n).padStart(2, '0');
 // Pagados visibles hasta un mes después de su fecha de pago (D4)
 const VISIBLE_SQL = `(c.estado = 'vigente' OR (c.estado = 'finalizado' AND c.fecha_finalizacion >= DATE_SUB(?, INTERVAL 1 MONTH)))`;
 
+// ULTIMAS_DOS: alerta naranja pedida por la directiva ("últimas 2 cuotas")
 const ESTADO_SQL = `CASE
+    WHEN c.estado = 'anulado' THEN 'ANULADO'
     WHEN c.estado = 'finalizado' THEN 'PAGADO'
     WHEN c.total_cuotas - c.cuotas_pagadas <= 1 THEN 'ULTIMA_CUOTA'
+    WHEN c.total_cuotas - c.cuotas_pagadas = 2 THEN 'ULTIMAS_DOS'
     ELSE 'VIGENTE' END`;
 
-const ESTADOS_FILTRO = { VIGENTE: 'VIGENTE', ULTIMA_CUOTA: 'ULTIMA_CUOTA', PAGADO: 'PAGADO' };
+const ESTADOS_FILTRO = { VIGENTE: 'VIGENTE', ULTIMAS_DOS: 'ULTIMAS_DOS', ULTIMA_CUOTA: 'ULTIMA_CUOTA', PAGADO: 'PAGADO' };
 
 function nombreSocia(r) {
   return [r.nombres, r.apellido_paterno, r.apellido_materno].filter(Boolean).join(' ');
@@ -56,7 +59,7 @@ export const CreditService = {
           ? { monto: ultimoCargado.monto_a_pagar, mes: ultimoCargado.mes, anio: ultimoCargado.anio, verificado: Boolean(ultimoCargado.verificado_at) }
           : null,
         ultimoPago: ultimoPago ? { id: ultimoPago.id, monto: ultimoPago.monto_pagado, mes: ultimoPago.mes, anio: ultimoPago.anio } : null,
-        vigentes: cuenta('VIGENTE') + cuenta('ULTIMA_CUOTA'),
+        vigentes: cuenta('VIGENTE') + cuenta('ULTIMAS_DOS') + cuenta('ULTIMA_CUOTA'),
         ultimaCuota: cuenta('ULTIMA_CUOTA'),
         pagados: cuenta('PAGADO')
       };
@@ -143,6 +146,9 @@ export const CreditService = {
       fechaInicio: r.fecha_otorgamiento,
       fechaTermino: r.fecha_termino,
       fechaPagado: r.fecha_finalizacion,
+      origen: r.origen,
+      motivoAnulacion: r.motivo_anulacion,
+      fechaAnulacion: r.fecha_anulacion,
       montoOtorgado: r.monto_total,
       montoCuota: r.monto_cuota,
       totalCuotas: r.total_cuotas,

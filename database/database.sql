@@ -122,6 +122,10 @@ CREATE TABLE IF NOT EXISTS `creditos` (
     `clave_carga` VARCHAR(40) NULL,
     -- Un crédito pagado deja de mostrarse un mes después de esta fecha (decisión D4)
     `fecha_finalizacion` DATE NULL,
+    -- Planilla del día 18 o ingresado a mano desde el modal "Nuevo crédito"
+    `origen` ENUM('PLANILLA', 'MANUAL') NOT NULL DEFAULT 'PLANILLA',
+    `motivo_anulacion` VARCHAR(255) NULL,
+    `fecha_anulacion` DATE NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY `uk_creditos_carga` (`socia_id`, `convenio_id`, `clave_carga`),
     -- RESTRICT: una socia con créditos no se puede borrar físicamente (se usa la baja RETIRADA)
@@ -140,7 +144,8 @@ CREATE TABLE IF NOT EXISTS `cuotas_credito` (
     `estado` ENUM(
         'pendiente',
         'descontada',
-        'condonada'
+        'condonada',
+        'prepagada'
     ) DEFAULT 'pendiente',
     `fecha_pago` DATE NULL,
     INDEX `idx_cuotas_periodo` (`anio_cobro`, `mes_cobro`, `estado`),

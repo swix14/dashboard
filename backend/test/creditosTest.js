@@ -304,6 +304,99 @@ await test('Un crédito pagado se muestra un mes y después sale del historial',
   assert.ok(!oculto.body.data.some((c) => c.id === sosB.id));
 });
 
+// ---------------------------------------------------------------------------
+// Créditos ingresados a mano (sin planilla)
+const [D] = await query(
+  `SELECT s.id, s.rut FROM socias s
+   WHERE s.estado = 'ACTIVA' AND NOT EXISTS (SELECT 1 FROM creditos c WHERE c.socia_id = s.id)
+   ORDER BY s.id LIMIT 1`
+);
+const nuevoSos = { sociaId: D.id, empresa: 'SOS', valorCuota: 20000, totalCuotas: 5, primeraCuota: '2027-06', cuotasPagadas: 2 };
+let manualId;
+
+await test('Manual: la Presidenta no puede ingresar ni modificar créditos', async () => {
+  assert.strictEqual((await call('POST', '/creditos', PRESIDENTA, nuevoSos)).status, 403);
+  assert.strictEqual((await call('POST', '/creditos', SECRETARIA, nuevoSos)).status, 403);
+});
+
+await test('Manual: valida ISIMUNDO sin N° de crédito y cuotas pagadas mayores al total', async () => {
+  const isi = await call('POST', '/creditos', TESORERA, { ...nuevoSos, empresa: 'ISIMUNDO' });
+  assert.strictEqual(isi.status, 400);
+  assert.match(isi.body.message, /N° de crédito/);
+  assert.strictEqual((await call('POST', '/creditos', TESORERA, { ...nuevoSos, cuotasPagadas: 5 })).status, 400);
+  assert.strictEqual((await call('POST', '/creditos', TESORERA, { ...nuevoSos, primeraCuota: '2027-13' })).status, 400);
+});
+
+await test('Manual: nuevo crédito genera su calendario con las cuotas ya pagadas descontadas', async () => {
+  const { status, body } = await call('POST', '/creditos', TESORERA, nuevoSos);
+  assert.strictEqual(status, 201, body.message);
+  manualId = body.data.id;
+  const cuotas = await cuotasDe(manualId);
+  assert.deepStrictEqual(cuotas.map((q) => [q.mes_cobro, q.estado]), [
+    [6, 'descontada'], [7, 'descontada'], [8, 'pendiente'], [9, 'pendiente'], [10, 'pendiente']
+  ]);
+  const ficha = await call('GET', `/creditos/${manualId}`, TESORERA);
+  assert.strictEqual(ficha.body.data.origen, 'MANUAL');
+  assert.strictEqual(ficha.body.data.cuotasPagadas, 2);
+  assert.strictEqual(ficha.body.data.montoPendiente, 60000);
+});
+
+await test('Manual: usa la misma clave que la planilla (no se duplica)', async () => {
+  assert.strictEqual((await call('POST', '/creditos', TESORERA, nuevoSos)).status, 409);
+  // A ya tiene el SOS de la planilla que parte en febrero 2027
+  const dup = await call('POST', '/creditos', TESORERA, { ...nuevoSos, sociaId: A.id, primeraCuota: '2027-02', cuotasPagadas: 0 });
+  assert.strictEqual(dup.status, 409);
+});
+
+await test('Manual: editar cambia solo las cuotas pendientes; con 2 restantes queda "Quedan 2 cuotas"', async () => {
+  const bajo = await call('PUT', `/creditos/${manualId}`, TESORERA, { valorCuota: 20000, totalCuotas: 1 });
+  assert.strictEqual(bajo.status, 400, 'no puede quedar con menos cuotas que las pagadas');
+  const { status, body } = await call('PUT', `/creditos/${manualId}`, TESORERA, { valorCuota: 22000, totalCuotas: 4 });
+  assert.strictEqual(status, 200, body.message);
+  const cuotas = await cuotasDe(manualId);
+  assert.deepStrictEqual(cuotas.map((q) => [q.monto, q.estado]), [
+    [20000, 'descontada'], [20000, 'descontada'], [22000, 'pendiente'], [22000, 'pendiente']
+  ]);
+  const lista = await call('GET', '/creditos?estado=ULTIMAS_DOS&search=' + encodeURIComponent(D.rut), TESORERA);
+  assert.ok(lista.body.data.some((c) => c.id === manualId && c.estado === 'ULTIMAS_DOS'));
+  // Subir el total agrega cuotas al final, mes a mes
+  await call('PUT', `/creditos/${manualId}`, TESORERA, { valorCuota: 22000, totalCuotas: 5 });
+  const [ultima] = (await cuotasDe(manualId)).slice(-1);
+  assert.deepStrictEqual([ultima.numero_cuota, ultima.mes_cobro, ultima.estado], [5, 10, 'pendiente']);
+});
+
+await test('Prepago: deja el crédito pagado y ya no se puede modificar', async () => {
+  const futura = await call('POST', `/creditos/${manualId}/prepago`, TESORERA, { fecha: '2099-01-01' });
+  assert.strictEqual(futura.status, 400);
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
+  const { status, body } = await call('POST', `/creditos/${manualId}/prepago`, TESORERA, { fecha: hoy });
+  assert.strictEqual(status, 200, body.message);
+  assert.deepStrictEqual([body.data.cuotas, body.data.monto], [3, 66000]);
+  const [c] = await query('SELECT estado, cuotas_pagadas, total_cuotas FROM creditos WHERE id = ?', [manualId]);
+  assert.deepStrictEqual([c.estado, c.cuotas_pagadas], ['finalizado', c.total_cuotas]);
+  assert.ok((await cuotasDe(manualId)).slice(2).every((q) => q.estado === 'prepagada'));
+  assert.strictEqual((await call('POST', `/creditos/${manualId}/prepago`, TESORERA, { fecha: hoy })).status, 409);
+  assert.strictEqual((await call('PUT', `/creditos/${manualId}`, TESORERA, { valorCuota: 1000, totalCuotas: 5 })).status, 409);
+});
+
+await test('Anular: exige motivo, saca el crédito del historial y sus cuotas no se cobran', async () => {
+  const pendientesDental = async () =>
+    (await call('GET', '/creditos/periodo?mes=3&anio=2027', TESORERA)).body.data.find((e) => e.codigo === 'DENTAL').cuotasPendientes;
+  const antes = await pendientesDental();
+  const { body } = await call('POST', '/creditos', TESORERA, { ...nuevoSos, empresa: 'DENTAL', primeraCuota: '2027-03', cuotasPagadas: 0 });
+  const id = body.data.id;
+  assert.strictEqual(await pendientesDental(), antes + 1, 'la cuota de marzo del crédito nuevo queda pendiente');
+  assert.strictEqual((await call('POST', `/creditos/${id}/anular`, TESORERA, { motivo: '' })).status, 400);
+  const res = await call('POST', `/creditos/${id}/anular`, TESORERA, { motivo: 'Ingresado por error' });
+  assert.strictEqual(res.status, 200, res.body.message);
+  const ficha = await call('GET', `/creditos/${id}`, TESORERA);
+  assert.deepStrictEqual([ficha.body.data.estado, ficha.body.data.motivoAnulacion], ['ANULADO', 'Ingresado por error']);
+  const lista = await call('GET', '/creditos?convenio=DENTAL&search=' + encodeURIComponent(D.rut), TESORERA);
+  assert.ok(!lista.body.data.some((c) => c.id === id));
+  // La cuota de marzo del crédito anulado deja de contar como pendiente del mes
+  assert.strictEqual(await pendientesDental(), antes);
+});
+
 console.log(`\n[RESULTADOS CRÉDITOS] ${passed} pasados, ${failed} fallidos`);
 server.closeAllConnections?.();
 server.close();
