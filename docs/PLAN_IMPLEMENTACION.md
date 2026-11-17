@@ -248,6 +248,7 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
   - La Secretaria no ve pagos a la Federación, tareas, alertas, recaudación ni Tesorería (`secciones.finanzas = false` en el Inicio).
   - La Directora 1 recibe los mismos permisos que la Secretaria.
 - **Ficha socia y ficha crédito separadas** (`CreditoDetailModal.jsx`). Los datos de crédito llegan solo a Admin, Presidenta y Tesorera; para el resto el backend los quita de la respuesta.
+- **Resumen de créditos en PDF** (pedido en la nota de la sección Socias): ícono junto al "SI" del padrón y botón "Descargar PDF" en la ficha de crédito (`GET /api/socias/:id/creditos/pdf`, solo Admin, Presidenta y Tesorera, con auditoría). Una fila por crédito con empresa, monto, cuotas pagadas/total, valor cuota, saldo y estado; los anulados no aparecen. Usa `pdfkit` y el módulo común `backend/src/utils/pdf.js`, que también servirá para el Balance Anual. Se corrigió además la ficha de crédito, que mostraba 0 vigentes y saldo $0. 3 pruebas nuevas en `creditosTest.js` (160 en total).
 - **Comunicaciones** (`ComunicacionesPage.jsx`): Admin, Presidenta, Secretaria y Directora publican y eliminan noticias, leen el buzón de las socias, marcan los mensajes como leídos o respondidos y descargan los adjuntos.
 - **Informe mensual** (`ReportesPage.jsx`, `GET /api/reportes/mensual`): pago a la Federación, total de egresos, total disponible y cantidad de movimientos, con exportación a Excel. Las delegadas lo ven en modo solo lectura (adelanto de V7).
 - **Recuperación de clave de socia:** desde Socias → Ficha socia → "Restablecer clave". La clave vuelve a los 6 primeros dígitos del RUT con cambio obligatorio, se cierran sus sesiones y queda en la auditoría (H-008). La clave inicial se mantiene por decisión de la directiva (H-001).
@@ -410,7 +411,7 @@ Pedido de la reunión: exportar en Excel lo que se descuenta por planilla, desgl
 > [!NOTE]
 > **Estado:** Pendiente — **Asignado para resolución del equipo**  
 > **Objetivo:** Habilitar la consola exclusiva para las 23 delegadas con cifras consolidadas y generación automática del Balance Anual en PDF para asambleas.  
-> **Avance (17-11-2026):** el informe mensual con exportación a Excel ya existe (`reporteService.js`, `ReportesPage.jsx`) y las delegadas lo ven en modo solo lectura. **Falta:** el Balance Anual en PDF y las cifras por jardín.
+> **Avance (17-11-2026):** el informe mensual con exportación a Excel ya existe (`reporteService.js`, `ReportesPage.jsx`) y las delegadas lo ven en modo solo lectura. Ya existe el módulo de PDF institucional (`backend/src/utils/pdf.js`, usado en el resumen de créditos de la socia). **Falta:** el Balance Anual en PDF y las cifras por jardín.
 
 #### 1. Archivos Involucrados
 - `backend/src/services/reporteService.js`: Informe mensual (hecho) y, pendiente, el Balance Anual en PDF.

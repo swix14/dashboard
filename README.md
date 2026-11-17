@@ -7,7 +7,7 @@
 [![Backend](https://img.shields.io/badge/Backend-Express%20%7C%20REST%20API-000000?style=flat-square&logo=express&logoColor=white)](#4-arquitectura-del-sistema)
 [![Base de Datos](https://img.shields.io/badge/Persistencia-MySQL%20%2F%20MariaDB-4479A1?style=flat-square&logo=mysql&logoColor=white)](#53-persistencia-de-datos)
 [![Versión](https://img.shields.io/badge/Versión-V4%20Créditos%20y%20Convenios-725682?style=flat-square)](#3-estado-del-proyecto-versiones-y-hoja-de-ruta)
-[![Estado de Pruebas](https://img.shields.io/badge/Validación-157%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
+[![Estado de Pruebas](https://img.shields.io/badge/Validación-160%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
 
 Plataforma web institucional concebida para la gobernanza corporativa, fiscalización contable, administración del padrón gremial, custodia documental y rendición periódica de cuentas de los establecimientos de Educación Parvularia Vía Transferencia de Fondos (VTF) de la comuna de Temuco.
 
@@ -101,6 +101,7 @@ graph TD
   * Exportación del padrón según el filtro aplicado.
   * Ficha socia y ficha crédito separadas: los créditos solo los ven Admin, Presidenta y Tesorera.
   * Botón "Restablecer clave" en la ficha de la socia para recuperar su acceso al portal.
+  * **Resumen de créditos en PDF** de cada socia (empresa, monto y cuotas), desde el padrón o su ficha de crédito.
 * **V4 — Créditos y Convenios:**
   * Cinco empresas: S.O.S, ISIMUNDO, Óptica, Dental y Abogada, cada una con su tarjeta "A pagar" y "Último pago".
   * Carga de la planilla **"Maestra Créditos"** el día 18, con vista previa y aplicación en una sola transacción.
@@ -209,7 +210,7 @@ npm run dev:frontend
 
 ### 5.4. Verificación Automatizada del Sistema
 
-Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 10 suites (157 pruebas) contra ella; nunca toca `jardines_vtf`:
+Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 10 suites (160 pruebas) contra ella; nunca toca `jardines_vtf`:
 
 ```powershell
 npm run test:backend
