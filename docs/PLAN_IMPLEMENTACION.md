@@ -342,7 +342,14 @@ Pedido de la directiva: la Tesorera debe poder "ingresar montos y modificar regi
 - **Bug corregido:** la alerta "Socias con 1 cuota restante" del Inicio mostraba 6 y 3 de ejemplo cuando no llegaban datos, y su botón abría un texto fijo. Ahora muestra las cifras reales y lleva a Créditos filtrado por "Última cuota".
 - 7 pruebas nuevas en `creditosTest.js` (131 en total).
 
-#### 6. Pendiente
+#### 6. Corrección de movimientos de Tesorería (ajuste posterior a V4)
+Pedido de la reunión: la Tesorera "modifica registros". Antes un movimiento mal digitado no se podía corregir.
+- **Editar** (`PUT /api/tesoreria/movimientos/:id`, mismo modal del alta): fecha, monto, descripción, método, categoría y, opcional, un comprobante nuevo que reemplaza al anterior (el archivo anterior se conserva en el servidor). El tipo no cambia: si está mal, se anula y se registra de nuevo.
+- **Anular** (`POST /api/tesoreria/movimientos/:id/anular`) con motivo obligatorio. El movimiento queda en el libro, tachado y con su motivo, para la comisión revisadora; deja de sumar en saldos, Inicio, informe mensual y Excel.
+- Los saldos de apertura no se editan ni se anulan. Solo Tesorera y Admin; la auditoría guarda el antes y el después de cada edición.
+- Migración `database/migraciones/2026-11-20_tesoreria_correcciones.sql`. 6 pruebas nuevas en `treasuryPersistenceTest.js` (137 en total).
+
+#### 7. Pendiente
 - Comisión del 2 % de Isi Mundo: hoy se registra en Tesorería como ingreso; no se calcula sola.
 - Acceso de la Directora a los convenios: a definir por la directiva.
 

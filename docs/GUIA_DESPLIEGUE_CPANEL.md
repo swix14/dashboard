@@ -289,7 +289,7 @@ La carpeta `/home/USUARIO/sigav-app/uploads` no existe o no tiene permisos de es
 Para subir una versión nueva **sin perder datos**:
 
 1. Respaldar la base (phpMyAdmin → Exportar) y la carpeta `uploads/`.
-2. Ejecutar en la pestaña SQL, una sola vez y en orden de fecha, solo las migraciones nuevas de `database/migraciones/` que aún no se hayan aplicado. Para V4 es `2026-11-18_v4_creditos.sql`, que agrega las tablas de cargas y pagos de créditos sin tocar los créditos existentes; al final debe mostrar las 5 empresas con su código. Después va `2026-11-19_creditos_manual.sql` (créditos ingresados a mano, anulación y prepago), que debe mostrar la columna `origen`.
+2. Ejecutar en la pestaña SQL, una sola vez y en orden de fecha, solo las migraciones nuevas de `database/migraciones/` que aún no se hayan aplicado. Para V4 es `2026-11-18_v4_creditos.sql`, que agrega las tablas de cargas y pagos de créditos sin tocar los créditos existentes; al final debe mostrar las 5 empresas con su código. Después va `2026-11-19_creditos_manual.sql` (créditos ingresados a mano, anulación y prepago), que debe mostrar la columna `origen`, y luego `2026-11-20_tesoreria_correcciones.sql` (editar y anular movimientos de Tesorería), que debe mostrar la columna `anulado`.
 3. Armar el paquete (paso 1) y reemplazar en el servidor **solo** `src/`, `public/`, `app.cjs`, `package.json` y `package-lock.json`. **No tocar `uploads/`.**
 4. **Run NPM Install** (si cambió `package.json`) y **Restart**.
 5. Verificar con el paso 7.
