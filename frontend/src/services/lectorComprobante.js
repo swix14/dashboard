@@ -95,15 +95,6 @@ async function textoDePdf(file) {
   }
 }
 
-/** Texto del comprobante en cada modo de lectura (sirve para diagnosticar una lectura fallida) */
-export async function leerTextoComprobante(file) {
-  if (file.type === 'application/pdf') return [await textoDePdf(file)];
-  const imagen = await prepararImagen(file);
-  const textos = [];
-  for (const modo of MODOS_OCR) textos.push(await textoDeImagen(imagen, modo));
-  return textos;
-}
-
 /**
  * @param {File} file - PDF o imagen (JPG, PNG, WEBP)
  * @returns {Promise<{ monto: number, regla: string, linea: string, fuente: 'pdf' | 'imagen' } | null>}

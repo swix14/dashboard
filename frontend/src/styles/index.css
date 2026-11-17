@@ -1372,3 +1372,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .mov-lectura-spin { animation: mov-giro 1s linear infinite; }
 @keyframes mov-giro { to { transform: rotate(360deg); } }
 .vtf-input.mov-monto-leido { border-color: var(--success-border); box-shadow: 0 0 0 3px var(--success-bg); }
+/* Tesorería: recuadros de resumen (KpiCard) y etiquetas de los filtros */
+.tes-kpi-titulo { font-size: .8125rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: .05em; margin-bottom: .875rem; }
+.tes-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; }
+.tes-kpi { border-left: 4px solid var(--kpi-borde); }
+.tes-kpi-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+.tes-kpi-label { font-size: .75rem; font-weight: 700; text-transform: uppercase; color: var(--kpi-texto); }
+.tes-kpi-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); background-color: var(--kpi-fondo); color: var(--kpi-texto); display: flex; align-items: center; justify-content: center; }
+.tes-kpi-valor { font-size: 1.75rem; font-weight: 800; color: var(--text-main); font-variant-numeric: tabular-nums; }
+.tes-kpi-nota { font-size: .75rem; color: var(--text-muted); margin-top: .375rem; }
+.tes-kpi-nota-destacada { font-weight: 600; color: var(--primary-800); }
+.tes-filtro-label { display: block; font-size: .75rem; font-weight: 700; color: var(--text-muted); margin-bottom: .375rem; }

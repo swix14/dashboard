@@ -4,17 +4,11 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Building,
-  DollarSign,
   Download,
   PlusCircle,
-  Filter,
   FileText,
-  AlertCircle,
   CheckCircle2,
-  X,
-  Upload,
   Lock,
-  Calendar,
   Layers,
   Pencil,
   Ban
@@ -26,7 +20,16 @@ import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { NewMovementModal } from '../components/treasury/NewMovementModal.jsx';
 import { AnularMovimientoModal } from '../components/treasury/AnularMovimientoModal.jsx';
+import { KpiCard } from '../components/treasury/KpiCard.jsx';
 import { formatCurrencyCLP, formatDateCLP, formatFileSize, csvCell } from '../utils/formatters.js';
+
+// Colores de la etiqueta de centro de costo en el libro de movimientos
+const CENTRO_COLORES = {
+  ASOCIACION: { fondo: 'var(--primary-50)', texto: 'var(--primary-800)' },
+  'CENA ANUAL': { fondo: 'var(--accent-pink-50)', texto: 'var(--accent-pink-700)' },
+  FEDERACION: { fondo: 'var(--info-bg)', texto: 'var(--info-text)' }
+};
+const CENTRO_OTRO = { fondo: 'var(--sand-50)', texto: 'var(--sand-800)' };
 
 // Con responseType 'blob' el mensaje de error del backend también llega como Blob
 const readBlobErrorMessage = async (err) => {
@@ -259,149 +262,59 @@ export function TreasuryPage() {
         </div>
       </div>
 
-      {/* =========================================================================
-          RECUADROS INFORMACIÓN VISIBLE (7 RECUADROS KPI EXIGIDOS)
-          1. RECUADRO INGRESOS (solo suma total de ingresos)
-          2. RECUADRO EGRESOS (solo suma total egresos)
-          3. RECUADRO SALDO TOTAL (suma de ASOCIACIÓN y CENA ANUAL)
-          4. RECUADRO MOVIMIENTOS (total de movimientos realizados)
-          5. RECUADRO FEDERACIÓN (montos totales pagados a federación)
-          6. RECUADRO ASOCIACIÓN (saldo total existente de centro de costo asociación)
-          7. RECUADRO CENA ANUAL (saldo total existente de centro de costo cena anual)
-         ========================================================================= */}
+      {/* Recuadros de resumen: ingresos, egresos, saldo total (Asociación + Cena Anual),
+          movimientos, pagos a Federación y saldo de cada centro de costo */}
       <div>
-        <div style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: '0.875rem' }}>
-          Balance y Centros de Costo en Vivo
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '1.25rem'
-          }}
-        >
-          {/* 1. RECUADRO INGRESOS */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid var(--success-border)', background: 'var(--bg-surface)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--success-text)' }}>
-                Total Ingresos
-              </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--success-bg)', color: 'var(--success-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ArrowUpRight size={18} />
-              </div>
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatCurrencyCLP(summary?.totalIngresos)}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
-              Cuotas, cenas y comisión 2%
-            </div>
-          </div>
-
-          {/* 2. RECUADRO EGRESOS */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid var(--accent-pink-500)', background: 'var(--bg-surface)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-pink-600)' }}>
-                Total Egresos
-              </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--accent-pink-100)', color: 'var(--accent-pink-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ArrowDownRight size={18} />
-              </div>
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatCurrencyCLP(summary?.totalEgresos)}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
-              Pagos con respaldo verificado
-            </div>
-          </div>
-
-          {/* 3. RECUADRO SALDO TOTAL */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid var(--primary-500)', background: 'var(--bg-surface)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary-700)' }}>
-                Saldo Total Disponible
-              </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--primary-100)', color: 'var(--primary-700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Wallet size={18} />
-              </div>
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatCurrencyCLP(summary?.saldoTotal)}
-            </div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-800)', marginTop: '0.375rem' }}>
-              Suma: Asociación + Cena Anual
-            </div>
-          </div>
-
-          {/* 4. RECUADRO MOVIMIENTOS */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid var(--sand-500)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--sand-700)' }}>
-                Total Movimientos
-              </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--sand-100)', color: 'var(--sand-700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Layers size={18} />
-              </div>
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              {summary?.totalMovimientos ?? movements.length}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
-              Transacciones auditadas
-            </div>
-          </div>
-
-          {/* 5. RECUADRO FEDERACIÓN */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid var(--primary-400)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--info-text)' }}>
-                Pagos a Federación
-              </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--info-bg)', color: 'var(--info-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Building size={18} />
-              </div>
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatCurrencyCLP(summary?.totalPagadoFederacion)}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
-              Aportes gremiales al día (Solo Egresos)
-            </div>
-          </div>
-
-          {/* 6. RECUADRO ASOCIACIÓN */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid var(--primary-400)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary-700)' }}>
-                Saldo Asociación
-              </span>
-              <Badge variant="neutral">C. Costo</Badge>
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatCurrencyCLP(summary?.saldoAsociacion)}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
-              Gastos operacionales y bienestar
-            </div>
-          </div>
-
-          {/* 7. RECUADRO CENA ANUAL */}
-          <div className="vtf-card" style={{ borderLeft: '4px solid var(--accent-pink-400)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-pink-600)' }}>
-                Saldo Cena Anual
-              </span>
-              <Badge variant="neutral">C. Costo</Badge>
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatCurrencyCLP(summary?.saldoCenaAnual)}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>
-              Fondo evento fin de año y S.O.S
-            </div>
-          </div>
+        <div className="tes-kpi-titulo">Balance y Centros de Costo en Vivo</div>
+        <div className="tes-kpi-grid">
+          <KpiCard
+            label="Total Ingresos"
+            value={formatCurrencyCLP(summary?.totalIngresos)}
+            hint="Cuotas, cenas y comisión 2%"
+            icon={ArrowUpRight}
+            colores={{ borde: 'var(--success-border)', texto: 'var(--success-text)', fondo: 'var(--success-bg)' }}
+          />
+          <KpiCard
+            label="Total Egresos"
+            value={formatCurrencyCLP(summary?.totalEgresos)}
+            hint="Pagos con respaldo verificado"
+            icon={ArrowDownRight}
+            colores={{ borde: 'var(--accent-pink-500)', texto: 'var(--accent-pink-600)', fondo: 'var(--accent-pink-100)' }}
+          />
+          <KpiCard
+            label="Saldo Total Disponible"
+            value={formatCurrencyCLP(summary?.saldoTotal)}
+            hint="Suma: Asociación + Cena Anual"
+            hintDestacado
+            icon={Wallet}
+            colores={{ borde: 'var(--primary-500)', texto: 'var(--primary-700)', fondo: 'var(--primary-100)' }}
+          />
+          <KpiCard
+            label="Total Movimientos"
+            value={summary?.totalMovimientos ?? movements.length}
+            hint="Transacciones auditadas"
+            icon={Layers}
+            colores={{ borde: 'var(--sand-500)', texto: 'var(--sand-700)', fondo: 'var(--sand-100)' }}
+          />
+          <KpiCard
+            label="Pagos a Federación"
+            value={formatCurrencyCLP(summary?.totalPagadoFederacion)}
+            hint="Aportes gremiales al día (Solo Egresos)"
+            icon={Building}
+            colores={{ borde: 'var(--primary-400)', texto: 'var(--info-text)', fondo: 'var(--info-bg)' }}
+          />
+          <KpiCard
+            label="Saldo Asociación"
+            value={formatCurrencyCLP(summary?.saldoAsociacion)}
+            hint="Gastos operacionales y bienestar"
+            colores={{ borde: 'var(--primary-400)', texto: 'var(--primary-700)' }}
+          />
+          <KpiCard
+            label="Saldo Cena Anual"
+            value={formatCurrencyCLP(summary?.saldoCenaAnual)}
+            hint="Fondo evento fin de año y S.O.S"
+            colores={{ borde: 'var(--accent-pink-400)', texto: 'var(--accent-pink-600)' }}
+          />
         </div>
       </div>
 
@@ -422,7 +335,7 @@ export function TreasuryPage() {
         >
           {/* Tipo */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
+            <label className="tes-filtro-label">
               Tipo de Movimiento
             </label>
             <select
@@ -438,7 +351,7 @@ export function TreasuryPage() {
 
           {/* Centro de Costo */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
+            <label className="tes-filtro-label">
               Centro de Costo
             </label>
             <select
@@ -456,7 +369,7 @@ export function TreasuryPage() {
 
           {/* Método */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
+            <label className="tes-filtro-label">
               Método de Pago
             </label>
             <select
@@ -474,7 +387,7 @@ export function TreasuryPage() {
 
           {/* Fecha Desde */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
+            <label className="tes-filtro-label">
               Fecha Desde
             </label>
             <input
@@ -487,7 +400,7 @@ export function TreasuryPage() {
 
           {/* Fecha Hasta */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
+            <label className="tes-filtro-label">
               Fecha Hasta
             </label>
             <input
@@ -594,22 +507,8 @@ export function TreasuryPage() {
                             fontWeight: 700,
                             padding: '0.2rem 0.5rem',
                             borderRadius: 'var(--radius-sm)',
-                            backgroundColor:
-                              mov.centroCosto === 'ASOCIACION'
-                                ? 'var(--primary-50)'
-                                : mov.centroCosto === 'CENA ANUAL'
-                                ? 'var(--accent-pink-50)'
-                                : mov.centroCosto === 'FEDERACION'
-                                ? 'var(--info-bg)'
-                                : 'var(--sand-50)',
-                            color:
-                              mov.centroCosto === 'ASOCIACION'
-                                ? 'var(--primary-800)'
-                                : mov.centroCosto === 'CENA ANUAL'
-                                ? 'var(--accent-pink-700)'
-                                : mov.centroCosto === 'FEDERACION'
-                                ? 'var(--info-text)'
-                                : 'var(--sand-800)'
+                            backgroundColor: (CENTRO_COLORES[mov.centroCosto] || CENTRO_OTRO).fondo,
+                            color: (CENTRO_COLORES[mov.centroCosto] || CENTRO_OTRO).texto
                           }}
                         >
                           {mov.centroCosto}

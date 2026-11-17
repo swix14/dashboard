@@ -30,20 +30,6 @@ export function formatDateCLP(dateStr) {
 }
 
 /**
- * Formatea un RUT chileno con puntos y guión
- * Ej: "12345678K" -> "12.345.678-K"
- */
-export function formatRutCLP(rut) {
-  if (!rut) return '';
-  const clean = String(rut).replace(/[^0-9kK]/g, '').toUpperCase();
-  if (clean.length < 2) return clean;
-  const dv = clean.slice(-1);
-  const cuerpo = clean.slice(0, -1);
-  const formattedCuerpo = new Intl.NumberFormat('es-CL').format(Number(cuerpo));
-  return `${formattedCuerpo}-${dv}`;
-}
-
-/**
  * Formatea el tamaño de un archivo en bytes a KB o MB legibles
  */
 export function formatFileSize(bytes) {
