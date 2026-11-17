@@ -35,7 +35,8 @@ const SUITES = [
   'comprobantesTest.js',
   'treasuryPersistenceTest.js',
   'sociaPortalTest.js',
-  'bloqueantesTest.js'
+  'bloqueantesTest.js',
+  'accesosTest.js'
 ];
 
 async function prepararBase() {

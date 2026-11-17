@@ -167,8 +167,9 @@ export const DashboardService = {
       }
     };
 
-    // 1. Roles con acceso a información contable y financiera (ADMIN, PRESIDENTA, TESORERA, SECRETARIA)
-    const hasFinancialAccess = ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode);
+    // 1. Roles con acceso a información contable y financiera (ADMIN, PRESIDENTA, TESORERA).
+    // La Secretaria dejó de verla el 16-11-2026 (pedido de la directiva).
+    const hasFinancialAccess = ['ADMIN', 'PRESIDENTA', 'TESORERA'].includes(roleCode);
 
     if (hasFinancialAccess) {
       const treasurySummary = await TreasuryService.getSummary();
@@ -179,8 +180,9 @@ export const DashboardService = {
         totalIngresosPeriodo: treasurySummary.totalIngresos,
         totalEgresosPeriodo: treasurySummary.totalEgresos,
         nivelAcceso: 'DIRECTIVA_ADMINISTRATIVA',
+        secciones: { finanzas: true },
         puedeGestionarFinanzas: roleCode === 'TESORERA' || roleCode === 'ADMIN',
-        puedeGestionarSocias: roleCode === 'SECRETARIA' || roleCode === 'ADMIN' || roleCode === 'PRESIDENTA',
+        puedeGestionarSocias: roleCode === 'ADMIN' || roleCode === 'PRESIDENTA',
         inicio: {
           // Fila 1: KPIs Principales
           sociasActivas: sociasActivasCount,
@@ -236,20 +238,18 @@ export const DashboardService = {
       };
     }
 
-    // 2. Rol Directora: Acceso a supervisión de convenios y socias de su jardín (SIN acceso a saldos bancarios de Tesorería)
-    if (roleCode === 'DIRECTORA') {
+    // 2. Secretaria y Directora (la Directora tiene los mismos permisos que la Secretaria):
+    // padrón e indicadores de socias, SIN saldos, pagos a Federación, tareas, alertas ni recaudación
+    if (roleCode === 'SECRETARIA' || roleCode === 'DIRECTORA') {
       return {
         ...institutionalBase,
-        nivelAcceso: 'DIRECTORA_CONVENIOS',
+        nivelAcceso: 'DIRECTIVA_PADRON',
+        secciones: { finanzas: false },
         puedeGestionarFinanzas: false,
-        puedeGestionarSocias: false,
+        puedeGestionarSocias: true,
         inicio: {
           sociasActivas: sociasActivasCount,
           sociasSuspendidas: sociasSuspendidasCount,
-          alertas: {
-            sociasUltimaCuotaIsimundo: alertasCuotas.isi,
-            sociasUltimaCuotaSos: alertasCuotas.sos
-          },
           graficos: {
             estadoSociasCreditos: creditosStats
           }
@@ -257,17 +257,17 @@ export const DashboardService = {
         kpis: [
           {
             id: 'socias-activas',
-            label: 'Socias en Asociación',
-            value: `${sociasActivasCount} activas`,
-            sublabel: 'Padrón institucional',
+            label: 'Socias Registradas',
+            value: `${sociasActivasCount} / ${totalSocias}`,
+            sublabel: 'Padrón en base de datos',
             type: 'positive'
           },
           {
-            id: 'creditos-vigentes',
-            label: 'Socias con Convenios',
-            value: `${creditosStats.activasConIsimundo + creditosStats.activasConSos + creditosStats.activasConDentalOptica}`,
-            sublabel: 'Isi Mundo, S.O.S, Óptica, Dental',
-            type: 'neutral'
+            id: 'socias-suspendidas',
+            label: 'Socias Suspendidas',
+            value: String(sociasSuspendidasCount),
+            sublabel: 'Sin cobro de cuota',
+            type: 'warning'
           },
           {
             id: 'jardines-activos',

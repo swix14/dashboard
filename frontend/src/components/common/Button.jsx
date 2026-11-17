@@ -27,7 +27,7 @@ export function Button({
           style={{
             width: '14px',
             height: '14px',
-            border: '2px solid rgba(255,255,255,0.4)',
+            border: '2px solid color-mix(in srgb, currentColor 28%, transparent)',
             borderTop: '2px solid currentColor',
             borderRadius: '50%',
             display: 'inline-block',

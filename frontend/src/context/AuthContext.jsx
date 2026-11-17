@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api.js';
+import { LAST_ACTIVITY_KEY } from '../hooks/useIdleTimeout.js';
+import { clearIdleLogoutFlag } from '../utils/idleSession.js';
 
 const AuthContext = createContext(null);
 
@@ -38,6 +40,10 @@ export function AuthProvider({ children }) {
   const setAuthenticatedSession = (receivedToken, receivedUser) => {
     localStorage.setItem('vtf_token', receivedToken);
     localStorage.setItem('vtf_user', JSON.stringify(receivedUser));
+    // Sesión nueva: el contador de inactividad parte de cero
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+    // El aviso "sesión cerrada por inactividad" se muestra hasta el siguiente ingreso
+    clearIdleLogoutFlag();
     setToken(receivedToken);
     setUser(receivedUser);
   };
@@ -58,6 +64,7 @@ export function AuthProvider({ children }) {
     } finally {
       localStorage.removeItem('vtf_token');
       localStorage.removeItem('vtf_user');
+      localStorage.removeItem(LAST_ACTIVITY_KEY);
       setUser(null);
       setToken(null);
     }
@@ -90,6 +97,7 @@ export function AuthProvider({ children }) {
     isDirectiva,
     isAdmin: currentRoleCode === 'ADMIN',
     isTesorera: currentRoleCode === 'TESORERA',
+    isDirectora: currentRoleCode === 'DIRECTORA',
     isSecretaria: currentRoleCode === 'SECRETARIA',
     isDelegada: currentRoleCode === 'DELEGADA',
     isSocia: currentRoleCode === 'SOCIA'

@@ -11,10 +11,10 @@ router.use(authMiddleware);
 // Métricas adaptadas al rol
 router.get('/metrics', DashboardController.getMetrics);
 
-// Auditoría reciente (restringida a Directiva: Presidenta, Tesorera, Secretaria)
+// Auditoría reciente: Admin, Presidenta y Tesorera
 router.get(
   '/audit-recent',
-  requireRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'),
+  requireRole('ADMIN', 'PRESIDENTA', 'TESORERA'),
   DashboardController.getRecentAudit
 );
 

@@ -3,14 +3,17 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Lock, Mail, ShieldAlert, ArrowRight } from 'lucide-react';
+import { Lock, UserCheck, ShieldAlert, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Input } from '../components/common/Input.jsx';
+import { RutInput } from '../components/common/RutInput.jsx';
+import { readIdleLogoutMessage } from '../utils/idleSession.js';
+import { validateRut } from '../utils/rut.js';
 import { Button } from '../components/common/Button.jsx';
 import { ThemeToggle } from '../components/common/ThemeToggle.jsx';
 
 const loginFormSchema = z.object({
-  identifier: z.string().min(3, 'Ingrese su correo institucional o RUT'),
+  identifier: z.string().refine(validateRut, 'Ingrese un RUT válido (ej. 12.345.678-5)'),
   password: z.string().min(6, 'La contraseña debe contener al menos 6 caracteres')
 });
 
@@ -18,7 +21,8 @@ export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [authError, setAuthError] = useState(null);
+  // Si la sesión anterior se cerró por inactividad, se explica aquí
+  const [authError, setAuthError] = useState(readIdleLogoutMessage);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotHelp, setShowForgotHelp] = useState(false);
 
@@ -63,7 +67,7 @@ export function LoginPage() {
       }}
     >
       <div
-        className="login-form-panel"
+        className="login-form-panel vtf-top-accent"
         style={{
           width: '100%',
           maxWidth: '460px',
@@ -116,7 +120,7 @@ export function LoginPage() {
               borderRadius: 'var(--radius-full)',
               fontSize: '0.75rem',
               fontWeight: 600,
-              color: 'var(--primary-600)',
+              color: 'var(--primary-700)',
               marginBottom: '0.5rem'
             }}
           >
@@ -149,7 +153,7 @@ export function LoginPage() {
             Acceso Institucional
           </h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Ingrese su correo registrado o RUT junto con su contraseña.
+            Ingrese su RUT y su contraseña.
           </p>
         </div>
 
@@ -174,10 +178,10 @@ export function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <Input
-            label="Correo Electrónico o RUT"
-            placeholder="ej. tesorera@vtftemuco.cl o 14.567.890-2"
-            icon={Mail}
+          <RutInput
+            label="RUT"
+            placeholder="ej. 12.345.678-5"
+            icon={UserCheck}
             error={errors.identifier?.message}
             {...register('identifier')}
           />

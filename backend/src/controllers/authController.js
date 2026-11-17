@@ -1,6 +1,7 @@
 import { AuthService, PasswordChangeError } from '../services/authService.js';
 import { AuditService } from '../services/auditService.js';
 import { loginSchema, changePasswordSchema } from '../validators/authValidator.js';
+import { SessionService } from '../services/sessionService.js';
 
 export const AuthController = {
   /**
@@ -46,6 +47,9 @@ export const AuthController = {
    */
   async logout(req, res, next) {
     try {
+      // Revoca este token en el servidor: copiarlo ya no sirve después de cerrar sesión (H-005)
+      await SessionService.revoke(req.session?.jti, req.session?.exp);
+
       if (req.user) {
         await AuditService.log({
           userId: req.user.id,
@@ -85,6 +89,8 @@ export const AuthController = {
         ipAddress: req.ip,
         userAgent: req.headers['user-agent']
       });
+      // Con la clave nueva, las demás sesiones abiertas (otro equipo, una sesión robada) dejan de valer
+      await SessionService.revokeOthers(req.user.id, req.session?.jti);
 
       return res.status(200).json({
         success: true,

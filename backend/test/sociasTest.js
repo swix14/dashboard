@@ -43,9 +43,10 @@ async function login(identifier) {
   return (await res.json()).data.token;
 }
 
-const secretaria = await login('secretaria@vtftemuco.cl');
-const directora = await login('directora@vtftemuco.cl');
-const delegada = await login('delegada@vtftemuco.cl');
+const secretaria = await login('11.354.669-7');
+const directora = await login('20.081.109-7');
+const delegada = await login('17.890.123-1');
+const tesorera = await login('16.947.343-9');
 const headers = (token) => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
 const api = async (method, url, token, body) => {
   const res = await fetch(`${baseUrl}${url}`, { method, headers: headers(token), body: body ? JSON.stringify(body) : undefined });
@@ -56,7 +57,7 @@ const api = async (method, url, token, body) => {
 const RUT_NUEVA = '11.111.112-K';
 
 await test('GET /api/socias/resumen refleja el padrón real de MySQL', async () => {
-  const { status, body } = await api('GET', '/socias/resumen', secretaria);
+  const { status, body } = await api('GET', '/socias/resumen', tesorera);
   assert.strictEqual(status, 200);
   const d = body.data;
   assert.strictEqual(d.totalSocias, 277);
@@ -99,9 +100,9 @@ await test('Filtros por jardín, cargo, crédito y "sin jardín"', async () => {
   assert.strictEqual(sinJardin.body.total, 8);
   const asist = await api('GET', '/socias?cargo=ASISTENTE&limit=0', secretaria);
   assert.ok(asist.body.data.every((s) => s.cargo === 'ASISTENTE'));
-  const conCredito = await api('GET', '/socias?credito=SI&limit=0', secretaria);
+  const conCredito = await api('GET', '/socias?credito=SI&limit=0', tesorera);
   assert.ok(conCredito.body.data.length > 0 && conCredito.body.data.every((s) => s.tieneCredito));
-  const sinCredito = await api('GET', '/socias?credito=NO&limit=0', secretaria);
+  const sinCredito = await api('GET', '/socias?credito=NO&limit=0', tesorera);
   assert.strictEqual(conCredito.body.total + sinCredito.body.total, 277);
 });
 
@@ -157,7 +158,7 @@ await test('La socia creada persiste tras reiniciar el backend (otro proceso)', 
     const loginRes = await fetch(`${url}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: 'secretaria@vtftemuco.cl', password: 'Admin123!' })
+      body: JSON.stringify({ identifier: '11.354.669-7', password: 'Admin123!' })
     });
     const token = (await loginRes.json()).data.token;
     const res = await fetch(`${url}/socias/${nuevaId}`, { headers: headers(token) });
@@ -186,15 +187,41 @@ await test('POST /api/socias valida RUT, celular y jardín', async () => {
   assert.strictEqual((await api('POST', '/socias', secretaria, { ...base, rut: '11.111.113-8', jardinId: 999 })).status, 400);
 });
 
-await test('POST /api/socias denegado con 403 para Directora (solo lectura)', async () => {
+// Desde el 16-11-2026 la Directora tiene los permisos de la Secretaria: pasa la autorización
+// (un jardín inexistente da 400 de validación, no 403, y así no se altera el padrón de prueba)
+await test('POST /api/socias permitido para Directora (mismos permisos que la Secretaria)', async () => {
   const { status } = await api('POST', '/socias', directora, {
     rut: '11.111.113-8',
     nombres: 'Ana',
     apellidoPaterno: 'Rojas',
     cargo: 'EDUCADORA',
-    jardinId: 1
+    jardinId: 999
   });
-  assert.strictEqual(status, 403);
+  assert.strictEqual(status, 400);
+});
+
+// La Secretaria (y la Directora) ven solo la ficha personal: el backend no les envía créditos
+await test('Secretaria no recibe datos de créditos en resumen, listado ni ficha', async () => {
+  const resumen = await api('GET', '/socias/resumen', secretaria);
+  assert.strictEqual(resumen.status, 200);
+  assert.strictEqual(resumen.body.data.sociasConCredito, undefined);
+  assert.strictEqual(resumen.body.data.saldoCreditosPendiente, undefined);
+
+  // El filtro por crédito se ignora: devuelve el padrón completo y sin la columna de crédito
+  const lista = await api('GET', '/socias?credito=SI&limit=0', secretaria);
+  const todas = await api('GET', '/socias?limit=0', tesorera);
+  assert.strictEqual(lista.body.total, todas.body.total);
+  assert.ok(lista.body.data.every((s) => s.tieneCredito === undefined && s.creditosActivos === undefined));
+
+  const conCredito = await api('GET', '/socias?credito=SI&limit=1', tesorera);
+  const id = conCredito.body.data[0].id;
+  const fichaSecretaria = await api('GET', `/socias/${id}`, secretaria);
+  assert.strictEqual(fichaSecretaria.body.data.creditos, undefined);
+  assert.strictEqual(fichaSecretaria.body.data.descuentoMensualCreditos, undefined);
+  const fichaDirectora = await api('GET', `/socias/${id}`, directora);
+  assert.strictEqual(fichaDirectora.body.data.creditos, undefined);
+  const fichaTesorera = await api('GET', `/socias/${id}`, tesorera);
+  assert.ok(Array.isArray(fichaTesorera.body.data.creditos) && fichaTesorera.body.data.creditos.length > 0);
 });
 
 await test('PUT traslado sin motivo retorna 400 y no altera ningún dato (transaccional)', async () => {
@@ -278,9 +305,10 @@ await test('Socia suspendida no puede entrar al portal ni usar un token previo',
   }
 });
 
-await test('GET /api/socias/:id inexistente retorna 404', async () => {
+await test('GET /api/socias/:id inexistente retorna 404 y un id no numérico 400', async () => {
   assert.strictEqual((await api('GET', '/socias/999999', secretaria)).status, 404);
-  assert.strictEqual((await api('GET', '/socias/abc', secretaria)).status, 404);
+  // Auditoría H-019: el id se valida antes de llegar a la base
+  assert.strictEqual((await api('GET', '/socias/abc', secretaria)).status, 400);
 });
 
 console.log(`\n[RESULTADOS] ${passed} pasados, ${failed} fallidos`);

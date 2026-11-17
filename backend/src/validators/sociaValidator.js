@@ -3,12 +3,12 @@ import { validateRut } from '../utils/rutValidator.js';
 import { CARGOS, normalizeCelular, normalizeName } from '../utils/sociaFormat.js';
 
 const cargoEnum = z.enum(CARGOS, {
-  errorMap: () => ({ message: `El cargo debe ser uno de: ${CARGOS.join(', ')}` })
+  error: `El cargo debe ser uno de: ${CARGOS.join(', ')}`
 });
 
 // RETIRADA no se asigna desde el formulario: se usa la acción "Retirar socia" (con motivo)
 const estadoEditable = z.enum(['ACTIVA', 'SUSPENDIDA'], {
-  errorMap: () => ({ message: 'El estado debe ser ACTIVA o SUSPENDIDA' })
+  error: 'El estado debe ser ACTIVA o SUSPENDIDA'
 });
 
 const nombre = (label) => z.string().transform(normalizeName).pipe(z.string().min(2, `${label} es obligatorio`));
@@ -40,7 +40,7 @@ const fechaIngreso = z
   })
   .transform((v) => (v === undefined ? undefined : v || null));
 
-const jardinId = z.coerce.number({ invalid_type_error: 'Debe seleccionar un jardín' }).int().positive('Debe seleccionar un jardín');
+const jardinId = z.coerce.number({ error: 'Debe seleccionar un jardín' }).int().positive('Debe seleccionar un jardín');
 
 export const createSociaSchema = z.object({
   rut: z.string().refine((val) => validateRut(val), { message: 'El RUT proporcionado no es válido' }),
@@ -79,10 +79,14 @@ export const retirarSociaSchema = z.object({
 });
 
 export const listSociasSchema = z.object({
-  search: z.string().optional(),
-  jardinId: z.string().optional(),
+  // Filtros acotados (auditoría H-019): texto con tope y jardín como TODOS, SIN_JARDIN o un número
+  search: z.string().max(100, 'Búsqueda demasiado larga').optional(),
+  jardinId: z
+    .string()
+    .regex(/^(TODOS|SIN_JARDIN|\d{1,6})$/, 'Jardín inválido')
+    .optional(),
   estado: z.enum(['TODOS', 'ACTIVA', 'SUSPENDIDA', 'RETIRADA']).optional().default('TODOS'),
-  cargo: z.string().optional(),
+  cargo: z.string().max(30, 'Cargo inválido').optional(),
   credito: z.enum(['TODOS', 'SI', 'NO']).optional().default('TODOS'),
   page: z.coerce.number().int().min(1).optional().default(1),
   // limit=0 devuelve todo (exportación), con tope de seguridad en el servicio

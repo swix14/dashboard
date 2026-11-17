@@ -234,3 +234,18 @@ CREATE TABLE IF NOT EXISTS `buzon_mensajes` (
     INDEX `idx_buzon_tipo` (`tipo`),
     INDEX `idx_buzon_fecha` (`created_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 10. Sesiones cerradas (tokens revocados hasta su expiración; auditoría H-005)
+CREATE TABLE IF NOT EXISTS `sesiones_revocadas` (
+    `jti` CHAR(36) NOT NULL PRIMARY KEY,
+    `expira` DATETIME NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_sesiones_expira` (`expira`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 11. Corte de sesiones por persona (cambio de contraseña cierra las demás sesiones)
+CREATE TABLE IF NOT EXISTS `sesiones_corte` (
+    `usuario` VARCHAR(40) NOT NULL PRIMARY KEY,
+    `desde_ms` BIGINT NOT NULL,
+    `excepto_jti` CHAR(36) NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;

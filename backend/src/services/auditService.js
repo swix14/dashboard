@@ -1,7 +1,77 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { isDatabaseReady, query } from '../config/db.js';
+import { env } from '../config/env.js';
 
-// Memoria de auditoría en caso de que MySQL no esté disponible
+// Memoria de auditoría: solo para el modo memoria de las pruebas automatizadas
 const memoryAuditLogs = [];
+
+/**
+ * Respaldo durable (auditoría H-014): si MySQL no responde, el evento se agrega a un archivo
+ * JSONL fuera de la carpeta pública (sobrevive a reinicios) y se traspasa a la tabla
+ * `auditoria` en cuanto vuelve la conexión. Antes quedaba en memoria y se perdía al reiniciar.
+ */
+const PENDING_FILE = path.join(env.AUDIT_DIR, 'auditoria-pendiente.jsonl');
+const FLUSH_INTERVAL_MS = 60 * 1000;
+let lastFlushAttempt = 0;
+let flushing = false;
+
+function appendPending(entry) {
+  try {
+    fs.mkdirSync(env.AUDIT_DIR, { recursive: true });
+    fs.appendFileSync(PENDING_FILE, `${JSON.stringify(entry)}\n`, { encoding: 'utf8', mode: 0o600 });
+  } catch (err) {
+    // Último recurso: que al menos quede en el log del servidor
+    console.error(`AUDITORÍA NO PERSISTIDA (${entry.action}):`, err.message);
+  }
+}
+
+function dbUserIdOf(userId) {
+  // usuario_id es INT y apunta a administradores: "admin-12" -> 12; socias y memoria -> NULL (queda el RUT)
+  const match = /^admin-(\d+)$/.exec(String(userId || ''));
+  return match ? Number(match[1]) : null;
+}
+
+const toMysqlDate = (value) => new Date(value).toISOString().slice(0, 19).replace('T', ' ');
+
+async function insertEntry(entry) {
+  await query(
+    `INSERT INTO auditoria (usuario_id, usuario_rut, accion, detalles, ip_address, user_agent, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [dbUserIdOf(entry.userId), entry.rut, entry.action, entry.details, entry.ipAddress, entry.userAgent, toMysqlDate(entry.createdAt)]
+  );
+}
+
+/**
+ * Traspasa a MySQL los eventos pendientes del archivo de respaldo (como máximo una vez por minuto).
+ * Lo que no alcance a insertarse vuelve al archivo para el siguiente intento.
+ */
+async function flushPending() {
+  if (flushing || Date.now() - lastFlushAttempt < FLUSH_INTERVAL_MS || !fs.existsSync(PENDING_FILE)) return;
+  flushing = true;
+  lastFlushAttempt = Date.now();
+  const processing = `${PENDING_FILE}.${process.pid}.procesando`;
+  try {
+    fs.renameSync(PENDING_FILE, processing);
+    const lines = fs.readFileSync(processing, 'utf8').split('\n').filter(Boolean);
+    const restantes = [];
+    for (const line of lines) {
+      try {
+        await insertEntry(JSON.parse(line));
+      } catch {
+        restantes.push(line);
+      }
+    }
+    if (restantes.length) {
+      fs.appendFileSync(PENDING_FILE, `${restantes.join('\n')}\n`, { encoding: 'utf8', mode: 0o600 });
+    }
+    fs.rmSync(processing, { force: true });
+  } catch (err) {
+    console.warn('No se pudo traspasar la auditoría pendiente:', err.message);
+  } finally {
+    flushing = false;
+  }
+}
 
 // Un registro con texto que no es JSON no debe impedir leer toda la bitácora
 function parseDetails(raw) {
@@ -31,21 +101,20 @@ export const AuditService = {
 
     if (isDatabaseReady()) {
       try {
-        // usuario_id es INT y apunta a administradores: "admin-12" -> 12; socias y memoria -> NULL (queda el RUT)
-        const match = /^admin-(\d+)$/.exec(String(entry.userId || ''));
-        const dbUserId = match ? Number(match[1]) : null;
-        await query(
-          `INSERT INTO auditoria (usuario_id, usuario_rut, accion, detalles, ip_address, user_agent, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-          [dbUserId, entry.rut, entry.action, entry.details, entry.ipAddress, entry.userAgent]
-        );
+        await insertEntry(entry);
+        // Con la base de vuelta, se recuperan los eventos que quedaron en el archivo de respaldo
+        flushPending().catch(() => {});
         return entry;
       } catch (err) {
-        console.warn('Registro de auditoría guardado en memoria local:', err.message);
+        console.warn(`Auditoría a respaldo en archivo (${entry.action}):`, err.message);
       }
     }
 
-    memoryAuditLogs.unshift(entry);
+    if (env.ALLOW_MEMORY_FALLBACK) {
+      memoryAuditLogs.unshift(entry);
+    } else {
+      appendPending(entry);
+    }
     return entry;
   },
 

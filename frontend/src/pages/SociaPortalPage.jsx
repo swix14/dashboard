@@ -47,7 +47,7 @@ export function SociaPortalPage() {
 
   // Estado de buzón
   const [buzonSubTab, setBuzonSubTab] = useState('nuevo'); // 'nuevo' | 'historial'
-  const [tipoMensaje, setTipoMensaje] = useState('Consultas');
+  const [tipoMensaje, setTipoMensaje] = useState('CONSULTA');
   const [asunto, setAsunto] = useState('');
   const [mensajeTexto, setMensajeTexto] = useState('');
   const [archivoAdjunto, setArchivoAdjunto] = useState(null);
@@ -271,7 +271,7 @@ export function SociaPortalPage() {
               onClick={handleCerrarSesion}
               style={{
                 borderColor: 'var(--border-light)',
-                color: 'var(--text-muted)'
+                color: 'var(--text-main)'
               }}
             >
               Cerrar Sesión
@@ -347,7 +347,7 @@ export function SociaPortalPage() {
                   borderRadius: 'var(--radius-lg)',
                   padding: '1rem',
                   border: '1px solid var(--border-light)',
-                  borderLeft: `4px solid ${dir.color}`,
+                  borderLeft: `4px solid ${dir.borderVar || dir.color}`,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.875rem'
@@ -358,56 +358,51 @@ export function SociaPortalPage() {
                     width: '42px',
                     height: '42px',
                     borderRadius: '50%',
-                    backgroundColor: `${dir.color}15`,
-                    color: dir.color,
+                    backgroundColor: dir.bgVar || 'var(--primary-100)',
+                    color: dir.textVar || 'var(--primary-700)',
+                    border: `1px solid ${dir.borderVar || 'var(--primary-200)'}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 700,
-                    fontSize: '1rem'
+                    fontSize: '1rem',
+                    flexShrink: 0
                   }}
                 >
                   {dir.nombre.charAt(0)}
                 </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div
+                <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
+                  <span
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      flexWrap: 'wrap'
+                      fontSize: '0.95rem',
+                      fontWeight: 700,
+                      color: 'var(--text-main)',
+                      lineHeight: 1.25
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: '0.95rem',
-                        fontWeight: 700,
-                        color: 'var(--text-main)'
-                      }}
-                    >
-                      {dir.nombre}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '0.675rem',
-                        fontWeight: 700,
-                        backgroundColor: 'var(--border-subtle)',
-                        color: 'var(--text-main)',
-                        padding: '0.1rem 0.4rem',
-                        borderRadius: 'var(--radius-sm)',
-                        letterSpacing: '0.04em',
-                        textTransform: 'uppercase'
-                      }}
-                    >
-                      {dir.cargo}
-                    </span>
-                  </div>
+                    {dir.nombre}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.675rem',
+                      fontWeight: 700,
+                      backgroundColor: dir.bgVar || 'var(--border-subtle)',
+                      color: dir.textVar || 'var(--text-main)',
+                      border: `1px solid ${dir.borderVar || 'var(--border-light)'}`,
+                      padding: '0.125rem 0.5rem',
+                      borderRadius: 'var(--radius-full)',
+                      letterSpacing: '0.03em',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    {dir.cargo}
+                  </span>
                   <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.35rem',
-                      marginTop: '0.25rem',
+                      marginTop: '0.1rem',
                       color: 'var(--text-muted)',
                       fontSize: '0.775rem'
                     }}
@@ -1018,11 +1013,11 @@ export function SociaPortalPage() {
                         }}
                       >
                         {[
-                          { id: 'Consultas', label: 'Consulta', icon: HelpCircle },
-                          { id: 'Sugerencias', label: 'Sugerencia', icon: Sparkles },
-                          { id: 'Felicitaciones', label: 'Felicitación', icon: ThumbsUp },
-                          { id: 'Reclamos', label: 'Reclamo', icon: AlertCircle },
-                          { id: 'Otro', label: 'Otro', icon: MessageSquare }
+                          { id: 'CONSULTA', label: 'Consulta', icon: HelpCircle },
+                          { id: 'SUGERENCIA', label: 'Sugerencia', icon: Sparkles },
+                          { id: 'FELICITACION', label: 'Felicitación', icon: ThumbsUp },
+                          { id: 'RECLAMO', label: 'Reclamo', icon: AlertCircle },
+                          { id: 'OTRO', label: 'Otro', icon: MessageSquare }
                         ].map((item) => {
                           const IconComp = item.icon;
                           const isSelected = tipoMensaje === item.id;

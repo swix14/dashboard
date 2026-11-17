@@ -9,54 +9,27 @@ import {
   FolderOpen,
   FileSpreadsheet,
   ShieldAlert,
+  Megaphone,
   LogOut,
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { puedeAcceder } from '../../utils/permissions.js';
 
 export function Sidebar({ isOpen, onClose }) {
-  const { user, logout, isDirectiva, isTesorera, isSecretaria } = useAuth();
+  const { user, logout } = useAuth();
 
   const roleCode = user?.role?.code;
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const navItems = [
-    {
-      to: '/dashboard',
-      label: 'Inicio Institucional',
-      icon: LayoutDashboard,
-      allowed: true
-    },
-    {
-      to: '/tesoreria',
-      label: 'Tesorería y Fondos',
-      icon: DollarSign,
-      allowed: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode)
-    },
-    {
-      to: '/socias',
-      label: 'Socias y Créditos',
-      icon: Users,
-      allowed: isDirectiva || isSecretaria
-    },
-    {
-      to: '/documentos',
-      label: 'Gestión Documental',
-      icon: FolderOpen,
-      allowed: isDirectiva || isTesorera
-    },
-    {
-      to: '/reportes',
-      label: 'Reportes y Delegadas',
-      icon: FileSpreadsheet,
-      allowed: true
-    },
-    {
-      to: '/auditoria',
-      label: 'Bitácora de Auditoría',
-      icon: ShieldAlert,
-      allowed: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA'].includes(roleCode)
-    }
+    { to: '/dashboard', label: 'Inicio Institucional', icon: LayoutDashboard, allowed: true },
+    { to: '/tesoreria', label: 'Tesorería y Fondos', icon: DollarSign, allowed: puedeAcceder(roleCode, 'TESORERIA') },
+    { to: '/socias', label: 'Socias y Créditos', icon: Users, allowed: puedeAcceder(roleCode, 'SOCIAS') },
+    { to: '/comunicaciones', label: 'Noticias y Buzón', icon: Megaphone, allowed: puedeAcceder(roleCode, 'COMUNICACIONES') },
+    { to: '/documentos', label: 'Gestión Documental', icon: FolderOpen, allowed: puedeAcceder(roleCode, 'DOCUMENTOS') },
+    { to: '/reportes', label: 'Reportes y Delegadas', icon: FileSpreadsheet, allowed: puedeAcceder(roleCode, 'REPORTES') },
+    { to: '/auditoria', label: 'Bitácora de Auditoría', icon: ShieldAlert, allowed: puedeAcceder(roleCode, 'AUDITORIA') }
   ];
 
   return (

@@ -58,8 +58,8 @@ async function runTests() {
     }
   }
 
-  const tesoreraToken = await login('tesorera@vtftemuco.cl');
-  const presidentaToken = await login('presidenta@vtftemuco.cl');
+  const tesoreraToken = await login('16.947.343-9');
+  const presidentaToken = await login('13.963.291-5');
 
   // 1. Egreso sin archivo rechazado
   await test('POST /api/tesoreria/movimientos egreso sin archivo retorna 400', async () => {
@@ -149,10 +149,18 @@ async function runTests() {
 
   // 7. Registro histórico sin archivo digital
   await test('GET comprobante de movimiento histórico sin archivo retorna 404', async () => {
-    const res = await fetch(`${baseUrl}/tesoreria/movimientos/mov-001/comprobante`, {
+    const [[historico]] = await dbPool.query(
+      'SELECT id FROM movimientos_tesoreria WHERE comprobante_stored IS NULL ORDER BY id LIMIT 1'
+    );
+    const res = await fetch(`${baseUrl}/tesoreria/movimientos/${historico.id}/comprobante`, {
       headers: { Authorization: `Bearer ${tesoreraToken}` }
     });
     assert.strictEqual(res.status, 404);
+    // Un id que no es número se rechaza antes de consultar (auditoría H-019)
+    const invalido = await fetch(`${baseUrl}/tesoreria/movimientos/mov-001/comprobante`, {
+      headers: { Authorization: `Bearer ${tesoreraToken}` }
+    });
+    assert.strictEqual(invalido.status, 400);
   });
 
   // 8. Validación Zod: Rechazo de montos con decimales (CLP es entero)

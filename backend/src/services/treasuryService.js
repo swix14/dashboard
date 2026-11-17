@@ -17,6 +17,9 @@ import { isDatabaseReady, query } from '../config/db.js';
 import { hoyChile } from '../utils/fecha.js';
 
 // Error de regla de negocio (400). Cualquier otro error (por ejemplo, de MySQL) es interno (500).
+// Reintentos si dos registros simultáneos calculan el mismo correlativo
+const CORRELATIVO_MAX_INTENTOS = 5;
+
 export class TreasuryError extends Error {
   constructor(message, statusCode = 400) {
     super(message);
@@ -208,6 +211,75 @@ let treasuryMovements = [
   }
 ];
 
+/**
+ * Totales y saldos de una lista de movimientos (misma regla contable para el resumen
+ * de Tesorería y el informe mensual). Federación solo registra pagos: no descuenta saldo.
+ */
+export function resumirMovimientos(list) {
+  let totalIngresos = 0;
+  let totalEgresos = 0;
+  let totalPagadoFederacion = 0;
+  let totalIngresoIsiMundo = 0;
+  let ingresosAsociacion = 0;
+  let egresosAsociacion = 0;
+  let aperturaAsociacion = 0;
+  let ingresosCenaAnual = 0;
+  let egresosCenaAnual = 0;
+  let aperturaCenaAnual = 0;
+
+  for (const mov of list) {
+    const monto = Number(mov.monto) || 0;
+
+    if (mov.tipo === 'SALDO_APERTURA') {
+      if (mov.centroCosto === 'ASOCIACION') {
+        aperturaAsociacion += monto;
+      } else if (mov.centroCosto === 'CENA ANUAL') {
+        aperturaCenaAnual += monto;
+      }
+    } else if (mov.tipo === 'INGRESO') {
+      totalIngresos += monto;
+      if (mov.centroCosto === 'ASOCIACION') {
+        ingresosAsociacion += monto;
+      } else if (mov.centroCosto === 'CENA ANUAL') {
+        ingresosCenaAnual += monto;
+      } else if (mov.centroCosto === 'ISI MUNDO COMISION') {
+        ingresosAsociacion += monto; // 2% de comisión ingresa al fondo gremial de Asociación
+        totalIngresoIsiMundo += monto;
+      }
+    } else if (mov.tipo === 'EGRESO') {
+      totalEgresos += monto;
+      if (mov.centroCosto === 'FEDERACION') {
+        totalPagadoFederacion += monto;
+      } else if (mov.centroCosto === 'ASOCIACION') {
+        egresosAsociacion += monto;
+      } else if (mov.centroCosto === 'CENA ANUAL') {
+        egresosCenaAnual += monto;
+      }
+    }
+  }
+
+  // Los saldos iniciales salen solo de los asientos SALDO_APERTURA (sin montos fijos en el código)
+  const saldoAsociacion = aperturaAsociacion + ingresosAsociacion - egresosAsociacion;
+  const saldoCenaAnual = aperturaCenaAnual + ingresosCenaAnual - egresosCenaAnual;
+  const saldoTotal = saldoAsociacion + saldoCenaAnual;
+
+  return {
+    totalIngresos,
+    totalEgresos,
+    saldoTotal,
+    totalMovimientos: list.length,
+    totalPagadoFederacion,
+    saldoAsociacion,
+    saldoCenaAnual,
+    centrosCosto: [
+      { code: 'ASOCIACION', name: 'Asociación', saldo: saldoAsociacion },
+      { code: 'CENA ANUAL', name: 'Cena Anual', saldo: saldoCenaAnual },
+      { code: 'FEDERACION', name: 'Federación (Solo Pagos)', totalPagado: totalPagadoFederacion },
+      { code: 'ISI MUNDO COMISION', name: 'Isi Mundo Comisión 2%', totalIngresado: totalIngresoIsiMundo }
+    ]
+  };
+}
+
 export const TreasuryService = {
   /**
    * Obtiene el resumen financiero calculado en tiempo real
@@ -224,68 +296,24 @@ export const TreasuryService = {
       );
     }
 
-    let totalIngresos = 0;
-    let totalEgresos = 0;
-    let totalPagadoFederacion = 0;
-    let totalIngresoIsiMundo = 0;
-    let ingresosAsociacion = 0;
-    let egresosAsociacion = 0;
-    let aperturaAsociacion = 0;
-    let ingresosCenaAnual = 0;
-    let egresosCenaAnual = 0;
-    let aperturaCenaAnual = 0;
+    return resumirMovimientos(list);
+  },
 
-    for (const mov of list) {
-      const monto = Number(mov.monto) || 0;
-
-      if (mov.tipo === 'SALDO_APERTURA') {
-        if (mov.centroCosto === 'ASOCIACION') {
-          aperturaAsociacion += monto;
-        } else if (mov.centroCosto === 'CENA ANUAL') {
-          aperturaCenaAnual += monto;
-        }
-      } else if (mov.tipo === 'INGRESO') {
-        totalIngresos += monto;
-        if (mov.centroCosto === 'ASOCIACION') {
-          ingresosAsociacion += monto;
-        } else if (mov.centroCosto === 'CENA ANUAL') {
-          ingresosCenaAnual += monto;
-        } else if (mov.centroCosto === 'ISI MUNDO COMISION') {
-          ingresosAsociacion += monto; // 2% de comisión ingresa al fondo gremial de Asociación
-          totalIngresoIsiMundo += monto;
-        }
-      } else if (mov.tipo === 'EGRESO') {
-        totalEgresos += monto;
-        if (mov.centroCosto === 'FEDERACION') {
-          totalPagadoFederacion += monto;
-        } else if (mov.centroCosto === 'ASOCIACION') {
-          egresosAsociacion += monto;
-        } else if (mov.centroCosto === 'CENA ANUAL') {
-          egresosCenaAnual += monto;
-        }
-      }
+  /**
+   * Movimientos con fecha hasta fechaFin inclusive (YYYY-MM-DD), para el informe mensual
+   */
+  async listarHasta(fechaFin) {
+    if (isDatabaseReady()) {
+      return query(
+        `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
+                centro_costo as centroCosto, categoria, descripcion, monto
+         FROM movimientos_tesoreria
+         WHERE fecha <= ?
+         ORDER BY fecha ASC, id ASC`,
+        [fechaFin]
+      );
     }
-
-    // Los saldos iniciales salen solo de los asientos SALDO_APERTURA (sin montos fijos en el código)
-    const saldoAsociacion = aperturaAsociacion + ingresosAsociacion - egresosAsociacion;
-    const saldoCenaAnual = aperturaCenaAnual + ingresosCenaAnual - egresosCenaAnual;
-    const saldoTotal = saldoAsociacion + saldoCenaAnual;
-
-    return {
-      totalIngresos,
-      totalEgresos,
-      saldoTotal,
-      totalMovimientos: list.length,
-      totalPagadoFederacion,
-      saldoAsociacion,
-      saldoCenaAnual,
-      centrosCosto: [
-        { code: 'ASOCIACION', name: 'Asociación', saldo: saldoAsociacion },
-        { code: 'CENA ANUAL', name: 'Cena Anual', saldo: saldoCenaAnual },
-        { code: 'FEDERACION', name: 'Federación (Solo Pagos)', totalPagado: totalPagadoFederacion },
-        { code: 'ISI MUNDO COMISION', name: 'Isi Mundo Comisión 2%', totalIngresado: totalIngresoIsiMundo }
-      ]
-    };
+    return treasuryMovements.filter((m) => m.fecha <= fechaFin);
   },
 
   /**
@@ -479,43 +507,52 @@ export const TreasuryService = {
 
     if (isDatabaseReady()) {
       {
-        // Cálculo de correlativo atómico por año para evitar condiciones de carrera
+        // Correlativo por año. La columna es UNIQUE: si dos movimientos se registran a la vez y
+        // calculan el mismo número, el segundo choca (ER_DUP_ENTRY) y se recalcula (auditoría H-013).
         const movYear = cleanFecha.substring(0, 4);
-        const lastRows = await query(
-          `SELECT CAST(SUBSTRING_INDEX(correlativo, '-', -1) AS UNSIGNED) as lastNum 
-           FROM movimientos_tesoreria 
-           WHERE correlativo LIKE ? AND correlativo REGEXP '^MOV-[0-9]{4}-[0-9]+$'
-           ORDER BY lastNum DESC 
-           LIMIT 1`,
-          [`MOV-${movYear}-%`]
-        );
+        let insertRes = null;
+        for (let intento = 1; intento <= CORRELATIVO_MAX_INTENTOS && !insertRes; intento++) {
+          const lastRows = await query(
+            `SELECT CAST(SUBSTRING_INDEX(correlativo, '-', -1) AS UNSIGNED) as lastNum
+             FROM movimientos_tesoreria
+             WHERE correlativo LIKE ? AND correlativo REGEXP '^MOV-[0-9]{4}-[0-9]+$'
+             ORDER BY lastNum DESC
+             LIMIT 1`,
+            [`MOV-${movYear}-%`]
+          );
 
-        let nextSeq = 1;
-        if (lastRows && lastRows.length > 0 && lastRows[0].lastNum !== null && !isNaN(lastRows[0].lastNum)) {
-          nextSeq = Number(lastRows[0].lastNum) + 1;
+          let nextSeq = 1;
+          if (lastRows && lastRows.length > 0 && lastRows[0].lastNum !== null && !isNaN(lastRows[0].lastNum)) {
+            nextSeq = Number(lastRows[0].lastNum) + 1;
+          }
+          nextCorrelativo = `MOV-${movYear}-${String(nextSeq).padStart(3, '0')}`;
+
+          try {
+            insertRes = await query(
+              `INSERT INTO movimientos_tesoreria
+               (correlativo, fecha, tipo, centro_costo, categoria, descripcion, metodo, monto, responsable, comprobante, comprobante_stored, comprobante_mime, comprobante_size)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                nextCorrelativo,
+                cleanFecha,
+                cleanTipo,
+                resolvedCentroCosto,
+                resolvedCategoria || resolvedCentroCosto,
+                cleanDesc,
+                cleanMetodo,
+                cleanMonto,
+                cleanResp,
+                cleanComp,
+                comprobanteArchivo ? comprobanteArchivo.storedName : null,
+                comprobanteArchivo ? comprobanteArchivo.mimeType : null,
+                comprobanteArchivo ? comprobanteArchivo.size : null
+              ]
+            );
+          } catch (err) {
+            const choqueDeCorrelativo = err.code === 'ER_DUP_ENTRY' && intento < CORRELATIVO_MAX_INTENTOS;
+            if (!choqueDeCorrelativo) throw err;
+          }
         }
-        nextCorrelativo = `MOV-${movYear}-${String(nextSeq).padStart(3, '0')}`;
-
-        const insertRes = await query(
-          `INSERT INTO movimientos_tesoreria 
-           (correlativo, fecha, tipo, centro_costo, categoria, descripcion, metodo, monto, responsable, comprobante, comprobante_stored, comprobante_mime, comprobante_size)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            nextCorrelativo,
-            cleanFecha,
-            cleanTipo,
-            resolvedCentroCosto,
-            resolvedCategoria || resolvedCentroCosto,
-            cleanDesc,
-            cleanMetodo,
-            cleanMonto,
-            cleanResp,
-            cleanComp,
-            comprobanteArchivo ? comprobanteArchivo.storedName : null,
-            comprobanteArchivo ? comprobanteArchivo.mimeType : null,
-            comprobanteArchivo ? comprobanteArchivo.size : null
-          ]
-        );
 
         const newDbMovement = {
           id: insertRes.insertId,

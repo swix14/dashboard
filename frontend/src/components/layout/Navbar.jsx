@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { LogOut, Menu, Search, ShieldCheck, User } from 'lucide-react';
+import { LogOut, Menu, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ThemeToggle } from '../common/ThemeToggle.jsx';
 
 export function Navbar({ onToggleSidebar }) {
   const { user, logout } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -79,54 +78,8 @@ export function Navbar({ onToggleSidebar }) {
         </div>
       </div>
 
-      {/* Buscador Institucional: Buscar en sistema... */}
-      <div
-        style={{
-          flex: '1 1 auto',
-          maxWidth: '420px',
-          margin: '0 0.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          position: 'relative'
-        }}
-        className="navbar-search-container"
-      >
-        <Search
-          size={16}
-          style={{
-            position: 'absolute',
-            left: '0.875rem',
-            color: 'var(--text-muted)',
-            pointerEvents: 'none'
-          }}
-        />
-        <input
-          type="text"
-          placeholder="Buscar en sistema..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            width: '100%',
-            height: '36px',
-            padding: '0 1rem 0 2.5rem',
-            fontSize: '0.8125rem',
-            backgroundColor: 'var(--bg-page)',
-            border: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-full)',
-            color: 'var(--text-main)',
-            outline: 'none',
-            transition: 'border-color var(--transition-fast), box-shadow var(--transition-fast)'
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = 'var(--primary-400)';
-            e.target.style.boxShadow = '0 0 0 3px var(--primary-100)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border-light)';
-            e.target.style.boxShadow = 'none';
-          }}
-        />
-      </div>
+      {/* Espaciador: el buscador se quitó porque no buscaba nada */}
+      <div style={{ flex: '1 1 auto' }} />
 
       {/* Icono con nombre de quien ingresó a la app (sesión, perfil, cargo) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flex: '0 0 auto' }}>

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { isDatabaseReady, query } from '../config/db.js';
@@ -8,8 +9,14 @@ import { AuditService } from './auditService.js';
 // Almacén en memoria sincronizado con seed para pruebas locales de desarrollo
 const memoryUsers = INITIAL_USERS.map((u) => ({ ...u }));
 
-// Único dominio aceptado para ingresar con correo
+// Dominio de los correos institucionales (el login es solo por RUT)
 export const INSTITUTIONAL_DOMAIN = 'vtftemuco.cl';
+
+// Mensaje único para RUT inexistente o clave incorrecta: no revela si la cuenta existe
+const CREDENCIALES_INVALIDAS = 'Credenciales inválidas. Compruebe su RUT y contraseña.';
+
+// Hash de una clave aleatoria para igualar tiempos cuando el RUT no tiene cuenta
+const DUMMY_HASH = bcrypt.hashSync(randomUUID(), 10);
 
 // Claves conocidas que nunca pueden quedar como definitivas
 const FORBIDDEN_PASSWORDS = ['admin123!', '12345678', 'password', 'contraseña'];
@@ -64,15 +71,10 @@ export const AuthService = {
   async login({ identifier, password, ipAddress, userAgent }) {
     const cleanId = identifier.trim().toLowerCase();
 
-    // Identificador estricto: correo institucional exacto (@vtftemuco.cl) o RUT. Sin alias ni otros dominios.
-    const isEmail = cleanId.includes('@');
-    if (isEmail && !cleanId.endsWith(`@${INSTITUTIONAL_DOMAIN}`)) {
-      throw new LoginError(`Use su correo institucional @${INSTITUTIONAL_DOMAIN} o su RUT.`);
-    }
-    const email = isEmail ? cleanId : null;
-    const cleanRut = isEmail ? null : cleanId.replace(/[^0-9k]/g, '');
-    if (!isEmail && (!cleanRut || cleanRut.length < 7)) {
-      throw new LoginError('Credenciales inválidas. Compruebe su correo/RUT y contraseña.');
+    // Acceso de la directiva solo por RUT (decisión de la directiva, 16-11-2026): el correo ya no sirve
+    const cleanRut = cleanId.replace(/[^0-9k]/g, '');
+    if (cleanId.includes('@') || !/^[0-9.\-\sk]+$/.test(cleanId) || cleanRut.length < 7) {
+      throw new LoginError(CREDENCIALES_INVALIDAS);
     }
     let user = null;
 
@@ -81,18 +83,12 @@ export const AuthService = {
       try {
         // a.* incluye primer_ingreso cuando la migración ya fue aplicada (si no, se asume 0)
         const rows = await query(
-          isEmail
-            ? `SELECT a.*, s.cargo, j.nombre AS jardin
-               FROM administradores a
-               LEFT JOIN socias s ON a.rut = s.rut
-               LEFT JOIN jardines j ON j.id = s.jardin_id
-               WHERE LOWER(a.correo) = ?`
-            : `SELECT a.*, s.cargo, j.nombre AS jardin
-               FROM administradores a
-               LEFT JOIN socias s ON a.rut = s.rut
-               LEFT JOIN jardines j ON j.id = s.jardin_id
-               WHERE LOWER(REPLACE(REPLACE(a.rut, '.', ''), '-', '')) = ?`,
-          [isEmail ? email : cleanRut]
+          `SELECT a.*, s.cargo, j.nombre AS jardin
+           FROM administradores a
+           LEFT JOIN socias s ON a.rut = s.rut
+           LEFT JOIN jardines j ON j.id = s.jardin_id
+           WHERE LOWER(REPLACE(REPLACE(a.rut, '.', ''), '-', '')) = ?`,
+          [cleanRut]
         );
 
         if (rows.length > 0) {
@@ -136,11 +132,7 @@ export const AuthService = {
 
     // 2. Fallback a memoria si la base de datos no está disponible o en tests locales
     if (!user && !isDatabaseReady()) {
-      const found = memoryUsers.find(
-        (u) =>
-          (isEmail && u.email.toLowerCase() === email) ||
-          (!isEmail && u.rut.replace(/[^0-9kK]/g, '').toLowerCase() === cleanRut)
-      );
+      const found = memoryUsers.find((u) => u.rut.replace(/[^0-9kK]/g, '').toLowerCase() === cleanRut);
 
       if (found) {
         const role = INITIAL_ROLES.find((r) => r.code === found.roleCode);
@@ -161,20 +153,14 @@ export const AuthService = {
       }
     }
 
+    // 3. Verificar contraseña (bcrypt). Si la cuenta no existe se compara contra un hash aleatorio
+    // para que el tiempo de respuesta no delate qué RUT tiene cuenta (auditoría H-015).
+    const passwordMatch = await bcrypt
+      .compare(password, user ? user.passwordHash : DUMMY_HASH)
+      .catch(() => false);
+
     if (!user) {
-      throw new LoginError('Credenciales inválidas. Compruebe su correo/RUT y contraseña.');
-    }
-
-    if (!user.isActive) {
-      throw new LoginError('Su usuario se encuentra inactivo o suspendido. Contacte a la directiva.');
-    }
-
-    // 3. Verificar contraseña mediante hash bcrypt exclusivamente (sin texto plano)
-    let passwordMatch = false;
-    try {
-      passwordMatch = await bcrypt.compare(password, user.passwordHash);
-    } catch {
-      passwordMatch = false;
+      throw new LoginError(CREDENCIALES_INVALIDAS);
     }
 
     if (!passwordMatch) {
@@ -186,7 +172,12 @@ export const AuthService = {
         ipAddress,
         userAgent
       });
-      throw new LoginError('Credenciales inválidas. Compruebe su correo/RUT y contraseña.');
+      throw new LoginError(CREDENCIALES_INVALIDAS);
+    }
+
+    // Solo quien acreditó su clave sabe si su cuenta está desactivada
+    if (!user.isActive) {
+      throw new LoginError('Su usuario se encuentra inactivo o suspendido. Contacte a la directiva.');
     }
 
     // 4. Generar JWT firmado
@@ -198,7 +189,9 @@ export const AuthService = {
       name: `${user.firstName} ${user.lastName}`
     };
 
+    // jwtid único por sesión: permite revocarla al cerrar sesión (auditoría H-005)
     const token = jwt.sign(tokenPayload, env.JWT_SECRET, {
+      jwtid: randomUUID(),
       expiresIn: env.JWT_EXPIRES_IN
     });
 

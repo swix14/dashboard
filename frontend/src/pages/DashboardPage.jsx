@@ -80,6 +80,8 @@ export function DashboardPage() {
   }
 
   const inicioData = data.inicio || {};
+  // El backend decide qué secciones financieras ve cada rol
+  const verFinanzas = data.secciones?.finanzas === true;
   // Años con movimientos reales; si el elegido no existe se muestra el más reciente
   const recaudacion = inicioData.graficos?.recaudacionMensual || {};
   const aniosDisponibles = Object.keys(recaudacion).sort().reverse();
@@ -170,7 +172,9 @@ export function DashboardPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'var(--dashboard-kpi-columns)',
+          gridTemplateColumns: verFinanzas
+            ? 'var(--dashboard-kpi-columns)'
+            : 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
           gap: '1.5rem'
         }}
       >
@@ -262,7 +266,8 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* RECUADRO SALDO TOTAL */}
+        {/* RECUADRO SALDO TOTAL: solo roles con acceso a Tesorería */}
+        {verFinanzas && (
         <div
           className="vtf-card"
           style={{
@@ -295,22 +300,26 @@ export function DashboardPage() {
               </div>
             </div>
             <div style={{ fontSize: 'var(--metric-size)', fontWeight: 700, color: 'var(--primary-500)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatCurrencyCLP(inicioData.saldoTotal ?? 14580000)}
+              {formatCurrencyCLP(inicioData.saldoTotal ?? 0)}
             </div>
           </div>
           <div style={{ marginTop: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
               <span>Cena Anual:</span>
-              <strong style={{ color: 'var(--text-main)' }}>{formatCurrencyCLP(inicioData.saldoCenaAnual ?? 9260000)}</strong>
+              <strong style={{ color: 'var(--text-main)' }}>{formatCurrencyCLP(inicioData.saldoCenaAnual ?? 0)}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Asociación:</span>
-              <strong style={{ color: 'var(--text-main)' }}>{formatCurrencyCLP(inicioData.saldoAsociacion ?? 5320000)}</strong>
+              <strong style={{ color: 'var(--text-main)' }}>{formatCurrencyCLP(inicioData.saldoAsociacion ?? 0)}</strong>
             </div>
           </div>
         </div>
+        )}
       </div>
 
+      {/* Fila 2 solo para roles con acceso a Tesorería (la Secretaria y la Directora no la ven) */}
+      {verFinanzas && (
+      <>
       {/* =========================================================================
           FILA 2: TRES RECUADROS MEDIANOS (REQUERIMIENTO INICIO)
           - RECUADRO MEDIANO ÚLTIMOS PAGOS (correlativo últimos 5 pagos a federación)
@@ -415,7 +424,7 @@ export function DashboardPage() {
                       padding: '0.125rem 0.5rem',
                       borderRadius: 'var(--radius-full)',
                       backgroundColor: task.urgencia === 'alerta' ? 'var(--error-text)' : 'var(--sand-100)',
-                      color: task.urgencia === 'alerta' ? 'white' : 'var(--sand-700)'
+                      color: task.urgencia === 'alerta' ? 'var(--text-inverse)' : 'var(--sand-700)'
                     }}
                   >
                     {task.fechaLimite}
@@ -505,6 +514,8 @@ export function DashboardPage() {
           </div>
         </Card>
       </div>
+      </>
+      )}
 
       {/* =========================================================================
           FILA 3: DOS RECUADROS GRANDES ANALÍTICOS (REQUERIMIENTO INICIO)
@@ -518,6 +529,8 @@ export function DashboardPage() {
           gap: '1.5rem'
         }}
       >
+        {verFinanzas && (
+        <>
         {/* GRÁFICO RECAUDACIÓN MENSUAL */}
         <Card
           title="Recaudación Mensual (Ingresos vs Egresos)"
@@ -623,6 +636,8 @@ export function DashboardPage() {
             </div>
           </div>
         </Card>
+        </>
+        )}
 
         {/* GRÁFICO ESTADO DE SOCIAS Y CRÉDITOS VIGENTES */}
         <Card

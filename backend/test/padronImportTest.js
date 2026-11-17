@@ -40,13 +40,13 @@ async function test(name, fn) {
 const loginRes = await fetch(`${baseUrl}/auth/login`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ identifier: 'secretaria@vtftemuco.cl', password: 'Admin123!' })
+  body: JSON.stringify({ identifier: '11.354.669-7', password: 'Admin123!' })
 });
 const token = (await loginRes.json()).data.token;
 const directoraRes = await fetch(`${baseUrl}/auth/login`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ identifier: 'directora@vtftemuco.cl', password: 'Admin123!' })
+  body: JSON.stringify({ identifier: '20.081.109-7', password: 'Admin123!' })
 });
 const directoraToken = (await directoraRes.json()).data.token;
 
@@ -130,9 +130,10 @@ await test('Previsualizar rechaza archivos que no son .xlsx y planillas sin colu
   assert.match(sinRut.body.message, /RUT/);
 });
 
-await test('Directora (solo lectura) no puede cargar planillas', async () => {
-  const { status } = await enviar('previsualizar', planillaMes, 'x.xlsx', directoraToken);
-  assert.strictEqual(status, 403);
+// Desde el 16-11-2026 la Directora tiene los permisos de la Secretaria (la previsualización no modifica datos)
+await test('Directora puede previsualizar la planilla (mismos permisos que la Secretaria)', async () => {
+  const { status, body } = await enviar('previsualizar', planillaMes, 'x.xlsx', directoraToken);
+  assert.strictEqual(status, 200, body.message);
 });
 
 await test('Aplicar inserta la nueva, actualiza cambios con historial y no da de baja ausentes', async () => {

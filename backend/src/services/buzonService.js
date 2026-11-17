@@ -94,6 +94,36 @@ export const BuzonService = {
       }
     }
     return inMemoryBuzon;
+  },
+
+  /**
+   * Un mensaje por id (para descargar su adjunto)
+   */
+  async getMensajeById(id) {
+    if (isDatabaseReady()) {
+      const rows = await query(
+        `SELECT id, socia_rut AS sociaRut, asunto, archivo_adjunto AS archivoAdjunto, estado
+         FROM buzon_mensajes WHERE id = ?`,
+        [id]
+      );
+      return rows[0] || null;
+    }
+    return inMemoryBuzon.find((m) => m.id === id) || null;
+  },
+
+  /**
+   * La directiva marca el mensaje como leído, respondido o lo devuelve a pendiente
+   * @returns {Promise<boolean>} true si el mensaje existía
+   */
+  async cambiarEstado(id, estado) {
+    if (isDatabaseReady()) {
+      const result = await query('UPDATE buzon_mensajes SET estado = ? WHERE id = ?', [estado, id]);
+      return result.affectedRows > 0;
+    }
+    const item = inMemoryBuzon.find((m) => m.id === id);
+    if (!item) return false;
+    item.estado = estado;
+    return true;
   }
 };
 

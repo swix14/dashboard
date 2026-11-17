@@ -12,18 +12,23 @@ import {
   AlertCircle,
   Info,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Mail,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 import { Input } from '../components/common/Input.jsx';
+import { RutInput } from '../components/common/RutInput.jsx';
+import { readIdleLogoutMessage } from '../utils/idleSession.js';
+import { validateRut } from '../utils/rut.js';
 import { Button } from '../components/common/Button.jsx';
 import { ThemeToggle } from '../components/common/ThemeToggle.jsx';
 import { Modal } from '../components/common/Modal.jsx';
 import { DIRECTIVA_OFICIAL } from '../utils/directiva.js';
 
 const sociaLoginSchema = z.object({
-  rut: z.string().min(8, 'Ingrese un RUT válido (ej. 12.345.678-5)'),
+  rut: z.string().refine(validateRut, 'Ingrese un RUT válido (ej. 12.345.678-5)'),
   password: z.string().min(4, 'Ingrese su contraseña')
 });
 
@@ -41,7 +46,8 @@ export function SociaLoginPage() {
   const navigate = useNavigate();
   const { setAuthenticatedSession } = useAuth();
 
-  const [authError, setAuthError] = useState(null);
+  // Si la sesión anterior se cerró por inactividad, se explica aquí
+  const [authError, setAuthError] = useState(readIdleLogoutMessage);
   const [isLoading, setIsLoading] = useState(false);
 
   // Estado para el modal de cambio obligatorio de clave
@@ -162,87 +168,219 @@ export function SociaLoginPage() {
     }
   };
 
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--bg-page)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem 1rem'
-      }}
-    >
-      <div className="socia-login-layout">
-      {/* Directiva oficial: canales de contacto de la Asociación */}
-      <aside
-        className="socia-directiva-panel"
-        aria-labelledby="directiva-titulo"
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '2rem 1.75rem',
-          border: '1px solid var(--border-light)',
-          boxShadow: 'var(--shadow-card)'
-        }}
-      >
-        <img
-          src="/logo-vtf.png"
-          alt="Logo Asociación VTF Temuco"
-          style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            objectFit: 'cover',
-            backgroundColor: 'white',
-            padding: '2px',
-            boxShadow: 'var(--shadow-sm)',
-            marginBottom: '1rem'
-          }}
-        />
-        <h2
-          id="directiva-titulo"
-          style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}
-        >
-          Directiva
-        </h2>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: '0.25rem 0 1.5rem' }}>
-          Ante cualquier duda, escríbele a la directiva.
-        </p>
+  // Obtener iniciales del nombre completo para el avatar de la directiva
+  const getInitials = (name = '') =>
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('');
 
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {DIRECTIVA_OFICIAL.map((dir) => (
-            <li
-              key={dir.correo}
-              style={{ borderLeft: `3px solid ${dir.color}`, paddingLeft: '0.875rem', lineHeight: 1.45 }}
-            >
-              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>{dir.nombre}</div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{dir.cargo}</div>
-              <a
-                href={`mailto:${dir.correo}`}
+  return (
+    <div className="socia-login-page">
+      <div className="socia-login-layout">
+        {/* Directiva oficial: canales de contacto de la Asociación */}
+        <aside
+          className="socia-directiva-panel vtf-top-accent"
+          aria-labelledby="directiva-titulo"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '2rem 1.75rem 1.625rem',
+            border: '1px solid var(--border-light)',
+            boxShadow: 'var(--shadow-lg)'
+          }}
+        >
+          <div>
+            {/* Cabecera del panel de Directiva */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', marginBottom: '1rem' }}>
+              <img
+                src="/logo-vtf.png"
+                alt="Logo Asociación VTF Temuco"
                 style={{
-                  fontSize: '0.8125rem',
-                  color: 'var(--primary-600)',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  overflowWrap: 'anywhere'
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  backgroundColor: 'white',
+                  padding: '2px',
+                  border: '2px solid var(--primary-200)',
+                  boxShadow: 'var(--shadow-sm)',
+                  flexShrink: 0
                 }}
-              >
-                {dir.correo}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </aside>
+              />
+              <div>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    backgroundColor: 'var(--sigav-soft)',
+                    color: 'var(--primary-700)',
+                    border: '1px solid var(--primary-200)',
+                    borderRadius: 'var(--radius-full)',
+                    padding: '0.15rem 0.6rem',
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.03em',
+                    textTransform: 'uppercase',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Canales Oficiales
+                </span>
+                <h2
+                  id="directiva-titulo"
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 700,
+                    color: 'var(--text-main)',
+                    margin: 0,
+                    lineHeight: 1.2
+                  }}
+                >
+                  Directiva Oficial
+                </h2>
+              </div>
+            </div>
+
+            <p
+              style={{
+                fontSize: '0.84rem',
+                color: 'var(--text-muted)',
+                margin: '0 0 1.25rem',
+                lineHeight: 1.5
+              }}
+            >
+              ¿Tienes dudas sobre tu ingreso, cuotas o convenios? Escríbenos directamente a nuestro correo institucional.
+            </p>
+
+            {/* Tarjetas de contacto de la directiva */}
+            <ul
+              style={{
+                listStyle: 'none',
+                margin: 0,
+                padding: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}
+            >
+              {DIRECTIVA_OFICIAL.map((dir) => (
+                <li key={dir.correo}>
+                  <a
+                    href={`mailto:${dir.correo}`}
+                    className="directiva-member-card"
+                    aria-label={`Enviar correo a ${dir.nombre}, ${dir.cargo}`}
+                  >
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '50%',
+                        backgroundColor: dir.bgVar,
+                        color: dir.textVar,
+                        border: `1px solid ${dir.borderVar}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: '0.875rem',
+                        flexShrink: 0,
+                        letterSpacing: '0.02em'
+                      }}
+                    >
+                      {getInitials(dir.nombre)}
+                    </div>
+
+                    <div
+                      style={{
+                        minWidth: 0,
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '0.9375rem',
+                          fontWeight: 700,
+                          color: 'var(--text-main)',
+                          lineHeight: 1.25
+                        }}
+                      >
+                        {dir.nombre}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '0.675rem',
+                          fontWeight: 700,
+                          backgroundColor: dir.bgVar,
+                          color: dir.textVar,
+                          border: `1px solid ${dir.borderVar}`,
+                          padding: '0.125rem 0.5rem',
+                          borderRadius: 'var(--radius-full)',
+                          letterSpacing: '0.02em'
+                        }}
+                      >
+                        {dir.cargo}
+                      </span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          marginTop: '0.1rem',
+                          fontSize: '0.8rem',
+                          color: 'var(--primary-600)',
+                          fontWeight: 600,
+                          overflowWrap: 'anywhere'
+                        }}
+                      >
+                        <Mail size={13} style={{ flexShrink: 0 }} aria-hidden="true" />
+                        <span>{dir.correo}</span>
+                      </div>
+                    </div>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Pie institucional informativo */}
+          <div
+            style={{
+              marginTop: '1.375rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid var(--border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.78rem',
+              color: 'var(--text-muted)',
+              lineHeight: 1.4
+            }}
+          >
+            <Building2 size={15} style={{ color: 'var(--primary-600)', flexShrink: 0 }} aria-hidden="true" />
+            <span>
+              Representación gremial de los <strong style={{ color: 'var(--text-main)' }}>23 jardines VTF</strong> de Temuco y Labranza
+            </span>
+          </div>
+        </aside>
 
       <div
+        className="socia-login-card vtf-top-accent"
         style={{
           width: '100%',
           backgroundColor: 'var(--bg-surface)',
           borderRadius: 'var(--radius-xl)',
           padding: '2.5rem 2rem',
           border: '1px solid var(--border-light)',
-          boxShadow: 'var(--shadow-card)',
+          boxShadow: 'var(--shadow-lg)',
           display: 'flex',
           flexDirection: 'column'
         }}
@@ -348,9 +486,9 @@ export function SociaLoginPage() {
             <span>¿Es tu primera vez ingresando?</span>
           </div>
           <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-            Tu contraseña inicial son los <strong>primeros 6 dígitos de tu RUT</strong> (sin puntos ni guion).
+            Tu contraseña inicial son los <strong style={{ color: 'var(--text-main)' }}>primeros 6 dígitos de tu RUT</strong> (sin puntos ni guion).
             <br />
-            <em>Ejemplo: Si tu RUT es <strong>12.345.678-5</strong>, tu clave inicial es <strong>123456</strong>.</em>
+            <em>Ejemplo: Si tu RUT es <strong style={{ color: 'var(--text-main)' }}>12.345.678-5</strong>, tu clave inicial es <strong style={{ color: 'var(--text-main)' }}>123456</strong>.</em>
             <br />
             Al entrar se te solicitará crear tu propia contraseña personal.
           </p>
@@ -377,9 +515,9 @@ export function SociaLoginPage() {
         )}
 
         <form onSubmit={handleSubmitLogin(onSubmitLogin)}>
-          <Input
+          <RutInput
             label="RUT de la Socia"
-            placeholder="ej. 12.345.678-5 o 12345678-5"
+            placeholder="ej. 12.345.678-5"
             icon={UserCheck}
             error={loginErrors.rut?.message}
             {...registerLogin('rut')}

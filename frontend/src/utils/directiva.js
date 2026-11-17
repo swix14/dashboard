@@ -5,18 +5,27 @@ export const DIRECTIVA_OFICIAL = [
     nombre: 'Yerthie Sayago Gajardo',
     cargo: 'Presidenta',
     correo: 'presidenta@vtftemuco.cl',
-    color: '#725682'
+    color: '#725682',
+    bgVar: 'var(--primary-100)',
+    textVar: 'var(--primary-700)',
+    borderVar: 'var(--primary-300)'
   },
   {
     nombre: 'Alejandra Sias Novoa',
     cargo: 'Tesorera',
     correo: 'tesorera@vtftemuco.cl',
-    color: '#2e7d32'
+    color: '#2e7d32',
+    bgVar: 'var(--success-bg)',
+    textVar: 'var(--success-text)',
+    borderVar: 'var(--success-border)'
   },
   {
     nombre: 'Nelly Mella Burgos',
     cargo: 'Secretaria',
     correo: 'secretaria@vtftemuco.cl',
-    color: '#1976d2'
+    color: '#8f526a',
+    bgVar: 'var(--accent-pink-100)',
+    textVar: 'var(--accent-pink-700)',
+    borderVar: 'var(--accent-pink-300)'
   }
 ];

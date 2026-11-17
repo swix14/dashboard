@@ -38,7 +38,7 @@ async function runTests() {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: 'tesorera@vtftemuco.cl', password: 'PasswordIncorrecta' })
+      body: JSON.stringify({ identifier: '16.947.343-9', password: 'PasswordIncorrecta' })
     });
     assert.strictEqual(res.status, 401);
     const body = await res.json();
@@ -51,7 +51,7 @@ async function runTests() {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: 'tesorera@vtftemuco.cl', password: 'Admin123!' })
+      body: JSON.stringify({ identifier: '16.947.343-9', password: 'Admin123!' })
     });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
@@ -121,7 +121,7 @@ async function runTests() {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: 'directora@vtftemuco.cl', password: 'Admin123!' })
+      body: JSON.stringify({ identifier: '20.081.109-7', password: 'Admin123!' })
     });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
@@ -136,7 +136,7 @@ async function runTests() {
     });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
-    assert.strictEqual(body.data.nivelAcceso, 'DIRECTORA_CONVENIOS');
+    assert.strictEqual(body.data.nivelAcceso, 'DIRECTIVA_PADRON');
     assert.strictEqual(body.data.fondoComunSaldo, undefined);
     assert.strictEqual(body.data.inicio.saldoTotal, undefined);
     assert.strictEqual(body.data.puedeGestionarFinanzas, false);

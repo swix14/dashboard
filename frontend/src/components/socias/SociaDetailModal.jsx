@@ -4,9 +4,10 @@ import { Modal } from '../common/Modal.jsx';
 import { Badge } from '../common/Badge.jsx';
 import { Button } from '../common/Button.jsx';
 import { formatCurrencyCLP, formatDateCLP } from '../../utils/formatters.js';
-import { CARGO_LABELS, CREDITO_ESTADO_BADGE, ESTADO_BADGE, nombreCompleto } from './sociaLabels.js';
+import { CARGO_LABELS, ESTADO_BADGE, nombreCompleto } from './sociaLabels.js';
+import { RestablecerClavePanel } from './RestablecerClavePanel.jsx';
 
-function InfoItem({ label, children }) {
+export function InfoItem({ label, children }) {
   return (
     <div style={{ minWidth: 0 }}>
       <div style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
@@ -19,7 +20,7 @@ function InfoItem({ label, children }) {
   );
 }
 
-const sectionTitle = {
+export const sectionTitle = {
   fontSize: '0.8125rem',
   fontWeight: 700,
   textTransform: 'uppercase',
@@ -29,7 +30,8 @@ const sectionTitle = {
 };
 
 /**
- * Ficha de socia: datos de contacto, créditos (vigentes e históricos) e historial de traslados
+ * Ficha de socia: SOLO datos personales y de membresía, más el historial de traslados.
+ * Los créditos van en una ficha aparte (CreditoDetailModal), que la Secretaria no puede abrir.
  */
 export function SociaDetailModal({ detail, onClose, canModify, onEdit, onRetirar }) {
   if (!detail) return null;
@@ -54,7 +56,6 @@ export function SociaDetailModal({ detail, onClose, canModify, onEdit, onRetirar
           </InfoItem>
           <InfoItem label="Correo">{detail.correo || 'Sin registro'}</InfoItem>
           <InfoItem label="Celular">{detail.celular || 'Sin registro'}</InfoItem>
-          <InfoItem label="Descuento créditos">{formatCurrencyCLP(detail.descuentoMensualCreditos)} / mes</InfoItem>
           {detail.esDelegada && <InfoItem label="Representación">Delegada de jardín</InfoItem>}
         </div>
 
@@ -65,53 +66,10 @@ export function SociaDetailModal({ detail, onClose, canModify, onEdit, onRetirar
         )}
         {detail.estado === 'RETIRADA' && (
           <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--bg-surface-subtle)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', fontSize: '0.8125rem', color: 'var(--text-main)' }}>
-            Retirada el {formatDateCLP(detail.fechaRetiro)}. Motivo: {detail.motivoRetiro}. Se conservan sus créditos e historial; para
+            Retirada el {formatDateCLP(detail.fechaRetiro)}. Motivo: {detail.motivoRetiro}. Se conserva su historial; para
             reactivarla, edite la ficha y elija un estado.
           </div>
         )}
-
-        <div>
-          <div style={sectionTitle}>Créditos y convenios</div>
-          {!detail.creditos || detail.creditos.length === 0 ? (
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>La socia no registra créditos.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {detail.creditos.map((c) => {
-                const progress = c.totalCuotas ? Math.round((c.cuotasPagadas / c.totalCuotas) * 100) : 0;
-                const badge = CREDITO_ESTADO_BADGE[c.estado] || { variant: 'neutral', label: c.estado };
-                return (
-                  <div key={c.id} style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.625rem' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{c.tipoNombre}</span>
-                      <Badge variant={badge.variant}>{badge.label}</Badge>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                      <span>Cuota {c.cuotasPagadas} de {c.totalCuotas}</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <div
-                      role="progressbar"
-                      aria-valuenow={progress}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      style={{ height: '6px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--bg-surface-subtle)', overflow: 'hidden', marginBottom: '0.75rem' }}
-                    >
-                      <div style={{ width: `${progress}%`, height: '100%', backgroundColor: 'var(--primary-500)' }} />
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem' }}>
-                      <InfoItem label="Monto">{formatCurrencyCLP(c.montoSolicitado)}</InfoItem>
-                      <InfoItem label="Valor cuota">{formatCurrencyCLP(c.valorCuota)}</InfoItem>
-                      <InfoItem label="Saldo pendiente">{formatCurrencyCLP(c.saldoPendiente)}</InfoItem>
-                      <InfoItem label="Período">
-                        {formatDateCLP(c.fechaInicio)} – {formatDateCLP(c.fechaTermino)}
-                      </InfoItem>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
 
         {detail.historialJardin && detail.historialJardin.length > 0 && (
           <div>
@@ -127,6 +85,14 @@ export function SociaDetailModal({ detail, onClose, canModify, onEdit, onRetirar
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* Recuperación de clave del portal (no aplica a socias retiradas) */}
+        {canModify && detail.estado !== 'RETIRADA' && (
+          <div>
+            <div style={sectionTitle}>Acceso al portal</div>
+            <RestablecerClavePanel key={detail.id} socia={detail} />
           </div>
         )}
 

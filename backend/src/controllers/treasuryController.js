@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { TreasuryService } from '../services/treasuryService.js';
 import { discardUploadedFile, resolveUploadPath } from '../middlewares/uploadMiddleware.js';
 import { AuditService } from '../services/auditService.js';
-import { movementSchema } from '../validators/treasuryValidator.js';
+import { movementSchema, listMovementsSchema } from '../validators/treasuryValidator.js';
 
 export const TreasuryController = {
   /**
@@ -25,15 +25,11 @@ export const TreasuryController = {
    */
   async getMovements(req, res, next) {
     try {
-      const { tipo, centroCosto, metodo, fechaDesde, fechaHasta, fechaExacta } = req.query;
-      const movements = await TreasuryService.getMovements({
-        tipo,
-        centroCosto,
-        metodo,
-        fechaDesde,
-        fechaHasta,
-        fechaExacta
-      });
+      const parsed = listMovementsSchema.safeParse(req.query);
+      if (!parsed.success) {
+        return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message || 'Filtros inválidos' });
+      }
+      const movements = await TreasuryService.getMovements(parsed.data);
 
       return res.status(200).json({
         success: true,

@@ -1,6 +1,7 @@
 import { SociaService } from '../services/sociaService.js';
 import { PadronImportService } from '../services/padronImportService.js';
 import { AuditService } from '../services/auditService.js';
+import { SessionService } from '../services/sessionService.js';
 import {
   createSociaSchema,
   updateSociaSchema,
@@ -15,6 +16,25 @@ function validationError(res, parsed) {
     message: firstIssue?.message || 'Datos de socia inválidos',
     errors: parsed.error.format()
   });
+}
+
+// Ficha de crédito: solo Admin, Presidenta y Tesorera. La Secretaria y la Directora ven
+// únicamente la ficha personal de la socia (pedido de la directiva, 16-11-2026).
+export const CREDITO_ROLES = ['ADMIN', 'PRESIDENTA', 'TESORERA'];
+const puedeVerCreditos = (req) => CREDITO_ROLES.includes(req.user?.role?.code);
+
+// Quita del padrón todo dato de créditos para los roles sin acceso a la ficha de crédito
+function sinCreditosEnListado(item) {
+  const { tieneCredito, creditosActivos, ...personal } = item;
+  return personal;
+}
+function sinCreditosEnFicha(socia) {
+  const { creditos, descuentoMensualCreditos, ...personal } = socia;
+  return personal;
+}
+function sinCreditosEnResumen(summary) {
+  const { sociasConCredito, creditosVigentes, saldoCreditosPendiente, porTipoCredito, ...resto } = summary;
+  return resto;
 }
 
 const responsable = (req) => `${req.user.firstName} ${req.user.lastName}`.trim();
@@ -35,7 +55,8 @@ export const SociaController = {
   async getSummary(req, res, next) {
     try {
       const summary = await SociaService.getSummary();
-      return res.status(200).json({ success: true, data: summary });
+      const data = puedeVerCreditos(req) ? summary : sinCreditosEnResumen(summary);
+      return res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);
     }
@@ -46,8 +67,11 @@ export const SociaController = {
     try {
       const parsed = listSociasSchema.safeParse(req.query);
       if (!parsed.success) return validationError(res, parsed);
-      const result = await SociaService.getSocias(parsed.data);
-      return res.status(200).json({ success: true, ...result, data: result.items });
+      // Sin acceso a créditos tampoco se puede filtrar por crédito (revelaría quién tiene uno)
+      const filtros = puedeVerCreditos(req) ? parsed.data : { ...parsed.data, credito: undefined };
+      const result = await SociaService.getSocias(filtros);
+      const items = puedeVerCreditos(req) ? result.items : result.items.map(sinCreditosEnListado);
+      return res.status(200).json({ success: true, ...result, items, data: items });
     } catch (error) {
       next(error);
     }
@@ -67,7 +91,8 @@ export const SociaController = {
   async getSociaById(req, res, next) {
     try {
       const socia = await SociaService.getSociaById(req.params.id);
-      return res.status(200).json({ success: true, data: socia });
+      const data = puedeVerCreditos(req) ? socia : sinCreditosEnFicha(socia);
+      return res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);
     }
@@ -138,6 +163,22 @@ export const SociaController = {
     }
   },
 
+  /** POST /api/socias/:id/restablecer-clave — recuperación de clave hecha por la directiva */
+  async restablecerClave(req, res, next) {
+    try {
+      const { id, rut } = await SociaService.restablecerClave(req.params.id);
+      // Las sesiones que la socia tuviera abiertas dejan de valer
+      await SessionService.revokeOthers(`socia-${id}`, null);
+      await audit(req, 'SOCIA_PASSWORD_RESET', { sociaId: id, rut });
+      return res.json({
+        success: true,
+        message: 'Clave restablecida. La socia entra con los 6 primeros dígitos de su RUT y debe crear una nueva.'
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   /** POST /api/socias/importar/previsualizar (multipart, campo "planilla") */
   async previsualizarPlanilla(req, res, next) {
     try {
@@ -172,7 +213,9 @@ export const SociaController = {
   /** GET /api/socias/importar/historial */
   async historialCargas(req, res, next) {
     try {
-      const data = await PadronImportService.historial(req.query.limit);
+      // Límite acotado a un entero entre 1 y 100 (auditoría H-019)
+      const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 20, 1), 100);
+      const data = await PadronImportService.historial(limit);
       return res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);

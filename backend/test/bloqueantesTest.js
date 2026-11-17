@@ -1,7 +1,6 @@
 /**
  * Pruebas de los bloqueantes de despliegue (09-11-2026):
- *  - Login con el dominio oficial @vtftemuco.cl
- *  - Solo el correo exacto @vtftemuco.cl o el RUT: sin otros dominios ni alias
+ *  - Login de la directiva solo con RUT (el correo ya no se acepta, 16-11-2026)
  *  - Cambio de contraseña de la directiva con política mínima
  *  - En producción, sin MySQL, la API responde 503 en vez de datos de memoria
  *
@@ -45,27 +44,27 @@ const post = async (url, body, token) => {
   return { status: res.status, body: await res.json() };
 };
 
-await test('POST /api/auth/login acepta tesorera@vtftemuco.cl', async () => {
-  const { status, body } = await post('/auth/login', { identifier: 'tesorera@vtftemuco.cl', password: 'Admin123!' });
+await test('POST /api/auth/login acepta el RUT de la tesorera', async () => {
+  const { status, body } = await post('/auth/login', { identifier: '13.918.472-6', password: 'Admin123!' });
   assert.strictEqual(status, 200);
   assert.strictEqual(body.data.user.role.code, 'TESORERA');
 });
 
-await test('POST /api/auth/login acepta presidenta@vtftemuco.cl', async () => {
-  const { status, body } = await post('/auth/login', { identifier: 'presidenta@vtftemuco.cl', password: 'Admin123!' });
+await test('POST /api/auth/login acepta el RUT de la presidenta', async () => {
+  const { status, body } = await post('/auth/login', { identifier: '15.421.368-7', password: 'Admin123!' });
   assert.strictEqual(status, 200);
   assert.strictEqual(body.data.user.role.code, 'PRESIDENTA');
 });
 
-for (const variante of [
+// El acceso es solo por RUT: ningún correo sirve, ni siquiera el institucional exacto
+for (const correo of [
+  'tesorera@vtftemuco.cl',
+  'presidenta@vtftemuco.cl',
   'tesorera@gmail.com',
-  'tesorera@vtf.cl',
-  'tesorera@asociacionvtf.cl',
-  'tesoreria@vtftemuco.cl',
   'alejandra.sias@vtftemuco.cl'
 ]) {
-  await test(`POST /api/auth/login rechaza la variante ${variante}`, async () => {
-    const { status } = await post('/auth/login', { identifier: variante, password: 'Admin123!' });
+  await test(`POST /api/auth/login rechaza el correo ${correo}`, async () => {
+    const { status } = await post('/auth/login', { identifier: correo, password: 'Admin123!' });
     assert.strictEqual(status, 401);
   });
 }
@@ -86,7 +85,7 @@ await test('validatePasswordPolicy rechaza claves cortas, sin números, la inici
 });
 
 await test('POST /api/auth/cambiar-clave exige la clave actual y luego permite entrar con la nueva', async () => {
-  const login = await post('/auth/login', { identifier: 'secretaria@vtftemuco.cl', password: 'Admin123!' });
+  const login = await post('/auth/login', { identifier: '14.832.195-4', password: 'Admin123!' });
   const token = login.body.data.token;
 
   const wrong = await post('/auth/cambiar-clave', { currentPassword: 'otra', newPassword: 'Secretaria2026' }, token);
@@ -99,21 +98,21 @@ await test('POST /api/auth/cambiar-clave exige la clave actual y luego permite e
   assert.strictEqual(ok.status, 200);
   assert.strictEqual(ok.body.data.user.mustChangePassword, false);
 
-  const oldPass = await post('/auth/login', { identifier: 'secretaria@vtftemuco.cl', password: 'Admin123!' });
+  const oldPass = await post('/auth/login', { identifier: '14.832.195-4', password: 'Admin123!' });
   assert.strictEqual(oldPass.status, 401);
-  const newPass = await post('/auth/login', { identifier: 'secretaria@vtftemuco.cl', password: 'Secretaria2026' });
+  const newPass = await post('/auth/login', { identifier: '14.832.195-4', password: 'Secretaria2026' });
   assert.strictEqual(newPass.status, 200);
 });
 
-await test('GET /api/health informa el estado de la base de datos', async () => {
+// Auditoría H-010: el healthcheck público solo dice si hay conexión, sin códigos de error ni nombre del sistema
+await test('GET /api/health es mínimo: estado y conexión, sin detalles internos', async () => {
   const res = await fetch(`${baseUrl}/health`);
   const body = await res.json();
-  assert.strictEqual(body.database.conectada, false);
-  assert.ok(body.database.error);
+  assert.deepStrictEqual(body, { status: 'ok', database: { conectada: false } });
 });
 
 // --- Correcciones de la auditoría (10-11-2026) ---
-const tesoreraToken = (await post('/auth/login', { identifier: 'tesorera@vtftemuco.cl', password: 'Admin123!' })).body.data.token;
+const tesoreraToken = (await post('/auth/login', { identifier: '13.918.472-6', password: 'Admin123!' })).body.data.token;
 
 async function postMovimiento(campos, archivo) {
   const form = new FormData();
@@ -162,14 +161,14 @@ await test('contenidoCoincide reconoce las firmas de PDF, JPG, PNG, WEBP y XLSX'
 
 await test('Tras 5 intentos fallidos la cuenta queda bloqueada (429), incluso con la clave correcta', async () => {
   for (let i = 0; i < 5; i++) {
-    const { status } = await post('/auth/login', { identifier: 'presidenta@vtftemuco.cl', password: 'ClaveMala1' });
+    const { status } = await post('/auth/login', { identifier: '15.421.368-7', password: 'ClaveMala1' });
     assert.strictEqual(status, 401, `intento ${i + 1}`);
   }
-  const bloqueado = await post('/auth/login', { identifier: 'presidenta@vtftemuco.cl', password: 'Admin123!' });
+  const bloqueado = await post('/auth/login', { identifier: '15.421.368-7', password: 'Admin123!' });
   assert.strictEqual(bloqueado.status, 429);
   assert.strictEqual(bloqueado.body.code, 'DEMASIADOS_INTENTOS');
   // El bloqueo es por cuenta: otra cuenta sigue entrando
-  const otra = await post('/auth/login', { identifier: 'secretaria@vtftemuco.cl', password: 'Secretaria2026' });
+  const otra = await post('/auth/login', { identifier: '14.832.195-4', password: 'Secretaria2026' });
   assert.strictEqual(otra.status, 200);
 });
 
@@ -203,7 +202,7 @@ await test('En producción sin MySQL: health avisa y el login responde 503', asy
   const port = 40000 + Math.floor(Math.random() * 10000);
   const child = spawn(process.execPath, ['app.cjs'], {
     cwd: backendRoot,
-    env: { ...process.env, NODE_ENV: 'production', PORT: String(port), DB_HOST: '127.0.0.1', DB_PORT: '1', JWT_SECRET: 'x'.repeat(40) },
+    env: { ...process.env, NODE_ENV: 'production', CORS_ORIGIN: 'https://vtftemuco.cl', PORT: String(port), DB_HOST: '127.0.0.1', DB_PORT: '1', JWT_SECRET: 'x'.repeat(40) },
     stdio: 'ignore'
   });
   try {
@@ -219,23 +218,78 @@ await test('En producción sin MySQL: health avisa y el login responde 503', asy
     const res = await fetch(`${prodUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: 'tesorera@vtftemuco.cl', password: 'Admin123!' })
+      body: JSON.stringify({ identifier: '13.918.472-6', password: 'Admin123!' })
     });
     assert.strictEqual(res.status, 503);
     assert.strictEqual((await res.json()).code, 'DATABASE_UNAVAILABLE');
+
+    // Auditoría H-011: en producción un origen localhost ya no está autorizado por CORS
+    const cors = await fetch(`${prodUrl}/health`, { headers: { Origin: 'http://localhost:5173' } });
+    assert.strictEqual(cors.headers.get('access-control-allow-origin'), null);
   } finally {
     child.kill();
   }
 });
 
-// La clave JWT por defecto está en el repositorio: en producción la app no debe arrancar con ella
-await test('En producción sin JWT_SECRET propio la app no arranca', async () => {
-  for (const secret of ['', 'vtf-gestion-super-secret-key-2026-production-ready']) {
+// Auditoría H-012: sin NODE_ENV=production (aquí "development", como en el .env local) y sin MySQL,
+// la app ya NO entra al modo memoria con usuarios semilla y clave conocida
+await test('Fuera de test y sin MySQL no hay modo memoria: login responde 503', async () => {
+  const port = 40000 + Math.floor(Math.random() * 10000);
+  const child = spawn(process.execPath, ['app.cjs'], {
+    cwd: backendRoot,
+    env: { ...process.env, NODE_ENV: 'development', ALLOW_MEMORY_FALLBACK: '', PORT: String(port), DB_HOST: '127.0.0.1', DB_PORT: '1', JWT_SECRET: 'y'.repeat(40) },
+    stdio: 'ignore'
+  });
+  try {
+    const devUrl = `http://127.0.0.1:${port}/api`;
+    let health = null;
+    for (let i = 0; i < 50 && !health; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      health = await fetch(`${devUrl}/health`).then((r) => r.json()).catch(() => null);
+    }
+    assert.ok(health, 'el servidor no arrancó');
+    const res = await fetch(`${devUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: '13.918.472-6', password: 'Admin123!' })
+    });
+    assert.strictEqual(res.status, 503);
+  } finally {
+    child.kill();
+  }
+});
+
+// Auditoría H-005: después de cerrar sesión el mismo token deja de servir
+await test('Logout revoca el token: reutilizarlo responde 401', async () => {
+  const token = (await post('/auth/login', { identifier: '13.918.472-6', password: 'Admin123!' })).body.data.token;
+  const me = await fetch(`${baseUrl}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+  assert.strictEqual(me.status, 200);
+  const out = await post('/auth/logout', {}, token);
+  assert.strictEqual(out.status, 200);
+  const reuse = await fetch(`${baseUrl}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+  assert.strictEqual(reuse.status, 401);
+  // Otra sesión de la misma persona sigue válida
+  const otra = (await post('/auth/login', { identifier: '13.918.472-6', password: 'Admin123!' })).body.data.token;
+  assert.strictEqual((await fetch(`${baseUrl}/auth/me`, { headers: { Authorization: `Bearer ${otra}` } })).status, 200);
+});
+
+// Auditoría H-015: RUT sin cuenta y clave incorrecta responden igual
+await test('Login de la directiva no revela si el RUT tiene cuenta', async () => {
+  const inexistente = await post('/auth/login', { identifier: '12.345.678-5', password: 'ClaveMala1' });
+  const claveMala = await post('/auth/login', { identifier: '17.890.123-1', password: 'ClaveMala1' });
+  assert.strictEqual(inexistente.status, 401);
+  assert.strictEqual(claveMala.status, 401);
+  assert.strictEqual(inexistente.body.message, claveMala.body.message);
+});
+
+// Auditoría H-003: ya no hay clave JWT por defecto; fuera de test la app no arranca sin una propia
+await test('Sin JWT_SECRET propio la app no arranca (producción y desarrollo)', async () => {
+  for (const [secret, nodeEnv] of [['', 'production'], ['vtf-gestion-super-secret-key-2026-production-ready', 'production'], ['', 'development'], ['corta', 'development']]) {
     const port = 40000 + Math.floor(Math.random() * 10000);
     const child = spawn(process.execPath, ['app.cjs'], {
       cwd: backendRoot,
       // JWT_SECRET definido (aunque vacío) impide que dotenv lo tome del .env local
-      env: { ...process.env, NODE_ENV: 'production', PORT: String(port), DB_HOST: '127.0.0.1', DB_PORT: '1', JWT_SECRET: secret },
+      env: { ...process.env, NODE_ENV: nodeEnv, PORT: String(port), DB_HOST: '127.0.0.1', DB_PORT: '1', JWT_SECRET: secret },
       stdio: 'ignore'
     });
     const code = await new Promise((resolve) => {
@@ -254,6 +308,33 @@ await test('En producción sin JWT_SECRET propio la app no arranca', async () =>
 });
 
 // Fechas en hora de Chile: a las 23:30 del 9 de noviembre en Chile (02:30 UTC del día 10)
+// Auditoría H-016: una "bomba ZIP" (índice que declara contenido gigante) se rechaza sin descomprimir
+await test('revisarContenedorXlsx rechaza contenido descomprimido desmedido y acepta un .xlsx real', async () => {
+  const { revisarContenedorXlsx } = await import('../src/utils/xlsxGuard.js');
+
+  // ZIP mínimo con una entrada que declara 2 GB descomprimidos a partir de 1 KB
+  const nombre = Buffer.from('xl/worksheets/sheet1.xml');
+  const central = Buffer.alloc(46);
+  central.writeUInt32LE(0x02014b50, 0);
+  central.writeUInt32LE(1024, 20); // comprimido
+  central.writeUInt32LE(0x7fffffff, 24); // descomprimido
+  central.writeUInt16LE(nombre.length, 28);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(1, 8);
+  eocd.writeUInt16LE(1, 10);
+  eocd.writeUInt32LE(central.length + nombre.length, 12);
+  eocd.writeUInt32LE(0, 16);
+  const bomba = Buffer.concat([central, nombre, eocd]);
+  assert.ok(revisarContenedorXlsx(bomba));
+  assert.ok(revisarContenedorXlsx(Buffer.from('no es un zip, solo texto plano de prueba')));
+
+  const ExcelJS = (await import('exceljs')).default;
+  const wb = new ExcelJS.Workbook();
+  wb.addWorksheet('Socias').addRow(['RUT', 'Nombres']);
+  assert.strictEqual(revisarContenedorXlsx(Buffer.from(await wb.xlsx.writeBuffer())), null);
+});
+
 await test('hoyChile usa la fecha de Chile, no la de UTC', async () => {
   const { hoyChile } = await import('../src/utils/fecha.js');
   assert.strictEqual(hoyChile(new Date('2026-11-10T02:30:00Z')), '2026-11-09');

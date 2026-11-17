@@ -15,11 +15,12 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Configuración segura de orígenes permitidos (CORS)
+// En producción solo el dominio propio y CORS_ORIGIN (allowlist exacta, auditoría H-011);
+// los orígenes localhost se aceptan únicamente en desarrollo y pruebas.
+const IS_PRODUCTION = env.NODE_ENV === 'production';
 const allowedOrigins = [
   env.CORS_ORIGIN,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000'
+  ...(IS_PRODUCTION ? [] : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'])
 ].filter(Boolean);
 
 // Middlewares de seguridad y observabilidad
@@ -43,14 +44,17 @@ app.use(
     } catch {
       return allow(false);
     }
-    // Orígenes de desarrollo local
-    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return allow(true);
+    // Orígenes de desarrollo local (nunca en producción)
+    if (!IS_PRODUCTION && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
+      return allow(true);
+    }
     // Lista blanca configurada en entorno
     return allow(allowedOrigins.includes(origin));
   })
 );
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Límite chico para JSON: los archivos viajan por multer, no en el cuerpo JSON (auditoría H-019/zod DoS)
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 if (env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));

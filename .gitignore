@@ -48,3 +48,6 @@ backend/uploads/*
 Thumbs.db
 # Archivos temporales de Office (se crean mientras un documento está abierto)
 ~$*
+
+# Respaldo de auditoría cuando MySQL falla (datos personales: nunca al repositorio)
+backend/logs/

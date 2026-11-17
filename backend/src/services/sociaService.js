@@ -438,6 +438,20 @@ export const SociaService = {
   },
 
   /**
+   * Recuperación de clave desde la directiva: la socia vuelve a la clave inicial
+   * (6 primeros dígitos del RUT) y debe crear una nueva en su próximo ingreso.
+   */
+  async restablecerClave(id) {
+    const sociaId = parseId(id);
+    const row = await findSociaRow(sociaId);
+    if (!row) throw new SociaError('Socia no encontrada en el padrón.', 404);
+    if (row.estado === 'RETIRADA') throw new SociaError('La socia está retirada: reactívela antes de restablecer su clave.', 409);
+
+    await query('UPDATE socias SET password = NULL, primer_ingreso = 1 WHERE id = ?', [sociaId]);
+    return { id: sociaId, rut: row.rut };
+  },
+
+  /**
    * Catálogo de jardines con conteo de socias y delegada asignada
    */
   async getJardines() {

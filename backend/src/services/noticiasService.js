@@ -81,6 +81,21 @@ export const NoticiasService = {
     };
     INITIAL_NOTICIAS.unshift(newNoticia);
     return newNoticia;
+  },
+
+  /**
+   * Elimina una noticia publicada (corrección de errores por la directiva)
+   * @returns {Promise<boolean>} true si existía
+   */
+  async deleteNoticia(id) {
+    if (isDatabaseReady()) {
+      const result = await query('DELETE FROM noticias WHERE id = ?', [id]);
+      return result.affectedRows > 0;
+    }
+    const idx = INITIAL_NOTICIAS.findIndex((n) => n.id === id);
+    if (idx === -1) return false;
+    INITIAL_NOTICIAS.splice(idx, 1);
+    return true;
   }
 };
 

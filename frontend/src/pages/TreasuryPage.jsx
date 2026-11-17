@@ -224,10 +224,7 @@ export function TreasuryPage() {
             <Button
               variant="primary"
               icon={PlusCircle}
-              onClick={() => {
-                setFormError(null);
-                setIsModalOpen(true);
-              }}
+              onClick={() => setIsModalOpen(true)}
             >
               Agregar Movimiento
             </Button>
@@ -349,7 +346,7 @@ export function TreasuryPage() {
               <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--info-text)' }}>
                 Pagos a Federación
               </span>
-              <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--info-bg)', color: 'var(--primary-500)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--info-bg)', color: 'var(--info-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Building size={18} />
               </div>
             </div>

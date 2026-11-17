@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { isDatabaseReady, query } from '../config/db.js';
@@ -29,14 +30,22 @@ export function getInitialPasswordFromRut(rawRut) {
   return body.slice(0, 6);
 }
 
+// Mensaje único de credenciales inválidas (no indica si el RUT existe ni cómo es la clave inicial)
+const CREDENCIALES_INVALIDAS =
+  'RUT o contraseña incorrectos. Si es su primer ingreso o no recuerda su clave, pida ayuda a la directiva.';
+
+// Hash bcrypt de una clave aleatoria: iguala el tiempo de respuesta cuando el RUT no existe
+const DUMMY_HASH = bcrypt.hashSync(randomUUID(), 10);
+
 export const SociaAuthService = {
   /**
    * Inicia sesión para socias con RUT y contraseña (inicial 6 dígitos o personalizada)
    */
   async loginSocia({ rut, password }) {
     const cleanedInputRut = cleanRut(rut);
-    if (!cleanedInputRut || cleanedInputRut.length < 7) {
-      throw new LoginError('Ingrese un RUT válido para acceder al portal.');
+    // Solo números, K, puntos, guion y espacios: un RUT con otras letras se rechaza (antes se descartaban en silencio)
+    if (!/^[0-9.\-\skK]+$/.test(String(rut || '').trim()) || !cleanedInputRut || cleanedInputRut.length < 7) {
+      throw new LoginError(CREDENCIALES_INVALIDAS);
     }
 
     // El portal de socias trabaja solo con el padrón real de MySQL (V3: sin padrón de memoria)
@@ -54,41 +63,30 @@ export const SociaAuthService = {
     );
     const socia = rows[0];
 
-    if (!socia || socia.estado === 'RETIRADA') {
-      throw new LoginError('El RUT ingresado no figura en el padrón activo de socias de la Asociación.');
-    }
-    if (socia.estado !== 'ACTIVA') {
-      throw new LoginError('Su membresía se encuentra suspendida. Comuníquese con la directiva.');
-    }
-
-    const defaultInitialPass = getInitialPasswordFromRut(socia.rut);
-    const isFirstTime = socia.primer_ingreso === 1 || !socia.password;
+    // Respuesta uniforme (auditoría H-015): RUT inexistente, retirada o clave incorrecta dan el
+    // mismo mensaje, para no revelar quién está en el padrón. El motivo real queda en el log interno.
+    const existe = Boolean(socia) && socia.estado !== 'RETIRADA';
+    const isFirstTime = existe && (socia.primer_ingreso === 1 || !socia.password);
 
     let passwordValid = false;
-
-    if (isFirstTime) {
+    if (!existe) {
+      // Mismo costo que una comparación real: el tiempo de respuesta tampoco delata si el RUT existe
+      await bcrypt.compare(password, DUMMY_HASH).catch(() => false);
+    } else if (isFirstTime) {
       // En primer ingreso, la contraseña son los 6 primeros dígitos de su RUT
-      passwordValid = password === defaultInitialPass;
+      passwordValid = password === getInitialPasswordFromRut(socia.rut);
     } else {
-      // Contraseña personalizada con hash bcrypt
-      try {
-        passwordValid = await bcrypt.compare(password, socia.password);
-      } catch {
-        passwordValid = false;
-      }
-      // Una vez cambiada, la clave inicial (6 dígitos del RUT) deja de servir:
-      // cualquiera que conozca el RUT podría entrar con ella.
+      // Contraseña personalizada con hash bcrypt (la clave inicial deja de servir)
+      passwordValid = await bcrypt.compare(password, socia.password).catch(() => false);
     }
 
     if (!passwordValid) {
-      if (isFirstTime) {
-        // Ejemplo genérico: antes se mostraba la clave inicial real del RUT ingresado
-        throw new LoginError(
-          'Contraseña incorrecta. Para su primer ingreso, la contraseña son los primeros 6 dígitos de su RUT ' +
-            '(ej. si su RUT es 12.345.678-5, la clave es 123456).'
-        );
-      }
-      throw new LoginError('Contraseña incorrecta. Si olvidó su clave personal, pida a la directiva que la restablezca.');
+      throw new LoginError(CREDENCIALES_INVALIDAS);
+    }
+
+    // Solo quien acreditó su clave conoce el estado de su membresía
+    if (socia.estado !== 'ACTIVA') {
+      throw new LoginError('Su membresía se encuentra suspendida. Comuníquese con la directiva.');
     }
 
     const payload = {
@@ -103,7 +101,9 @@ export const SociaAuthService = {
       primerIngreso: Boolean(socia.primer_ingreso)
     };
 
+    // jwtid único por sesión: permite revocarla al cerrar sesión (auditoría H-005)
     const token = jwt.sign(payload, env.JWT_SECRET, {
+      jwtid: randomUUID(),
       expiresIn: env.JWT_EXPIRES_IN || '8h'
     });
 

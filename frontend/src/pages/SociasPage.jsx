@@ -24,6 +24,8 @@ import { Card } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { SociaDetailModal } from '../components/socias/SociaDetailModal.jsx';
+import { CreditoDetailModal } from '../components/socias/CreditoDetailModal.jsx';
+import { ROLES_ACCESO } from '../utils/permissions.js';
 import { SociaFormModal } from '../components/socias/SociaFormModal.jsx';
 import { RetirarSociaModal } from '../components/socias/RetirarSociaModal.jsx';
 import { ImportPadronModal } from '../components/socias/ImportPadronModal.jsx';
@@ -53,7 +55,9 @@ function KpiCard({ label, value, hint, icon: Icon, accent }) {
 
 export function SociasPage() {
   const { hasRole } = useAuth();
-  const canModify = hasRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA');
+  const canModify = hasRole(...ROLES_ACCESO.SOCIAS_MODIFICAR);
+  // Ficha de crédito solo para Admin, Presidenta y Tesorera (la Secretaria y la Directora ven solo la ficha personal)
+  const verCreditos = hasRole(...ROLES_ACCESO.FICHA_CREDITO);
 
   const [summary, setSummary] = useState(null);
   const [jardines, setJardines] = useState([]);
@@ -75,6 +79,8 @@ export function SociasPage() {
 
   // Modales
   const [detail, setDetail] = useState(null);
+  // 'socia' = ficha personal | 'credito' = ficha de crédito
+  const [detailMode, setDetailMode] = useState('socia');
   const [detailLoadingId, setDetailLoadingId] = useState(null);
   const [formMode, setFormMode] = useState(null); // null | 'create' | 'edit'
   const [editing, setEditing] = useState(null);
@@ -148,10 +154,12 @@ export function SociasPage() {
     setFilterCredito('TODOS');
   };
 
-  const openDetail = async (sociaId) => {
+  const openDetail = async (sociaId, mode = 'socia') => {
     try {
-      setDetailLoadingId(sociaId);
-      setDetail(await SociaApiService.getSocia(sociaId));
+      setDetailLoadingId(`${sociaId}-${mode}`);
+      const ficha = await SociaApiService.getSocia(sociaId);
+      setDetailMode(mode);
+      setDetail(ficha);
     } catch (err) {
       setError(err.response?.data?.message || 'No fue posible cargar la ficha de la socia.');
     } finally {
@@ -179,7 +187,7 @@ export function SociasPage() {
         setError('No hay socias para exportar con los filtros seleccionados.');
         return;
       }
-      const headers = ['RUT', 'Nombres', 'Apellido Paterno', 'Apellido Materno', 'Correo', 'Celular', 'Jardin', 'Cargo', 'Estado', 'Cuota Mensual (CLP)', 'Credito', 'Fecha Ingreso'];
+      const headers = ['RUT', 'Nombres', 'Apellido Paterno', 'Apellido Materno', 'Correo', 'Celular', 'Jardin', 'Cargo', 'Estado', 'Cuota Mensual (CLP)', ...(verCreditos ? ['Credito'] : []), 'Fecha Ingreso'];
       const rows = items.map((s) => [
         s.rut,
         s.nombres,
@@ -191,7 +199,7 @@ export function SociasPage() {
         CARGO_LABELS[s.cargo] || s.cargo,
         ESTADO_BADGE[s.estado]?.label || s.estado,
         s.cuotaMensual,
-        s.tieneCredito ? 'SI' : 'NO',
+        ...(verCreditos ? [s.tieneCredito ? 'SI' : 'NO'] : []),
         s.fechaIngreso || ''
       ]);
       const csvContent = '﻿' + [headers, ...rows].map((r) => r.map(csvCell).join(';')).join('\n');
@@ -283,7 +291,7 @@ export function SociasPage() {
           value={summary?.sociasActivas ?? '—'}
           hint={summary ? `Recaudación esperada ${formatCurrencyCLP(summary.recaudacionMensualEsperada)}/mes` : ''}
           icon={UserCheck}
-          accent="var(--success-border)"
+          accent="var(--success-text)"
         />
         <KpiCard
           label="Socias Suspendidas"
@@ -292,6 +300,7 @@ export function SociasPage() {
           icon={UserX}
           accent="var(--accent-pink-500)"
         />
+        {verCreditos && (
         <KpiCard
           label="Con Crédito Vigente"
           value={summary?.sociasConCredito ?? '—'}
@@ -299,6 +308,7 @@ export function SociasPage() {
           icon={CreditCard}
           accent="var(--sand-500)"
         />
+        )}
         <KpiCard
           label="Valor Cuota Mensual"
           value={summary ? formatCurrencyCLP(summary.valorCuotaMensual) : '—'}
@@ -423,6 +433,7 @@ export function SociasPage() {
                 </select>
               </div>
 
+              {verCreditos && (
               <div>
                 <label style={labelStyle} htmlFor="filtro-credito">Crédito</label>
                 <select id="filtro-credito" value={filterCredito} onChange={(e) => setFilterCredito(e.target.value)} className="vtf-input">
@@ -431,6 +442,7 @@ export function SociasPage() {
                   <option value="NO">Sin crédito (NO)</option>
                 </select>
               </div>
+              )}
             </div>
 
             {hasActiveFilters && (
@@ -452,14 +464,14 @@ export function SociasPage() {
                     <th>Jardín</th>
                     <th style={{ whiteSpace: 'nowrap' }}>Cargo</th>
                     <th style={{ whiteSpace: 'nowrap' }}>Estado</th>
-                    <th style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Crédito</th>
+                    {verCreditos && <th style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Crédito</th>}
                     <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {socias.length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                      <td colSpan={verCreditos ? 6 : 5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                         {isLoading ? 'Cargando padrón de socias…' : 'No se encontraron socias para los filtros seleccionados.'}
                       </td>
                     </tr>
@@ -484,11 +496,12 @@ export function SociasPage() {
                           <td>
                             <Badge variant={estado.variant}>{estado.label}</Badge>
                           </td>
+                          {verCreditos && (
                           <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                             {s.tieneCredito ? (
                               <button
                                 type="button"
-                                onClick={() => openDetail(s.id)}
+                                onClick={() => openDetail(s.id, 'credito')}
                                 title="Ver créditos vigentes"
                                 style={{
                                   display: 'inline-flex',
@@ -510,18 +523,31 @@ export function SociasPage() {
                               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>NO</span>
                             )}
                           </td>
+                          )}
                           <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                             <div style={{ display: 'inline-flex', gap: '0.375rem' }}>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 icon={Eye}
-                                isLoading={detailLoadingId === s.id}
-                                onClick={() => openDetail(s.id)}
-                                aria-label={`Ver ficha de ${nombreCompleto(s)}`}
+                                isLoading={detailLoadingId === `${s.id}-socia`}
+                                onClick={() => openDetail(s.id, 'socia')}
+                                aria-label={`Ver ficha de socia de ${nombreCompleto(s)}`}
                               >
-                                Ficha
+                                Ficha socia
                               </Button>
+                              {verCreditos && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  icon={CreditCard}
+                                  isLoading={detailLoadingId === `${s.id}-credito`}
+                                  onClick={() => openDetail(s.id, 'credito')}
+                                  aria-label={`Ver ficha de crédito de ${nombreCompleto(s)}`}
+                                >
+                                  Ficha crédito
+                                </Button>
+                              )}
                               {canModify && (
                                 <Button variant="outline" size="sm" icon={Pencil} onClick={() => openEdit(s)} aria-label={`Editar a ${nombreCompleto(s)}`}>
                                   Editar
@@ -609,8 +635,10 @@ export function SociasPage() {
         </Card>
       )}
 
+      <CreditoDetailModal detail={detailMode === 'credito' ? detail : null} onClose={() => setDetail(null)} />
+
       <SociaDetailModal
-        detail={detail}
+        detail={detailMode === 'socia' ? detail : null}
         onClose={() => setDetail(null)}
         canModify={canModify}
         onEdit={openEdit}

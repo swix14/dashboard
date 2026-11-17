@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { AuthService } from '../services/authService.js';
+import { SessionService } from '../services/sessionService.js';
 
 // Rutas permitidas mientras la persona no haya cambiado su clave inicial
 const PASSWORD_CHANGE_ALLOWED = ['/api/auth/me', '/api/auth/logout', '/api/auth/cambiar-clave', '/api/socia/cambiar-clave'];
@@ -24,6 +25,14 @@ export async function authMiddleware(req, res, next) {
       return res.status(401).json({
         success: false,
         message: 'Sesión inválida o expirada. Por favor inicie sesión nuevamente.'
+      });
+    }
+
+    // Sesión cerrada con logout: el token deja de servir aunque su firma siga vigente (H-005)
+    if (await SessionService.isRevoked(decoded.jti, decoded.sub, decoded.iat)) {
+      return res.status(401).json({
+        success: false,
+        message: 'La sesión fue cerrada. Por favor inicie sesión nuevamente.'
       });
     }
 
@@ -54,6 +63,8 @@ export async function authMiddleware(req, res, next) {
     }
 
     req.user = userProfile;
+    // Datos del token para poder revocarlo en el logout
+    req.session = { jti: decoded.jti, exp: decoded.exp };
     next();
   } catch (error) {
     const isSuspended = error.message.includes('inactivo') || error.message.includes('suspendido');

@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
 
+// Usuarios FICTICIOS solo para pruebas automatizadas (modo memoria, NODE_ENV=test).
+// Nunca se usan en producción: el modo memoria está deshabilitado fuera de test (H-007/H-012).
 // Hash pre-generado para 'Admin123!' (costo 10)
 export const DEFAULT_PASSWORD_HASH = bcrypt.hashSync('Admin123!', 10);
 
@@ -78,10 +80,10 @@ export const INITIAL_USERS = [
   {
     id: 'user-admin',
     email: 'admin@vtftemuco.cl',
-    rut: '17.260.651-2',
+    rut: '10.111.222-5',
     passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Jhonny Marcelo',
-    lastName: 'Ferrada Pasten',
+    firstName: 'Usuario',
+    lastName: 'Prueba Admin',
     roleCode: 'ADMIN',
     roleId: 'role-0-admin',
     jardinId: null,
@@ -93,8 +95,8 @@ export const INITIAL_USERS = [
     email: 'presidenta@vtftemuco.cl',
     rut: '15.421.368-7',
     passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Yerthie Johanna',
-    lastName: 'Sayago Gajardo',
+    firstName: 'Usuaria',
+    lastName: 'Prueba Presidenta',
     roleCode: 'PRESIDENTA',
     roleId: 'role-1-presidenta',
     jardinId: 'jar-1',
@@ -106,8 +108,8 @@ export const INITIAL_USERS = [
     email: 'tesorera@vtftemuco.cl',
     rut: '13.918.472-6',
     passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Alejandra Romanett',
-    lastName: 'Sias Novoa',
+    firstName: 'Usuaria',
+    lastName: 'Prueba Tesorera',
     roleCode: 'TESORERA',
     roleId: 'role-2-tesorera',
     jardinId: 'jar-2',
@@ -119,8 +121,8 @@ export const INITIAL_USERS = [
     email: 'secretaria@vtftemuco.cl',
     rut: '14.832.195-4',
     passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Nelly Ester',
-    lastName: 'Mella Burgos',
+    firstName: 'Usuaria',
+    lastName: 'Prueba Secretaria',
     roleCode: 'SECRETARIA',
     roleId: 'role-3-secretaria',
     jardinId: 'jar-3',
@@ -132,8 +134,8 @@ export const INITIAL_USERS = [
     email: 'directora@vtftemuco.cl',
     rut: '16.274.593-8',
     passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Victoria Catalina',
-    lastName: 'Abarza Vega',
+    firstName: 'Usuaria',
+    lastName: 'Prueba Directora',
     roleCode: 'DIRECTORA',
     roleId: 'role-4-directora',
     jardinId: 'jar-4',
@@ -145,8 +147,8 @@ export const INITIAL_USERS = [
     email: 'delegada@vtftemuco.cl',
     rut: '17.890.123-1',
     passwordHash: DEFAULT_PASSWORD_HASH,
-    firstName: 'Claudia',
-    lastName: 'Navarro Muñoz',
+    firstName: 'Usuaria',
+    lastName: 'Prueba Delegada',
     roleCode: 'DELEGADA',
     roleId: 'role-6-delegada',
     jardinId: 'jar-1',

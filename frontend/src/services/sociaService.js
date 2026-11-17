@@ -46,6 +46,12 @@ export const SociaApiService = {
     return res.data.data;
   },
 
+  /** Recuperación de clave: vuelve a los 6 primeros dígitos del RUT con cambio obligatorio */
+  async restablecerClave(id) {
+    const res = await api.post(`/socias/${id}/restablecer-clave`);
+    return res.data;
+  },
+
   /** Carga de la planilla Maestra Socias: vista previa (no modifica nada) */
   async previsualizarPlanilla(file) {
     const form = new FormData();

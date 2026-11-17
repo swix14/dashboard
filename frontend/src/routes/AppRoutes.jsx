@@ -12,6 +12,9 @@ import { NotFoundPage } from '../pages/NotFoundPage.jsx';
 import { ModulePlaceholderPage } from '../pages/ModulePlaceholderPage.jsx';
 import { TreasuryPage } from '../pages/TreasuryPage.jsx';
 import { SociasPage } from '../pages/SociasPage.jsx';
+import { ComunicacionesPage } from '../pages/ComunicacionesPage.jsx';
+import { ReportesPage } from '../pages/ReportesPage.jsx';
+import { ROLES_ACCESO } from '../utils/permissions.js';
 
 export function AppRoutes() {
   const { isSocia } = useAuth();
@@ -50,7 +53,7 @@ export function AppRoutes() {
         <Route
           path="tesoreria"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA']}>
+            <ProtectedRoute allowedRoles={ROLES_ACCESO.TESORERIA}>
               <TreasuryPage />
             </ProtectedRoute>
           }
@@ -61,8 +64,18 @@ export function AppRoutes() {
         <Route
           path="socias"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA']}>
+            <ProtectedRoute allowedRoles={ROLES_ACCESO.SOCIAS}>
               <SociasPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Noticias para socias y lectura del buzón (Admin, Presidenta, Secretaria y Directora) */}
+        <Route
+          path="comunicaciones"
+          element={
+            <ProtectedRoute allowedRoles={ROLES_ACCESO.COMUNICACIONES}>
+              <ComunicacionesPage />
             </ProtectedRoute>
           }
         />
@@ -73,36 +86,30 @@ export function AppRoutes() {
         <Route
           path="documentos"
           element={
-            <ModulePlaceholderPage
-              title="Gestión Documental y Subida Móvil"
-              version="Fase V4"
-              description="Subsecciones de documentos maestros descargables, carpetas por empresa (Isimundo, Óptica, Dental, Gimnasio) organizadas año/mes/día y subida ágil de comprobantes desde el celular."
-              features={[
-                'Subsección Maestros con 4 contratos tipo descargables',
-                'Carpetas cronológicas por empresa con correlativo de día y hora',
-                'Flujo de impresión, firma física y digitalización de pagarés',
-                'Conexión ligera PWA para captura de comprobantes desde el teléfono'
-              ]}
-            />
+            <ProtectedRoute allowedRoles={ROLES_ACCESO.DOCUMENTOS}>
+              <ModulePlaceholderPage
+                title="Gestión Documental y Subida Móvil"
+                version="Fase V4"
+                description="Subsecciones de documentos maestros descargables, carpetas por empresa (Isimundo, Óptica, Dental, Gimnasio) organizadas año/mes/día y subida ágil de comprobantes desde el celular."
+                features={[
+                  'Subsección Maestros con 4 contratos tipo descargables',
+                  'Carpetas cronológicas por empresa con correlativo de día y hora',
+                  'Flujo de impresión, firma física y digitalización de pagarés',
+                  'Conexión ligera PWA para captura de comprobantes desde el teléfono'
+                ]}
+              />
+            </ProtectedRoute>
           }
         />
         <Route path="comprobantes" element={<Navigate to="/documentos" replace />} />
 
-        {/* V5 — Reportes Ejecutivos y Portal Delegadas */}
+        {/* Reportes: informe mensual de cuentas (directiva y delegadas, estas solo vista) */}
         <Route
           path="reportes"
           element={
-            <ModulePlaceholderPage
-              title="Reportes Ejecutivos y Portal Delegadas"
-              version="Fase V5"
-              description="Portal exclusivo para las 23 Delegadas con cifras consolidadas de aportes a federación, fondos de bienestar y generación de la Rendición Anual en PDF."
-              features={[
-                'Perfil de visualización protegido exclusivo para Delegadas',
-                'Estadísticas de socias activas por jardín infantil',
-                'Resguardo estricto de privacidad (sin acceso a deudas individuales)',
-                'Exportación de Rendición Anual de Cuentas oficial en PDF e informes Excel'
-              ]}
-            />
+            <ProtectedRoute allowedRoles={ROLES_ACCESO.REPORTES}>
+              <ReportesPage />
+            </ProtectedRoute>
           }
         />
 
@@ -110,17 +117,19 @@ export function AppRoutes() {
         <Route
           path="auditoria"
           element={
-            <ModulePlaceholderPage
-              title="Bitácora de Auditoría y Seguridad"
-              version="Fase V6"
-              description="Registro inmutable de cada acción en el sistema (autenticaciones, creación de movimientos de tesorería, modificaciones de socias y exportaciones) para respaldo legal."
-              features={[
-                'Registro cronológico inmutable con IP, usuario y timestamp',
-                'Filtros por acción, fecha y módulo afectado',
-                'Supervisión exclusiva para Directiva y Super Admin',
-                'Garantía de integridad y trazabilidad legal de la Asociación'
-              ]}
-            />
+            <ProtectedRoute allowedRoles={ROLES_ACCESO.AUDITORIA}>
+              <ModulePlaceholderPage
+                title="Bitácora de Auditoría y Seguridad"
+                version="Fase V6"
+                description="Registro inmutable de cada acción en el sistema (autenticaciones, creación de movimientos de tesorería, modificaciones de socias y exportaciones) para respaldo legal."
+                features={[
+                  'Registro cronológico inmutable con IP, usuario y timestamp',
+                  'Filtros por acción, fecha y módulo afectado',
+                  'Supervisión exclusiva para Directiva y Super Admin',
+                  'Garantía de integridad y trazabilidad legal de la Asociación'
+                ]}
+              />
+            </ProtectedRoute>
           }
         />
 

@@ -41,7 +41,7 @@ async function tryConnect() {
     lastError = describeError(err);
     console.warn(
       `ℹ MySQL no disponible [${lastError.code}] ${lastError.message} ` +
-        `(DB_NAME=${env.DB_NAME}, DB_USER=${env.DB_USER}). ` +
+        `(DB_NAME=${env.DB_NAME}). ` +
         (env.ALLOW_MEMORY_FALLBACK ? 'Modo contingencia en memoria activo.' : 'La API responderá 503 hasta que se conecte.')
     );
     scheduleReconnect();

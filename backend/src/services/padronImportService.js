@@ -15,12 +15,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import ExcelJS from 'exceljs';
+import { revisarContenedorXlsx } from '../utils/xlsxGuard.js';
 import { query, withTransaction } from '../config/db.js';
 import { env } from '../config/env.js';
 import { validateRut, formatRutWithDots } from '../utils/rutValidator.js';
 import { cleanRut, normalizeCargo, normalizeCelular, normalizeName, normalizeText } from '../utils/sociaFormat.js';
 import { SociaError } from './sociaService.js';
 import { hoyChile } from '../utils/fecha.js';
+
+// Topes de la planilla mensual (auditoría H-016)
+const PLANILLA_MAX_FILAS = 5000;
+const PLANILLA_MAX_COLUMNAS = 60;
 
 const MOTIVO_TRASLADO = 'Actualización por planilla Maestra Socias';
 
@@ -72,6 +77,10 @@ const jardinKey = (name) => normalizeText(name).replace(/^(jardin infantil|jardi
  * Lee la primera hoja y devuelve las filas con encabezados reconocidos.
  */
 async function leerPlanilla(buffer) {
+  // Antes de abrirla: el índice del ZIP no debe declarar contenido gigante (bomba ZIP, H-016)
+  const motivo = revisarContenedorXlsx(buffer);
+  if (motivo) throw new SociaError(motivo);
+
   const workbook = new ExcelJS.Workbook();
   try {
     await workbook.xlsx.load(buffer);
@@ -80,6 +89,13 @@ async function leerPlanilla(buffer) {
   }
   const sheet = workbook.worksheets[0];
   if (!sheet) throw new SociaError('La planilla no tiene hojas.');
+  // El padrón tiene unas 280 socias: estos topes dejan margen y evitan procesar hojas desmedidas
+  if (sheet.rowCount > PLANILLA_MAX_FILAS) {
+    throw new SociaError(`La planilla tiene ${sheet.rowCount} filas; el máximo permitido es ${PLANILLA_MAX_FILAS}.`);
+  }
+  if (sheet.columnCount > PLANILLA_MAX_COLUMNAS) {
+    throw new SociaError(`La planilla tiene ${sheet.columnCount} columnas; el máximo permitido es ${PLANILLA_MAX_COLUMNAS}.`);
+  }
 
   // El encabezado es la primera fila (de las 15 primeras) que contiene la columna RUT
   let headerRow = null;

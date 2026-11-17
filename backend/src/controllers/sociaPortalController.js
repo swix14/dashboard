@@ -1,6 +1,34 @@
 import { SociaAuthService } from '../services/sociaAuthService.js';
 import { NoticiasService } from '../services/noticiasService.js';
 import { BuzonService } from '../services/buzonService.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { AuditService } from '../services/auditService.js';
+import { SessionService } from '../services/sessionService.js';
+import { resolveUploadPath } from '../middlewares/uploadMiddleware.js';
+import {
+  noticiaSchema,
+  estadoBuzonSchema,
+  idParamSchema,
+  sociaLoginSchema,
+  sociaCambiarClaveSchema,
+  buzonMensajeSchema
+} from '../validators/portalValidator.js';
+
+function audit(req, action, details) {
+  return AuditService.log({
+    userId: req.user.id,
+    rut: req.user.rut,
+    action,
+    details,
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+}
+
+function badRequest(res, message) {
+  return res.status(400).json({ success: false, message });
+}
 
 export const SociaPortalController = {
   /**
@@ -8,14 +36,9 @@ export const SociaPortalController = {
    */
   async login(req, res, next) {
     try {
-      const { rut, password } = req.body;
-      if (!rut || !password) {
-        return res.status(400).json({
-          success: false,
-          message: 'Debe ingresar RUT y contraseña.'
-        });
-      }
-      const data = await SociaAuthService.loginSocia({ rut, password });
+      const parsed = sociaLoginSchema.safeParse(req.body || {});
+      if (!parsed.success) return badRequest(res, parsed.error.issues[0]?.message || 'Debe ingresar RUT y contraseña.');
+      const data = await SociaAuthService.loginSocia(parsed.data);
       res.json({
         success: true,
         message: 'Acceso concedido al Portal de Socias.',
@@ -45,8 +68,11 @@ export const SociaPortalController = {
         });
       }
 
-      const { nuevaClave } = req.body;
-      const result = await SociaAuthService.cambiarClave(cleanId, nuevaClave, req.user?.rut);
+      const parsed = sociaCambiarClaveSchema.safeParse(req.body || {});
+      if (!parsed.success) return badRequest(res, parsed.error.issues[0]?.message || 'Ingrese la nueva contraseña.');
+      const result = await SociaAuthService.cambiarClave(cleanId, parsed.data.nuevaClave, req.user?.rut);
+      // Las demás sesiones abiertas de la socia dejan de valer (H-005)
+      await SessionService.revokeOthers(req.user.id, req.session?.jti);
 
       res.json({
         success: true,
@@ -86,26 +112,72 @@ export const SociaPortalController = {
    */
   async createNoticia(req, res, next) {
     try {
-      const { titulo, contenido, categoria, destacado } = req.body;
-      // role es un objeto { code, name }: antes quedaba "Nombre ([object Object])"
-      const autor = req.user ? `${req.user.firstName} ${req.user.lastName || ''}`.trim() + ` (${req.user.role?.name || req.user.role?.code || 'Directiva'})` : 'Directiva VTF';
-      const noticia = await NoticiasService.createNoticia({
-        titulo,
-        contenido,
-        categoria,
-        destacado,
-        autor
-      });
-      res.status(201).json({
+      const parsed = noticiaSchema.safeParse(req.body);
+      if (!parsed.success) return badRequest(res, parsed.error.issues[0]?.message || 'Datos de la noticia inválidos');
+
+      // role es un objeto { code, name }
+      const autor =
+        `${req.user.firstName} ${req.user.lastName || ''}`.trim() +
+        ` (${req.user.role?.name || req.user.role?.code || 'Directiva'})`;
+      const noticia = await NoticiasService.createNoticia({ ...parsed.data, autor });
+      await audit(req, 'NOTICIA_PUBLISHED', { noticiaId: noticia.id, titulo: noticia.titulo });
+      return res.status(201).json({ success: true, message: 'Noticia publicada exitosamente.', data: noticia });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /** DELETE /api/socia/noticias/:id */
+  async deleteNoticia(req, res, next) {
+    try {
+      const id = idParamSchema.safeParse(req.params.id);
+      if (!id.success) return badRequest(res, 'Noticia inválida.');
+      const existia = await NoticiasService.deleteNoticia(id.data);
+      if (!existia) return res.status(404).json({ success: false, message: 'La noticia no existe.' });
+      await audit(req, 'NOTICIA_DELETED', { noticiaId: id.data });
+      return res.json({ success: true, message: 'Noticia eliminada.' });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /** PATCH /api/socia/buzon/:id/estado */
+  async cambiarEstadoBuzon(req, res, next) {
+    try {
+      const id = idParamSchema.safeParse(req.params.id);
+      if (!id.success) return badRequest(res, 'Mensaje inválido.');
+      const parsed = estadoBuzonSchema.safeParse(req.body);
+      if (!parsed.success) return badRequest(res, parsed.error.issues[0]?.message || 'Estado inválido');
+      const existia = await BuzonService.cambiarEstado(id.data, parsed.data.estado);
+      if (!existia) return res.status(404).json({ success: false, message: 'El mensaje no existe.' });
+      await audit(req, 'BUZON_ESTADO_CHANGED', { mensajeId: id.data, estado: parsed.data.estado });
+      return res.json({
         success: true,
-        message: 'Noticia publicada exitosamente.',
-        data: noticia
+        message: 'Estado del mensaje actualizado.',
+        data: { id: id.data, estado: parsed.data.estado }
       });
     } catch (err) {
-      res.status(400).json({
-        success: false,
-        message: err.message
-      });
+      next(err);
+    }
+  },
+
+  /** GET /api/socia/buzon/:id/adjunto: descarga privada del archivo que adjuntó la socia */
+  async descargarAdjuntoBuzon(req, res, next) {
+    try {
+      const id = idParamSchema.safeParse(req.params.id);
+      if (!id.success) return badRequest(res, 'Mensaje inválido.');
+      const mensaje = await BuzonService.getMensajeById(id.data);
+      if (!mensaje || !mensaje.archivoAdjunto) {
+        return res.status(404).json({ success: false, message: 'El mensaje no tiene archivo adjunto.' });
+      }
+      const filePath = resolveUploadPath(mensaje.archivoAdjunto);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ success: false, message: 'El archivo adjunto ya no se encuentra en el servidor.' });
+      }
+      await audit(req, 'BUZON_ADJUNTO_DOWNLOADED', { mensajeId: id.data });
+      return res.download(filePath, `adjunto-buzon-${id.data}${path.extname(mensaje.archivoAdjunto).toLowerCase()}`);
+    } catch (err) {
+      next(err);
     }
   },
 
@@ -115,7 +187,13 @@ export const SociaPortalController = {
   async enviarMensajeBuzon(req, res, next) {
     try {
       const user = req.user;
-      const { tipo, asunto, mensaje } = req.body;
+      const parsed = buzonMensajeSchema.safeParse(req.body || {});
+      if (!parsed.success) {
+        // El adjunto ya quedó en disco: si el mensaje no es válido no debe quedar huérfano
+        if (req.file) fs.rmSync(resolveUploadPath(req.file.filename), { force: true });
+        return badRequest(res, parsed.error.issues[0]?.message || 'Mensaje inválido');
+      }
+      const { tipo, asunto, mensaje } = parsed.data;
       const archivoAdjunto = req.file ? req.file.filename : null;
 
       const nuevoMensaje = await BuzonService.crearMensaje({

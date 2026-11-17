@@ -46,7 +46,7 @@ async function runPersistenceSuite() {
     }
   }
 
-  const tesoreraToken = await login('tesorera@vtftemuco.cl');
+  const tesoreraToken = await login('16.947.343-9');
 
   // 1. Guardar egreso con archivo PDF y persistir en MySQL
   let savedId = null;
