@@ -356,8 +356,13 @@ Pedido de la reunión: exportar en Excel lo que se descuenta por planilla, desgl
 - Reglas: cuota social solo para socias ACTIVAS; cuentan las cuotas pendientes o descontadas del mes; las prepagadas, condonadas y de créditos anulados no se descuentan.
 - La ven Admin, Presidenta y Tesorera. 3 pruebas nuevas en `creditosTest.js` (140 en total).
 
-#### 8. Pendiente
-- Comisión del 2 % de Isi Mundo: hoy se registra en Tesorería como ingreso; no se calcula sola.
+#### 8. Comisión de Isi Mundo con % ajustable (ajuste posterior a V4)
+- **% ajustable** desde la tarjeta "Verificación de pagos mensuales" ("Comisión Isi Mundo 2 %", lápiz para editar). Solo Admin y Tesorera; entre 0 y 20 %, hasta 2 decimales. Se guarda en la tabla nueva `configuracion` y cada cambio queda en la auditoría.
+- **Cálculo:** al verificar el pago de ISIMUNDO de un mes se guarda el % vigente y la comisión (% del monto pagado). Cambiar el % después no altera los meses ya verificados.
+- **Registro en Tesorería:** botón "Registrar en Tesorería" en la fila de ISIMUNDO, con el monto calculado (ajustable a lo que realmente transfirió la empresa) y la fecha. Crea un ingreso en el centro de costo ISI MUNDO COMISION. No se registra solo porque la comisión llega después del pago y el saldo no debe contar dinero que aún no ingresa. Un mes no se registra dos veces, salvo que su ingreso se anule en Tesorería.
+- Migración `database/migraciones/2026-11-21_comision_isimundo.sql` (los pagos ya verificados quedan con 2 %). 3 pruebas nuevas en `creditosTest.js` (143 en total).
+
+#### 9. Pendiente
 - Acceso de la Directora a los convenios: a definir por la directiva.
 
 ---
