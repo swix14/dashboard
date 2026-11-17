@@ -308,6 +308,28 @@ CREATE TABLE IF NOT EXISTS `buzon_mensajes` (
     INDEX `idx_buzon_fecha` (`created_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
+-- 9b. Solicitudes S.O.S en línea: la socia lo pide desde su portal; al aprobarlo se crea el crédito S.O.S
+CREATE TABLE IF NOT EXISTS `solicitudes_sos` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `socia_id` INT NOT NULL,
+    `socia_rut` VARCHAR(12) NOT NULL,
+    `socia_nombre` VARCHAR(200) NOT NULL,
+    `socia_jardin` VARCHAR(150) NULL,
+    `monto` INT NOT NULL,
+    `cuotas` TINYINT NOT NULL,
+    `motivo` TEXT NOT NULL,
+    `estado` ENUM('PENDIENTE', 'APROBADA', 'RECHAZADA') NOT NULL DEFAULT 'PENDIENTE',
+    `respuesta` VARCHAR(255) NULL,
+    `revisado_por` VARCHAR(150) NULL,
+    `revisado_at` DATETIME NULL,
+    `credito_id` INT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_sos_estado` (`estado`, `created_at`),
+    INDEX `idx_sos_socia` (`socia_id`),
+    CONSTRAINT `fk_sos_socia` FOREIGN KEY (`socia_id`) REFERENCES `socias` (`id`),
+    CONSTRAINT `fk_sos_credito` FOREIGN KEY (`credito_id`) REFERENCES `creditos` (`id`) ON DELETE SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
 -- 10. Sesiones cerradas (tokens revocados hasta su expiración; auditoría H-005)
 CREATE TABLE IF NOT EXISTS `sesiones_revocadas` (
     `jti` CHAR(36) NOT NULL PRIMARY KEY,

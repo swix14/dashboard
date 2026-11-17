@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { SociaPortalController } from '../controllers/sociaPortalController.js';
+import { SosController } from '../controllers/sosController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { createLoginLimiter } from '../middlewares/loginLimiter.js';
 import { requireRole } from '../middlewares/roleMiddleware.js';
@@ -25,5 +26,10 @@ router.get('/buzon/mis-mensajes', authMiddleware, SociaPortalController.getMisMe
 router.get('/buzon/admin', authMiddleware, canComunicar, SociaPortalController.getBuzonAdmin);
 router.patch('/buzon/:id/estado', authMiddleware, canComunicar, SociaPortalController.cambiarEstadoBuzon);
 router.get('/buzon/:id/adjunto', authMiddleware, canComunicar, SociaPortalController.descargarAdjuntoBuzon);
+
+// 4. Solicitudes S.O.S en línea (solo la socia; la directiva las revisa en /api/creditos/sos)
+const soloSocia = requireRole('SOCIA');
+router.post('/sos', authMiddleware, soloSocia, SosController.solicitar);
+router.get('/sos', authMiddleware, soloSocia, SosController.misSolicitudes);
 
 export default router;

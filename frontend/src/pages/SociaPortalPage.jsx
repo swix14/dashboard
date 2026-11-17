@@ -21,8 +21,10 @@ import {
   MessageSquare,
   HelpCircle,
   ShieldAlert,
-  ArrowRight
+  ArrowRight,
+  LifeBuoy
 } from 'lucide-react';
+import { SosSocia } from '../components/portal/SosSocia.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 import { Card } from '../components/common/Card.jsx';
@@ -36,7 +38,7 @@ export function SociaPortalPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Sección activa: 'noticias' o 'buzon'
+  // Sección activa: 'noticias', 'buzon' o 'sos'
   const [activeTab, setActiveTab] = useState('noticias');
 
   // Estado de noticias
@@ -612,6 +614,17 @@ export function SociaPortalPage() {
                   }}
                 />
               )}
+            </button>
+
+            {/* 3. S.O.S: crédito de emergencia en línea */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('sos')}
+              aria-current={activeTab === 'sos' ? 'page' : undefined}
+              className={`sos-nav${activeTab === 'sos' ? ' is-active' : ''}`}
+            >
+              <LifeBuoy size={18} />
+              <span style={{ flex: 1 }}>Pide tu S.O.S</span>
             </button>
 
             {/* Cerrar sesión, tema y cambio de clave están en el menú de perfil (cabecera) */}
@@ -1364,6 +1377,9 @@ export function SociaPortalPage() {
                 )}
               </div>
             )}
+
+            {/* SECCIÓN 3: S.O.S EN LÍNEA (al enviar vuelve al inicio) */}
+            {activeTab === 'sos' && <SosSocia user={user} onDone={() => setActiveTab('noticias')} />}
           </main>
         </div>
       </div>

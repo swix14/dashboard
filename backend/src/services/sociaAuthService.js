@@ -113,6 +113,10 @@ export const SociaAuthService = {
         id: socia.id,
         rut: socia.rut,
         nombreCompleto: `${socia.nombres} ${socia.apellido_paterno || ''}`.trim(),
+        // Por separado para los formularios del portal (ej. solicitud S.O.S)
+        nombres: socia.nombres,
+        apellidoPaterno: socia.apellido_paterno || '',
+        apellidoMaterno: socia.apellido_materno || '',
         cargo: socia.cargo,
         jardin: socia.jardin,
         primerIngreso: Boolean(socia.primer_ingreso)

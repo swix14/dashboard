@@ -36,6 +36,7 @@ const SUITES = [
   'comprobantesTest.js',
   'treasuryPersistenceTest.js',
   'sociaPortalTest.js',
+  'sosTest.js',
   'bloqueantesTest.js',
   'accesosTest.js'
 ];

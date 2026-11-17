@@ -27,6 +27,13 @@ import { ThemeToggle } from '../components/common/ThemeToggle.jsx';
 import { Modal } from '../components/common/Modal.jsx';
 import { DIRECTIVA_OFICIAL } from '../utils/directiva.js';
 
+// Nombre y apellidos por separado (formulario S.O.S); firstName sigue siendo el nombre visible
+const nombresSeparados = (socia) => ({
+  nombres: socia.nombres || '',
+  apellidoPaterno: socia.apellidoPaterno || '',
+  apellidoMaterno: socia.apellidoMaterno || ''
+});
+
 const sociaLoginSchema = z.object({
   rut: z.string().refine(validateRut, 'Ingrese un RUT válido (ej. 12.345.678-5)'),
   password: z.string().min(4, 'Ingrese su contraseña')
@@ -102,6 +109,7 @@ export function SociaLoginPage() {
         rut: socia.rut,
         firstName: socia.nombreCompleto,
         lastName: '',
+        ...nombresSeparados(socia),
         role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
         cargo: socia.cargo,
         jardin: socia.jardin,
@@ -145,6 +153,7 @@ export function SociaLoginPage() {
         rut: socia.rut,
         firstName: socia.nombreCompleto,
         lastName: '',
+        ...nombresSeparados(socia),
         role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
         cargo: socia.cargo,
         jardin: socia.jardin,

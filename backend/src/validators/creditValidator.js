@@ -76,6 +76,34 @@ export const aPagarSchema = periodoSchema.extend({
   monto: entero('Monto a pagar', 1, 1000000000)
 });
 
+// --- Solicitudes S.O.S en línea ---
+export const SOS_MONTO_MAXIMO = 1000000;
+const textoObligatorio = (label, min, max) =>
+  z.string({ error: `Indique ${label}.` }).trim().min(min, `Indique ${label} (mínimo ${min} caracteres).`).max(max, `${label}: máximo ${max} caracteres.`);
+
+// La socia pide: monto, cuotas (1 a 4) y motivo; todo obligatorio
+export const solicitudSosSchema = z.object({
+  monto: entero('Monto', 1000, SOS_MONTO_MAXIMO),
+  cuotas: entero('Cuotas', 1, 4),
+  motivo: textoObligatorio('el motivo', 10, 1000)
+});
+
+// La directiva aprueba: valor de la cuota y mes de la primera cuota (crea el crédito S.O.S)
+export const aprobarSosSchema = z.object({
+  valorCuota: entero('Valor cuota', 1, SOS_MONTO_MAXIMO),
+  primeraCuota: z.string({ error: 'Indique el mes de la primera cuota.' }).regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes de la primera cuota inválido.')
+    .transform((v) => ({ anio: Number(v.slice(0, 4)), mes: Number(v.slice(5, 7)) })),
+  respuesta: z.string().trim().max(255, 'Respuesta demasiado larga.').optional()
+});
+
+export const rechazarSosSchema = z.object({
+  motivo: textoObligatorio('el motivo del rechazo', 3, 255)
+});
+
+export const listarSosSchema = z.object({
+  estado: z.enum(['TODAS', 'PENDIENTE', 'APROBADA', 'RECHAZADA']).default('TODAS')
+});
+
 export const prepagoSchema = z.object({
   fecha: z.string({ error: 'Indique la fecha del pago.' }).regex(FECHA, 'Fecha del pago inválida.')
 });

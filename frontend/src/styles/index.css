@@ -896,6 +896,62 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .vtf-card > div:first-child:has(.cred-comision-chip, .cred-comision-editor) { flex-wrap: wrap; gap: .75rem; }
 }
 
+/* S.O.S en línea — portal de socias */
+.sos-nav { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .75rem 1rem; border: 1px solid transparent; border-radius: var(--radius-lg); background: transparent; color: var(--accent-pink-700); font: inherit; font-size: .9rem; font-weight: 600; text-align: left; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.sos-nav:hover { background: var(--accent-pink-50); }
+.sos-nav.is-active { background: var(--accent-pink-50); border-color: var(--accent-pink-300); font-weight: 800; }
+.sos-nav:focus-visible { outline: 2px solid var(--accent-pink-500); outline-offset: 2px; }
+.sos-seccion { display: flex; flex-direction: column; gap: 1.25rem; }
+.sos-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1.5rem; padding: 1.5rem; border: 1px solid var(--accent-pink-300); border-radius: var(--radius-xl); background: linear-gradient(135deg, var(--accent-pink-50), var(--bg-surface) 70%); box-shadow: var(--shadow-card); }
+.sos-hero-texto h2 { margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-main); }
+.sos-hero-texto p { margin: .5rem 0 0; font-size: .875rem; line-height: 1.6; color: var(--text-muted); max-width: 52ch; }
+.sos-boton { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 168px; aspect-ratio: 1; border: 0; border-radius: 28px; background: radial-gradient(circle at 30% 25%, var(--accent-pink-400), var(--accent-pink-600) 70%); color: #fff; cursor: pointer; box-shadow: 0 1px 2px rgba(115, 60, 82, .25), 0 10px 24px -8px rgba(115, 60, 82, .55), inset 0 1px 0 rgba(255, 255, 255, .25); transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
+.sos-boton:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(115, 60, 82, .25), 0 16px 32px -10px rgba(115, 60, 82, .6), inset 0 1px 0 rgba(255, 255, 255, .25); }
+.sos-boton:active:not(:disabled) { transform: translateY(0) scale(.98); }
+.sos-boton:focus-visible { outline: 3px solid var(--accent-pink-300); outline-offset: 3px; }
+.sos-boton:disabled { cursor: not-allowed; filter: grayscale(.6); opacity: .6; }
+.sos-boton-arriba, .sos-boton-abajo { font-size: .8125rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .92; }
+.sos-boton-sigla { font-size: 2.75rem; font-weight: 900; line-height: 1.05; letter-spacing: .02em; }
+.sos-aviso { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning-text); }
+.sos-historial { padding: 1.25rem 1.5rem; border: 1px solid var(--border-light); border-radius: var(--radius-xl); background: var(--bg-surface); }
+.sos-historial h3 { margin: 0 0 .75rem; font-size: 1rem; font-weight: 800; color: var(--text-main); }
+.sos-vacio { margin: 0; font-size: .875rem; color: var(--text-muted); }
+.sos-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .625rem; }
+.sos-item { padding: .875rem 1rem; border: 1px solid var(--border-light); border-left: 3px solid var(--warning-border); border-radius: var(--radius-md); }
+.sos-item.is-aprobada { border-left-color: var(--success-text); }
+.sos-item.is-rechazada { border-left-color: var(--error-text); }
+.sos-item-cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .75rem; }
+.sos-item-cabecera strong { font-size: 1rem; color: var(--text-main); }
+.sos-item-cabecera .vtf-badge { margin-left: auto; }
+.sos-item-motivo { margin: .4rem 0 0; font-size: .8125rem; line-height: 1.5; color: var(--text-main); overflow-wrap: anywhere; }
+.sos-item-respuesta { margin: .5rem 0 0; padding: .5rem .75rem; border-radius: var(--radius-md); background: var(--bg-surface-subtle); font-size: .8125rem; color: var(--text-main); overflow-wrap: anywhere; }
+.sos-item-respuesta span { font-weight: 700; }
+.sos-form { display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem 1.5rem 1.5rem; }
+.sos-identidad { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1rem; margin: 0; padding: .875rem 1rem; border-radius: var(--radius-lg); background: var(--bg-surface-subtle); border: 1px dashed var(--border-light); }
+.sos-identidad dt { font-size: .6875rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+.sos-identidad dd { margin: .1rem 0 0; font-size: .875rem; font-weight: 600; color: var(--text-main); overflow-wrap: anywhere; }
+.sos-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.sos-motivo { resize: vertical; min-height: 96px; font: inherit; }
+.sos-enviada { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 1.75rem 1.5rem; text-align: center; color: var(--success-text); }
+.sos-enviada p { margin: 0; font-size: .9rem; line-height: 1.6; color: var(--text-main); }
+/* S.O.S — bandeja de la directiva en Créditos */
+.sos-card-titulo { display: inline-flex; align-items: center; gap: .5rem; }
+.sos-card-titulo svg { color: var(--accent-pink-600); }
+.sos-contador { display: inline-grid; place-items: center; min-width: 1.4rem; height: 1.4rem; padding: 0 .4rem; border-radius: var(--radius-full); background: var(--accent-pink-600); color: var(--bg-surface); font-size: .75rem; font-weight: 800; }
+.sos-item-monto { margin-top: .25rem; font-size: .8125rem; color: var(--text-muted); }
+.sos-item-monto span { font-size: .9375rem; font-weight: 800; color: var(--text-main); }
+.sos-item-acciones { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.sos-revision { margin-top: .75rem; }
+.sos-revision-texto { flex: 1 1 240px; }
+@media (max-width: 640px) {
+  .sos-card > div:first-child { flex-wrap: wrap; gap: .75rem; }
+  .sos-hero { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .sos-hero-texto p { margin-inline: auto; }
+  .sos-boton { width: 100%; max-width: 260px; aspect-ratio: auto; padding: 1.25rem; }
+  .sos-identidad, .sos-form-grid { grid-template-columns: 1fr; }
+  .sos-historial { padding: 1rem; }
+}
+
 /* Liquidación para el empleador */
 .cred-liq-controles { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; margin-bottom: 1rem; }
 .cred-liq-controles .cred-campo { min-width: 140px; }

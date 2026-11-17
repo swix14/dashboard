@@ -45,52 +45,55 @@ export const CreditManualService = {
    * (crédito que viene de antes y se ingresa a mitad de camino).
    */
   async crear(datos, hoy) {
-    return withTransaction(async (tx) => {
-      const [socia] = await tx('SELECT id, estado FROM socias WHERE id = ?', [datos.sociaId]);
-      if (!socia) throw new CreditoError('La socia no existe.', 404);
-      if (socia.estado === 'RETIRADA') throw new CreditoError('La socia está retirada del padrón: no se le pueden ingresar créditos.');
-      const cv = await convenioPorCodigo(tx, datos.empresa);
+    return withTransaction((tx) => this.crearEnTx(tx, datos, hoy));
+  },
 
-      const clave = cv.codigo === 'ISIMUNDO' ? datos.numeroCredito : claveMes(datos.primeraCuota.anio, datos.primeraCuota.mes);
-      if (!(await claveLibre(tx, { sociaId: socia.id, convenioId: cv.id, clave }))) {
-        throw new CreditoError(
-          cv.codigo === 'ISIMUNDO'
-            ? `La socia ya tiene el crédito ISIMUNDO N° ${clave}.`
-            : `La socia ya tiene un crédito de ${cv.nombre} que parte en ${clave}. Edítelo desde su ficha.`,
-          409
-        );
-      }
+  /** Igual que crear, dentro de una transacción ya abierta (ej. al aprobar una solicitud S.O.S) */
+  async crearEnTx(tx, datos, hoy) {
+    const [socia] = await tx('SELECT id, estado FROM socias WHERE id = ?', [datos.sociaId]);
+    if (!socia) throw new CreditoError('La socia no existe.', 404);
+    if (socia.estado === 'RETIRADA') throw new CreditoError('La socia está retirada del padrón: no se le pueden ingresar créditos.');
+    const cv = await convenioPorCodigo(tx, datos.empresa);
 
-      const cuotas = Array.from({ length: datos.totalCuotas }, (_, i) => ({
-        numero: i + 1,
-        ...sumarMeses(datos.primeraCuota.anio, datos.primeraCuota.mes, i)
-      }));
-      const ultima = cuotas[cuotas.length - 1];
-      const insert = await tx(
-        `INSERT INTO creditos (socia_id, convenio_id, numero_credito, monto_total, monto_cuota, total_cuotas, cuotas_pagadas,
-                               fecha_otorgamiento, fecha_termino, estado, clave_carga, origen)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, 'vigente', ?, 'MANUAL')`,
-        [
-          socia.id,
-          cv.id,
-          datos.numeroCredito || null,
-          datos.montoOtorgado || datos.valorCuota * datos.totalCuotas,
-          datos.valorCuota,
-          datos.totalCuotas,
-          datos.fechaOtorgamiento || primerDia(datos.primeraCuota),
-          primerDia(ultima),
-          clave
-        ]
+    const clave = cv.codigo === 'ISIMUNDO' ? datos.numeroCredito : claveMes(datos.primeraCuota.anio, datos.primeraCuota.mes);
+    if (!(await claveLibre(tx, { sociaId: socia.id, convenioId: cv.id, clave }))) {
+      throw new CreditoError(
+        cv.codigo === 'ISIMUNDO'
+          ? `La socia ya tiene el crédito ISIMUNDO N° ${clave}.`
+          : `La socia ya tiene un crédito de ${cv.nombre} que parte en ${clave}. Edítelo desde su ficha.`,
+        409
       );
-      for (const q of cuotas) {
-        await tx(
-          `INSERT INTO cuotas_credito (credito_id, numero_cuota, monto, mes_cobro, anio_cobro, estado) VALUES (?, ?, ?, ?, ?, ?)`,
-          [insert.insertId, q.numero, datos.valorCuota, q.mes, q.anio, q.numero <= datos.cuotasPagadas ? 'descontada' : 'pendiente']
-        );
-      }
-      await recalcularCredito(tx, insert.insertId, hoy);
-      return { id: insert.insertId, empresa: cv.codigo, clave };
-    });
+    }
+
+    const cuotas = Array.from({ length: datos.totalCuotas }, (_, i) => ({
+      numero: i + 1,
+      ...sumarMeses(datos.primeraCuota.anio, datos.primeraCuota.mes, i)
+    }));
+    const ultima = cuotas[cuotas.length - 1];
+    const insert = await tx(
+      `INSERT INTO creditos (socia_id, convenio_id, numero_credito, monto_total, monto_cuota, total_cuotas, cuotas_pagadas,
+                             fecha_otorgamiento, fecha_termino, estado, clave_carga, origen)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, 'vigente', ?, 'MANUAL')`,
+      [
+        socia.id,
+        cv.id,
+        datos.numeroCredito || null,
+        datos.montoOtorgado || datos.valorCuota * datos.totalCuotas,
+        datos.valorCuota,
+        datos.totalCuotas,
+        datos.fechaOtorgamiento || primerDia(datos.primeraCuota),
+        primerDia(ultima),
+        clave
+      ]
+    );
+    for (const q of cuotas) {
+      await tx(
+        `INSERT INTO cuotas_credito (credito_id, numero_cuota, monto, mes_cobro, anio_cobro, estado) VALUES (?, ?, ?, ?, ?, ?)`,
+        [insert.insertId, q.numero, datos.valorCuota, q.mes, q.anio, q.numero <= datos.cuotasPagadas ? 'descontada' : 'pendiente']
+      );
+    }
+    await recalcularCredito(tx, insert.insertId, hoy);
+    return { id: insert.insertId, empresa: cv.codigo, clave };
   },
 
   /**

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { CreditController } from '../controllers/creditController.js';
+import { SosController } from '../controllers/sosController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/roleMiddleware.js';
 import { validateIdParam } from '../middlewares/validateIdParam.js';
@@ -32,6 +33,11 @@ router.get('/pagos/:id/comprobante', canView, validateIdParam, CreditController.
 router.get('/comision', canView, CreditController.getComision);
 router.put('/comision', canManage, CreditController.setComision);
 router.post('/pagos/:id/comision', canManage, validateIdParam, CreditController.registrarComision);
+
+// Solicitudes S.O.S que envían las socias desde su portal: aprobar crea el crédito S.O.S
+router.get('/sos', canView, SosController.listar);
+router.post('/sos/:id/aprobar', canManage, validateIdParam, SosController.aprobar);
+router.post('/sos/:id/rechazar', canManage, validateIdParam, SosController.rechazar);
 
 router.get('/', canView, CreditController.getCreditos);
 router.get('/:id', canView, validateIdParam, CreditController.getCredito);
