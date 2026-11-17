@@ -7,6 +7,7 @@ import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { formatCurrencyCLP, formatDateCLP } from '../utils/formatters.js';
 import { BalanceAnualCard } from '../components/reportes/BalanceAnualCard.jsx';
+import { CifrasJardinesCard } from '../components/reportes/CifrasJardinesCard.jsx';
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -207,6 +208,9 @@ export function ReportesPage() {
       </Card>
 
       <BalanceAnualCard anios={anios} anioActual={actual.anio} />
+
+      {/* La cuenta DELEGADA de la consola no ve los demás jardines (decisión D2) */}
+      {!isDelegada && <CifrasJardinesCard />}
     </div>
   );
 }

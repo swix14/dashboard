@@ -31,7 +31,9 @@ import { DIRECTIVA_OFICIAL } from '../utils/directiva.js';
 const nombresSeparados = (socia) => ({
   nombres: socia.nombres || '',
   apellidoPaterno: socia.apellidoPaterno || '',
-  apellidoMaterno: socia.apellidoMaterno || ''
+  apellidoMaterno: socia.apellidoMaterno || '',
+  // Muestra la pestaña "Mi jardín" del portal (el backend verifica la marca en cada consulta)
+  esDelegada: Boolean(socia.esDelegada)
 });
 
 const sociaLoginSchema = z.object({

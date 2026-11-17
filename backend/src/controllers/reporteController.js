@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { ReporteService } from '../services/reporteService.js';
 import { AuditService } from '../services/auditService.js';
 import { BalancePdfService } from '../services/balancePdfService.js';
+import { JardinStatsService } from '../services/jardinStatsService.js';
+import { sociaIdDe } from '../middlewares/delegadaMiddleware.js';
 import { hoyChile } from '../utils/fecha.js';
 
 // Período del informe: por defecto el mes actual (hora de Chile)
@@ -32,7 +34,28 @@ function parseAnio(req, res) {
   return parsed.data.anio;
 }
 
+const anioActual = () => Number(hoyChile().slice(0, 4));
+
 export const ReporteController = {
+  /** GET /api/reportes/jardines — cifras de los jardines (directiva) */
+  async getCifrasJardines(req, res, next) {
+    try {
+      return res.json({ success: true, data: await JardinStatsService.todos(anioActual()) });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /** GET /api/socia/mi-jardin — cifras del jardín de la delegada que inició sesión en el portal */
+  async getMiJardin(req, res, next) {
+    try {
+      return res.json({ success: true, data: await JardinStatsService.deDelegada(sociaIdDe(req), anioActual()) });
+    } catch (error) {
+      if (error.statusCode) return res.status(error.statusCode).json({ success: false, message: error.message });
+      next(error);
+    }
+  },
+
   /** GET /api/reportes/anual/pdf?anio — Balance Anual para la asamblea */
   async exportarBalanceAnualPdf(req, res, next) {
     try {

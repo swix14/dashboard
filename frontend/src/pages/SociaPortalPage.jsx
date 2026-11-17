@@ -22,9 +22,11 @@ import {
   HelpCircle,
   ShieldAlert,
   ArrowRight,
-  LifeBuoy
+  LifeBuoy,
+  School
 } from 'lucide-react';
 import { SosSocia } from '../components/portal/SosSocia.jsx';
+import { MiJardin } from '../components/portal/MiJardin.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
 import { Card } from '../components/common/Card.jsx';
@@ -626,6 +628,20 @@ export function SociaPortalPage() {
               <LifeBuoy size={18} />
               <span style={{ flex: 1 }}>Pide tu S.O.S</span>
             </button>
+
+            {/* 4. Mi jardín: solo para la socia marcada como delegada en el padrón */}
+            {user?.esDelegada && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('jardin')}
+                aria-current={activeTab === 'jardin' ? 'page' : undefined}
+                className={`mj-nav${activeTab === 'jardin' ? ' is-active' : ''}`}
+              >
+                <School size={18} />
+                <span style={{ flex: 1 }}>Mi jardín</span>
+                <span className="mj-nav-tag">Delegada</span>
+              </button>
+            )}
 
             {/* Cerrar sesión, tema y cambio de clave están en el menú de perfil (cabecera) */}
           </aside>
@@ -1380,6 +1396,7 @@ export function SociaPortalPage() {
 
             {/* SECCIÓN 3: S.O.S EN LÍNEA (al enviar vuelve al inicio) */}
             {activeTab === 'sos' && <SosSocia user={user} onDone={() => setActiveTab('noticias')} />}
+            {activeTab === 'jardin' && user?.esDelegada && <MiJardin />}
           </main>
         </div>
       </div>

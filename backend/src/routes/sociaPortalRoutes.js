@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { SociaPortalController } from '../controllers/sociaPortalController.js';
 import { SosController } from '../controllers/sosController.js';
+import { ReporteController } from '../controllers/reporteController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { createLoginLimiter } from '../middlewares/loginLimiter.js';
 import { requireRole } from '../middlewares/roleMiddleware.js';
@@ -31,5 +32,8 @@ router.get('/buzon/:id/adjunto', authMiddleware, canComunicar, SociaPortalContro
 const soloSocia = requireRole('SOCIA');
 router.post('/sos', authMiddleware, soloSocia, SosController.solicitar);
 router.get('/sos', authMiddleware, soloSocia, SosController.misSolicitudes);
+
+// 5. "Mi jardín": cifras de su establecimiento para la socia marcada como delegada en el padrón
+router.get('/mi-jardin', authMiddleware, soloSocia, ReporteController.getMiJardin);
 
 export default router;

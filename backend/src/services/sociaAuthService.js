@@ -55,7 +55,7 @@ export const SociaAuthService = {
 
     const rows = await query(
       `SELECT s.id, s.rut, s.apellido_paterno, s.apellido_materno, s.nombres, s.cargo, s.estado,
-              j.nombre AS jardin, s.password, s.primer_ingreso
+              j.nombre AS jardin, s.password, s.primer_ingreso, s.es_delegada
        FROM socias s LEFT JOIN jardines j ON j.id = s.jardin_id
        WHERE UPPER(REPLACE(REPLACE(REPLACE(s.rut, '.', ''), '-', ''), ' ', '')) = ?
        LIMIT 1`,
@@ -119,6 +119,8 @@ export const SociaAuthService = {
         apellidoMaterno: socia.apellido_materno || '',
         cargo: socia.cargo,
         jardin: socia.jardin,
+        // Muestra la pestaña "Mi jardín"; el backend vuelve a verificar la marca en cada consulta
+        esDelegada: Boolean(socia.es_delegada),
         primerIngreso: Boolean(socia.primer_ingreso)
       }
     };

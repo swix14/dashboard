@@ -87,7 +87,9 @@ const MATRIZ = [
   ['Padrón de socias', 'GET', '/socias?limit=1', ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA']],
   ['Buzón de la directiva', 'GET', '/socia/buzon/admin', ['ADMIN', 'PRESIDENTA', 'SECRETARIA', 'DIRECTORA']],
   ['Informe mensual', 'GET', '/reportes/mensual?anio=2026&mes=10', ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA', 'DELEGADA']],
-  ['Balance Anual en PDF', 'GET', '/reportes/anual/pdf?anio=2026', ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA', 'DELEGADA']]
+  ['Balance Anual en PDF', 'GET', '/reportes/anual/pdf?anio=2026', ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA', 'DELEGADA']],
+  // La cuenta DELEGADA de la consola no ve los demás jardines (D2)
+  ['Cifras por jardín', 'GET', '/reportes/jardines', ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA']]
 ];
 
 for (const [descripcion, method, url, permitidos] of MATRIZ) {
@@ -320,11 +322,76 @@ await test('Una socia no accede a datos de la directiva ni de otras socias', asy
     ['GET', '/tesoreria/resumen'],
     ['GET', '/reportes/mensual'],
     ['GET', '/reportes/anual/pdf'],
+    ['GET', '/reportes/jardines'],
+    ['GET', '/socia/mi-jardin'],
     ['GET', '/dashboard/audit-recent']
   ]) {
     const { status } = await call(method, url, sociaA, method === 'PATCH' ? { estado: 'LEIDO' } : undefined);
     assert.strictEqual(status, 403, `${method} ${url} respondió ${status}`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// V7: cifras por jardín (directiva) y "Mi jardín" (delegada en el portal)
+// ---------------------------------------------------------------------------
+await test('Cifras por jardín cuadran con MySQL', async () => {
+  const { status, body } = await call('GET', '/reportes/jardines', tokens.SECRETARIA);
+  assert.strictEqual(status, 200);
+  const d = body.data;
+  const [activos] = await query('SELECT COUNT(*) AS n FROM jardines WHERE activo = 1');
+  assert.strictEqual(d.jardines.length, Number(activos.n));
+
+  const [esperado] = await query(
+    `SELECT COUNT(*) AS activas FROM socias s JOIN jardines j ON j.id = s.jardin_id WHERE s.estado = 'ACTIVA' AND j.activo = 1`
+  );
+  assert.strictEqual(d.totales.activas, Number(esperado.activas));
+  assert.strictEqual(d.totales.aporteMensual, d.totales.activas * d.cuotaSocial);
+
+  // Un jardín con créditos vigentes: socias distintas, no créditos
+  const [conCredito] = await query(
+    `SELECT s.jardin_id, COUNT(DISTINCT c.socia_id) AS socias FROM creditos c JOIN socias s ON s.id = c.socia_id
+     WHERE c.estado = 'vigente' AND s.estado <> 'RETIRADA' AND s.jardin_id IS NOT NULL
+     GROUP BY s.jardin_id ORDER BY socias DESC LIMIT 1`
+  );
+  if (conCredito) {
+    const j = d.jardines.find((x) => x.id === conCredito.jardin_id);
+    assert.strictEqual(j.creditos.sociasConCredito, Number(conCredito.socias));
+    assert.ok(j.creditos.porEmpresa.every((e) => e.socias <= j.creditos.sociasConCredito));
+  }
+});
+
+await test('Mi jardín: solo la socia marcada como delegada, solo su jardín y sin datos individuales', async () => {
+  const [socia] = await query('SELECT id, jardin_id FROM socias WHERE rut = ?', [RUT_A]);
+  // Sin la marca: no entra a "Mi jardín" ni a los reportes
+  assert.strictEqual((await call('GET', '/socia/mi-jardin', sociaA)).status, 403);
+  assert.strictEqual((await call('GET', '/reportes/mensual', sociaA)).status, 403);
+
+  await query('UPDATE socias SET es_delegada = 1 WHERE id = ?', [socia.id]);
+  try {
+    const login = await call('POST', '/socia/login', null, { rut: RUT_A, password: CLAVE_SOCIA });
+    assert.strictEqual(login.body.data.socia.esDelegada, true);
+
+    const mio = await call('GET', '/socia/mi-jardin', sociaA);
+    assert.strictEqual(mio.status, 200, mio.body.message);
+    assert.strictEqual(mio.body.data.jardin.id, socia.jardin_id);
+    // Decisión D2: ni RUT, ni nombres, ni montos de deudas
+    const texto = JSON.stringify(mio.body.data);
+    assert.doesNotMatch(texto, /\d{1,2}\.\d{3}\.\d{3}-[\dkK]/);
+    // ("nombre" sí aparece: es el del jardín y el de cada empresa)
+    assert.doesNotMatch(texto, /"(saldo\w*|monto\w*|rut|nombres|apellido\w*|socia_?id)"\s*:/i);
+
+    // Con la marca ve el informe mensual y el Balance Anual, pero no los demás jardines
+    assert.strictEqual((await call('GET', '/reportes/mensual?anio=2026&mes=10', sociaA)).status, 200);
+    assert.strictEqual((await call('GET', '/reportes/anual/pdf?anio=2026', sociaA)).status, 200);
+    assert.strictEqual((await call('GET', '/reportes/jardines', sociaA)).status, 403);
+    // Las cuentas de la directiva no tienen "Mi jardín" (es del portal)
+    assert.strictEqual((await call('GET', '/socia/mi-jardin', tokens.TESORERA)).status, 403);
+  } finally {
+    await query('UPDATE socias SET es_delegada = 0 WHERE id = ?', [socia.id]);
+  }
+  // Quitada la marca, pierde el acceso de inmediato (con la misma sesión)
+  assert.strictEqual((await call('GET', '/socia/mi-jardin', sociaA)).status, 403);
+  assert.strictEqual((await call('GET', '/reportes/anual/pdf?anio=2026', sociaA)).status, 403);
 });
 
 // ---------------------------------------------------------------------------

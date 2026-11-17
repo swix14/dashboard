@@ -13,17 +13,43 @@ async function mensajeDeBlob(err, fallback) {
   return data?.message || fallback;
 }
 
+function guardarBlob(blob, nombre) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nombre;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export const ReporteApiService = {
+  /** Cifras de los jardines (directiva) */
+  async cifrasJardines() {
+    const res = await api.get('/reportes/jardines');
+    return res.data.data;
+  },
+
+  /** Cifras del jardín de la delegada (portal de socias) */
+  async miJardin() {
+    const res = await api.get('/socia/mi-jardin');
+    return res.data.data;
+  },
+
+  /** Descarga el informe mensual en Excel (informe-mensual-AAAA-MM.xlsx) */
+  async descargarInformeMensual(anio, mes) {
+    try {
+      const res = await api.get('/reportes/mensual/excel', { params: { anio, mes }, responseType: 'blob' });
+      guardarBlob(res.data, `informe-mensual-${anio}-${String(mes).padStart(2, '0')}.xlsx`);
+    } catch (err) {
+      throw new Error(await mensajeDeBlob(err, 'No fue posible exportar el informe.'));
+    }
+  },
+
   /** Descarga el Balance Anual en PDF (balance-anual-AAAA.pdf) */
   async descargarBalanceAnual(anio) {
     try {
       const res = await api.get('/reportes/anual/pdf', { params: { anio }, responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `balance-anual-${anio}.pdf`;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      guardarBlob(res.data, `balance-anual-${anio}.pdf`);
     } catch (err) {
       throw new Error(await mensajeDeBlob(err, 'No fue posible generar el balance.'));
     }
