@@ -493,6 +493,49 @@ await test('Comisión: se registra una vez como ingreso en Tesorería, con monto
   await call('PUT', '/creditos/comision', TESORERA, { pct: 2 });
 });
 
+// ---------------------------------------------------------------------------
+// Monto A PAGAR ingresado a mano (mes sin planilla o corrección)
+await test('A pagar a mano: solo Admin y Tesorera, con monto y empresa válidos', async () => {
+  const datos = { mes: 3, anio: 2027, empresa: 'ABOGADA', monto: 18000 };
+  assert.strictEqual((await call('PUT', '/creditos/periodo/a-pagar', PRESIDENTA, datos)).status, 403);
+  assert.strictEqual((await call('PUT', '/creditos/periodo/a-pagar', TESORERA, { ...datos, monto: 0 })).status, 400);
+  assert.strictEqual((await call('PUT', '/creditos/periodo/a-pagar', TESORERA, { ...datos, empresa: 'OTRA' })).status, 400);
+  assert.strictEqual((await call('PUT', '/creditos/periodo/a-pagar', TESORERA, { ...datos, mes: 13 })).status, 400);
+});
+
+await test('A pagar a mano: un mes sin planilla se puede verificar y después ya no se cambia', async () => {
+  const antes = (await periodoMarzo()).find((f) => f.codigo === 'ABOGADA');
+  assert.strictEqual(antes.cargado, false);
+  const res = await call('PUT', '/creditos/periodo/a-pagar', TESORERA, { mes: 3, anio: 2027, empresa: 'ABOGADA', monto: 18000 });
+  assert.strictEqual(res.status, 200, res.body.message);
+  assert.deepStrictEqual([res.body.data.antes, res.body.data.monto], [null, 18000]);
+
+  const abogada = (await periodoMarzo()).find((f) => f.codigo === 'ABOGADA');
+  assert.deepStrictEqual([abogada.cargado, abogada.aPagar, abogada.origenAPagar], [true, 18000, 'MANUAL']);
+
+  const ver = await call('POST', '/creditos/pagos/verificar', TESORERA, formPagos(['ABOGADA']));
+  assert.strictEqual(ver.status, 200, ver.body.message);
+  assert.strictEqual((await periodoMarzo()).find((f) => f.codigo === 'ABOGADA').pago.montoPagado, 18000);
+  const tarde = await call('PUT', '/creditos/periodo/a-pagar', TESORERA, { mes: 3, anio: 2027, empresa: 'ABOGADA', monto: 20000 });
+  assert.strictEqual(tarde.status, 409);
+});
+
+await test('A pagar a mano: corrige el de la planilla y una nueva planilla lo vuelve a reemplazar', async () => {
+  const abril = { mes: 4, anio: 2027 };
+  const sosAbril = async () =>
+    (await call('GET', '/creditos/periodo?mes=4&anio=2027', TESORERA)).body.data.find((f) => f.codigo === 'SOS');
+  const fijar = await call('PUT', '/creditos/periodo/a-pagar', TESORERA, { ...abril, empresa: 'SOS', monto: 12345 });
+  assert.strictEqual(fijar.status, 200, fijar.body.message);
+  const corregir = await call('PUT', '/creditos/periodo/a-pagar', TESORERA, { ...abril, empresa: 'SOS', monto: 12000 });
+  assert.deepStrictEqual([corregir.body.data.antes, corregir.body.data.origenAntes], [12345, 'MANUAL']);
+  assert.deepStrictEqual([(await sosAbril()).aPagar, (await sosAbril()).origenAPagar], [12000, 'MANUAL']);
+
+  // La planilla de abril (resumen: SOS $55.000) reemplaza el monto porque el pago sigue sin verificar
+  const aplicar = await call('POST', '/creditos/importar/aplicar', TESORERA, formPlanilla(await planilla(), abril));
+  assert.strictEqual(aplicar.status, 200, aplicar.body.message);
+  assert.deepStrictEqual([(await sosAbril()).aPagar, (await sosAbril()).origenAPagar], [55000, 'PLANILLA']);
+});
+
 console.log(`\n[RESULTADOS CRÉDITOS] ${passed} pasados, ${failed} fallidos`);
 server.closeAllConnections?.();
 server.close();

@@ -31,6 +31,12 @@ export const CreditoApiService = {
   },
 
   /** Registra la comisión de un pago verificado de ISIMUNDO como ingreso en Tesorería */
+  /** Monto A PAGAR de una empresa en un mes, ingresado a mano */
+  async definirAPagar({ mes, anio, empresa, monto }) {
+    const res = await api.put('/creditos/periodo/a-pagar', { mes, anio, empresa, monto });
+    return res.data;
+  },
+
   async registrarComision(pagoId, monto, fecha) {
     const res = await api.post(`/creditos/pagos/${pagoId}/comision`, { monto, fecha });
     return res.data;

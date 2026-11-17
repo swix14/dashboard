@@ -70,6 +70,12 @@ export const registrarComisionSchema = z.object({
   fecha: z.string({ error: 'Indique la fecha.' }).regex(FECHA, 'Fecha inválida.')
 });
 
+// Monto A PAGAR de una empresa en un mes, ingresado a mano (mes sin planilla o corrección)
+export const aPagarSchema = periodoSchema.extend({
+  empresa: z.enum(CODIGOS, { error: 'Seleccione la empresa.' }),
+  monto: entero('Monto a pagar', 1, 1000000000)
+});
+
 export const prepagoSchema = z.object({
   fecha: z.string({ error: 'Indique la fecha del pago.' }).regex(FECHA, 'Fecha del pago inválida.')
 });

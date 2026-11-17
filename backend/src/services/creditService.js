@@ -211,6 +211,8 @@ export const CreditService = {
         nombre: cv.nombre,
         cargado: Boolean(p),
         aPagar: p ? p.monto_a_pagar : null,
+        // PLANILLA: vino de la Maestra Créditos; MANUAL: lo ingresó la tesorera
+        origenAPagar: p ? (p.carga_id ? 'PLANILLA' : 'MANUAL') : null,
         cuotasPendientes: Number(q?.n || 0),
         montoCuotasPendientes: Number(q?.monto || 0),
         verificado: Boolean(p?.verificado_at),
@@ -226,6 +228,39 @@ export const CreditService = {
           : null,
         // Comisión de Isi Mundo: se calcula al verificar el pago con el % vigente ese día
         comision: cv.codigo === 'ISIMUNDO' && p?.verificado_at ? comisionDe(p, pctVigente) : null
+      };
+    });
+  },
+
+  /**
+   * Fija a mano el monto A PAGAR de una empresa en un mes: para meses sin planilla o para
+   * corregir el que trajo la planilla. No se puede cambiar si el pago ya fue verificado.
+   * Si después se carga la planilla del mes (y sigue sin verificar), su monto reemplaza a este.
+   */
+  async definirAPagar({ mes, anio, empresa, monto }) {
+    const [cv] = await query('SELECT id, nombre FROM convenios WHERE codigo = ? AND activo = 1', [empresa]);
+    if (!cv) throw new CreditoError(`Empresa desconocida: ${empresa}.`, 404);
+    const mesTexto = `${NOMBRE_MES[mes]} ${anio}`;
+    return withTransaction(async (tx) => {
+      const [p] = await tx(
+        'SELECT id, monto_a_pagar, carga_id, verificado_at FROM pagos_convenio WHERE convenio_id = ? AND mes = ? AND anio = ? FOR UPDATE',
+        [cv.id, mes, anio]
+      );
+      if (p?.verificado_at) throw new CreditoError(`${cv.nombre}: el pago de ${mesTexto} ya fue verificado; su monto no se puede cambiar.`, 409);
+      if (p) {
+        // Al ingresarlo a mano deja de estar ligado a la planilla
+        await tx('UPDATE pagos_convenio SET monto_a_pagar = ?, carga_id = NULL WHERE id = ?', [monto, p.id]);
+      } else {
+        await tx('INSERT INTO pagos_convenio (convenio_id, mes, anio, monto_a_pagar) VALUES (?, ?, ?, ?)', [cv.id, mes, anio, monto]);
+      }
+      return {
+        empresa,
+        nombre: cv.nombre,
+        mes,
+        anio,
+        antes: p ? p.monto_a_pagar : null,
+        origenAntes: p ? (p.carga_id ? 'PLANILLA' : 'MANUAL') : null,
+        monto
       };
     });
   },
@@ -297,7 +332,7 @@ export const CreditService = {
       if (!cv) throw new CreditoError(`Empresa desconocida: ${codigo}.`);
       const p = pagos.find((x) => x.convenio_id === cv.id);
       const mesTexto = `${NOMBRE_MES[periodo.mes]} ${periodo.anio}`;
-      if (!p) throw new CreditoError(`${cv.nombre}: primero cargue la planilla Maestra Créditos de ${mesTexto}.`);
+      if (!p) throw new CreditoError(`${cv.nombre}: primero cargue la planilla Maestra Créditos de ${mesTexto} o defina el monto a pagar.`);
       if (p.verificado_at) throw new CreditoError(`${cv.nombre}: el pago de ${mesTexto} ya fue verificado.`, 409);
     }
 

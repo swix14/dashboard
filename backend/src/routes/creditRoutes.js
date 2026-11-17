@@ -18,6 +18,8 @@ const canManage = requireRole('ADMIN', 'TESORERA');
 router.get('/resumen', canView, CreditController.getResumen);
 router.get('/grafico', canView, CreditController.getGrafico);
 router.get('/periodo', canView, CreditController.getPeriodo);
+// Monto a pagar a mano (mes sin planilla o corrección), antes de verificar el pago
+router.put('/periodo/a-pagar', canManage, CreditController.definirAPagar);
 router.get('/importar/historial', canView, CreditController.historialCargas);
 // Liquidación mensual para el empleador (cuota social + convenios por socia)
 router.get('/liquidacion', canView, CreditController.getLiquidacion);

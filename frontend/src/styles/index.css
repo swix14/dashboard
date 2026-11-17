@@ -849,6 +849,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .cred-verif-main { display: flex; flex-direction: column; gap: .125rem; min-width: 0; }
 .cred-verif-main strong { font-size: .9375rem; color: var(--text-main); }
 .cred-verif-side { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.cred-verif-monto { display: inline-flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+.cred-verif-origen { align-self: flex-start; margin-top: .2rem; padding: .1rem .5rem; border: 1px dashed var(--primary-200, var(--border-light)); border-radius: var(--radius-full); font-size: .6875rem; font-weight: 700; letter-spacing: .02em; color: var(--primary-700); background: var(--primary-50); }
 .cred-filters { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, minmax(140px, 200px)); gap: 1rem; align-items: end; margin-bottom: 1.25rem; }
 .cred-search-box { position: relative; }
 .cred-search-box svg { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }

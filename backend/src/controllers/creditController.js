@@ -12,7 +12,8 @@ import {
   anularCreditoSchema,
   prepagoSchema,
   comisionPctSchema,
-  registrarComisionSchema
+  registrarComisionSchema,
+  aPagarSchema
 } from '../validators/creditValidator.js';
 import { ConfigService } from '../services/configService.js';
 
@@ -74,6 +75,15 @@ export const CreditController = {
     const parsed = periodoSchema.safeParse(req.query);
     if (!parsed.success) return invalid(res, parsed);
     res.json({ success: true, data: await CreditService.getPeriodo(parsed.data) });
+  }),
+
+  /** PUT /api/creditos/periodo/a-pagar — { mes, anio, empresa, monto }: monto a pagar ingresado a mano */
+  definirAPagar: handle(async (req, res) => {
+    const parsed = aPagarSchema.safeParse(req.body || {});
+    if (!parsed.success) return invalid(res, parsed);
+    const data = await CreditService.definirAPagar(parsed.data);
+    await audit(req, 'CREDITOS_A_PAGAR_MANUAL', data);
+    res.json({ success: true, message: `Monto a pagar de ${data.nombre} guardado.`, data });
   }),
 
   /** POST /api/creditos/importar/previsualizar (multipart: planilla, mes, anio) */

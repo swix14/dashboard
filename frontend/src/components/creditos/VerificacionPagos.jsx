@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle2, Download, Paperclip, ShieldCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Download, Paperclip, Pencil, PencilLine, ShieldCheck } from 'lucide-react';
 import { Card } from '../common/Card.jsx';
 import { Button } from '../common/Button.jsx';
 import { Badge } from '../common/Badge.jsx';
@@ -7,6 +7,7 @@ import { CreditoApiService } from '../../services/creditoService.js';
 import { formatCurrencyCLP, formatFileSize } from '../../utils/formatters.js';
 import { MESES, aniosDisponibles, mesTexto, periodoActual } from './creditoLabels.js';
 import { ComisionPago, ComisionPctEditor } from './ComisionIsimundo.jsx';
+import { APagarManual } from './APagarManual.jsx';
 
 // Por defecto se verifica el mes anterior: el pago se hace entre el 1 y el 5 del mes siguiente
 function mesAnterior() {
@@ -28,6 +29,8 @@ export function VerificacionPagos({ puedeGestionar, onVerified, refreshKey }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [ok, setOk] = useState(null);
+  // Empresa cuyo monto a pagar se está ingresando a mano
+  const [editando, setEditando] = useState(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -44,6 +47,7 @@ export function VerificacionPagos({ puedeGestionar, onVerified, refreshKey }) {
   useEffect(() => {
     setArchivos({});
     setOk(null);
+    setEditando(null);
     cargar();
   }, [cargar, refreshKey]);
 
@@ -111,14 +115,26 @@ export function VerificacionPagos({ puedeGestionar, onVerified, refreshKey }) {
           <li key={f.codigo} className={`cred-verif-item${f.verificado ? ' is-done' : ''}`}>
             <div className="cred-verif-main">
               <strong>{f.nombre}</strong>
-              <span className="cred-muted">
+              <span className="cred-muted cred-verif-monto">
                 {!f.cargado
                   ? `Sin planilla de ${mesTexto(mes, anio)}`
                   : `A pagar ${formatCurrencyCLP(f.aPagar)} · ${f.cuotasPendientes} cuotas pendientes`}
+                {f.cargado && !f.verificado && puedeGestionar && editando !== f.codigo && (
+                  <button
+                    type="button"
+                    className="cred-comision-edit"
+                    aria-label={`Corregir monto a pagar de ${f.nombre}`}
+                    title="Corregir monto a pagar"
+                    onClick={() => setEditando(f.codigo)}
+                  >
+                    <Pencil size={13} />
+                  </button>
+                )}
               </span>
+              {f.origenAPagar === 'MANUAL' && <span className="cred-verif-origen">Ingresado a mano</span>}
             </div>
 
-            {f.verificado ? (
+            {editando === f.codigo ? null : f.verificado ? (
               <div className="cred-verif-side">
                 <Badge variant="success" icon={ShieldCheck}>Verificado {formatCurrencyCLP(f.pago.montoPagado)}</Badge>
                 <Button variant="ghost" size="sm" icon={Download} onClick={() => descargar(f)} aria-label={`Descargar comprobante de ${f.nombre}`}>
@@ -148,8 +164,26 @@ export function VerificacionPagos({ puedeGestionar, onVerified, refreshKey }) {
                   }}
                 />
               </label>
+            ) : puedeGestionar && !f.cargado ? (
+              <Button variant="outline" size="sm" icon={PencilLine} onClick={() => setEditando(f.codigo)}>
+                Definir monto
+              </Button>
             ) : (
               <Badge variant="neutral">{f.cargado ? 'Pendiente' : 'Sin datos'}</Badge>
+            )}
+
+            {editando === f.codigo && (
+              <APagarManual
+                fila={f}
+                mes={mes}
+                anio={anio}
+                onCancel={() => setEditando(null)}
+                onSaved={(mensaje) => {
+                  setEditando(null);
+                  setOk(mensaje);
+                  cargar();
+                }}
+              />
             )}
 
             {f.comision && (
