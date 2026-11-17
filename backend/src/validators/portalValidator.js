@@ -27,7 +27,9 @@ export const sociaLoginSchema = z.object({
 
 // La política de contenido de la nueva clave se valida en SociaAuthService
 export const sociaCambiarClaveSchema = z.object({
-  nuevaClave: z.string({ error: 'Ingrese la nueva contraseña.' }).min(1, 'Ingrese la nueva contraseña.').max(100, 'La contraseña es demasiado larga')
+  nuevaClave: z.string({ error: 'Ingrese la nueva contraseña.' }).min(1, 'Ingrese la nueva contraseña.').max(100, 'La contraseña es demasiado larga'),
+  // Solo se exige en el cambio voluntario (lo decide SociaAuthService.cambiarClave)
+  claveActual: z.string().max(100, 'La contraseña es demasiado larga').optional()
 });
 
 const TIPO_BUZON_ALIAS = {

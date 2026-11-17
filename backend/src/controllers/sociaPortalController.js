@@ -70,7 +70,12 @@ export const SociaPortalController = {
 
       const parsed = sociaCambiarClaveSchema.safeParse(req.body || {});
       if (!parsed.success) return badRequest(res, parsed.error.issues[0]?.message || 'Ingrese la nueva contraseña.');
-      const result = await SociaAuthService.cambiarClave(cleanId, parsed.data.nuevaClave, req.user?.rut);
+      const result = await SociaAuthService.cambiarClave(
+        cleanId,
+        parsed.data.nuevaClave,
+        req.user?.rut,
+        parsed.data.claveActual
+      );
       // Las demás sesiones abiertas de la socia dejan de valer (H-005)
       await SessionService.revokeOthers(req.user.id, req.session?.jti);
 

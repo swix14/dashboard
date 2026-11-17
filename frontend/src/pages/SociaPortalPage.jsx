@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Newspaper,
   Mailbox,
-  LogOut,
   Send,
   Paperclip,
   CheckCircle2,
@@ -29,7 +28,8 @@ import { api } from '../services/api.js';
 import { Card } from '../components/common/Card.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { Badge } from '../components/common/Badge.jsx';
-import { ThemeToggle } from '../components/common/ThemeToggle.jsx';
+import { ProfileMenu } from '../components/layout/ProfileMenu.jsx';
+import { SociaChangePasswordModal } from '../components/auth/SociaChangePasswordModal.jsx';
 import { DIRECTIVA_OFICIAL } from '../utils/directiva.js';
 
 export function SociaPortalPage() {
@@ -261,21 +261,13 @@ export function SociaPortalPage() {
           </div>
 
           {/* Acciones de cabecera */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <ThemeToggle size="sm" />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              icon={LogOut}
-              onClick={handleCerrarSesion}
-              style={{
-                borderColor: 'var(--border-light)',
-                color: 'var(--text-main)'
-              }}
-            >
-              Cerrar Sesión
-            </Button>
+          {/* Perfil: cambiar contraseña, tema y cerrar sesión */}
+          <div style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>
+            <ProfileMenu
+              subtitle={`Socia • ${user?.jardin || 'Sin jardín'}`}
+              onLogout={handleCerrarSesion}
+              renderPasswordModal={(onClose) => <SociaChangePasswordModal onClose={onClose} />}
+            />
           </div>
         </div>
       </header>
@@ -622,45 +614,7 @@ export function SociaPortalPage() {
               )}
             </button>
 
-            <div
-              style={{
-                height: '1px',
-                backgroundColor: 'var(--border-subtle)',
-                margin: '0.5rem 0'
-              }}
-            />
-
-            {/* 3. Cerrar Sesión */}
-            <button
-              type="button"
-              onClick={handleCerrarSesion}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                width: '100%',
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius-lg)',
-                border: 'none',
-                backgroundColor: 'transparent',
-                color: 'var(--error-text, #c62828)',
-                fontWeight: 500,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  'var(--error-bg, rgba(239, 68, 68, 0.08))')
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.backgroundColor = 'transparent')
-              }
-            >
-              <LogOut size={18} />
-              <span>Cerrar Sesión</span>
-            </button>
+            {/* Cerrar sesión, tema y cambio de clave están en el menú de perfil (cabecera) */}
           </aside>
 
           {/* Panel de Contenido Dinámico según sección activa */}

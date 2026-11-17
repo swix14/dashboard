@@ -123,7 +123,7 @@ export const SociaAuthService = {
   /**
    * Cambia la contraseña obligatoria en primer ingreso o actualización voluntaria
    */
-  async cambiarClave(sociaId, nuevaClave, rut) {
+  async cambiarClave(sociaId, nuevaClave, rut, claveActual) {
     if (!nuevaClave || nuevaClave.trim().length < 6) {
       throw new Error('La nueva contraseña debe tener al menos 6 caracteres.');
     }
@@ -131,8 +131,24 @@ export const SociaAuthService = {
       throw new Error('La nueva contraseña no puede ser la clave inicial (6 primeros dígitos del RUT).');
     }
 
-    const hash = await bcrypt.hash(nuevaClave.trim(), 10);
     const cleanId = String(sociaId).replace('socia-', '');
+
+    // Cambio voluntario (ya tiene clave propia): exige la clave actual, para que una sesión
+    // abierta en otro equipo no baste para quitarle la cuenta. El primer ingreso no la pide.
+    const [actual] = await query(`SELECT password, primer_ingreso FROM socias WHERE id = ? AND estado = 'ACTIVA'`, [cleanId]);
+    if (!actual) {
+      throw new Error('No fue posible actualizar la contraseña: socia no encontrada o no activa.');
+    }
+    if (actual.password && Number(actual.primer_ingreso) === 0) {
+      if (!claveActual || !(await bcrypt.compare(claveActual, actual.password))) {
+        throw new Error('La contraseña actual no es correcta.');
+      }
+      if (claveActual === nuevaClave.trim()) {
+        throw new Error('La nueva contraseña debe ser distinta a la actual.');
+      }
+    }
+
+    const hash = await bcrypt.hash(nuevaClave.trim(), 10);
 
     const result = await query(`UPDATE socias SET password = ?, primer_ingreso = 0 WHERE id = ? AND estado = 'ACTIVA'`, [
       hash,

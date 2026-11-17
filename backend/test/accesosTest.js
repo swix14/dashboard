@@ -334,6 +334,19 @@ await test('La directiva restablece la clave de una socia: vuelve a los 6 dígit
   assert.ok(Number(auditoria.n) >= 1, 'el restablecimiento queda en la auditoría');
 });
 
+await test('Cambio voluntario de clave de la socia exige la clave actual', async () => {
+  const sinActual = await call('POST', '/socia/cambiar-clave', sociaA, { nuevaClave: 'OtraClave2026' });
+  assert.strictEqual(sinActual.status, 400);
+  const mala = await call('POST', '/socia/cambiar-clave', sociaA, { nuevaClave: 'OtraClave2026', claveActual: 'equivocada' });
+  assert.strictEqual(mala.status, 400);
+  const igual = await call('POST', '/socia/cambiar-clave', sociaA, { nuevaClave: CLAVE_SOCIA, claveActual: CLAVE_SOCIA });
+  assert.strictEqual(igual.status, 400);
+  const ok = await call('POST', '/socia/cambiar-clave', sociaA, { nuevaClave: 'OtraClave2026', claveActual: CLAVE_SOCIA });
+  assert.strictEqual(ok.status, 200, ok.body.message);
+  const nuevo = await call('POST', '/socia/login', null, { rut: RUT_A, password: 'OtraClave2026' });
+  assert.strictEqual(nuevo.status, 200);
+});
+
 // ---------------------------------------------------------------------------
 // H-005: cambiar la contraseña cierra las demás sesiones (va al final: cambia la clave del admin)
 // ---------------------------------------------------------------------------

@@ -5,10 +5,13 @@ import { useTheme } from '../../context/ThemeContext.jsx';
 import { ChangePasswordModal } from '../auth/ChangePasswordModal.jsx';
 
 /**
- * Menú de perfil de la directiva: al hacer clic en el nombre se despliegan
+ * Menú de perfil (directiva y portal de socias): al hacer clic en el nombre se despliegan
  * cambiar contraseña, modo claro/oscuro y cerrar sesión.
+ * @param {string} [subtitle] - segunda línea bajo el nombre (por defecto: rol • cargo)
+ * @param {Function} [onLogout] - cierre de sesión propio (el portal vuelve a su login)
+ * @param {Function} [renderPasswordModal] - recibe onClose y devuelve el modal de cambio de clave
  */
-export function ProfileMenu() {
+export function ProfileMenu({ subtitle, onLogout, renderPasswordModal }) {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
@@ -42,7 +45,7 @@ export function ProfileMenu() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await logout();
+      await (onLogout ? onLogout() : logout());
     } finally {
       setIsLoggingOut(false);
     }
@@ -72,9 +75,7 @@ export function ProfileMenu() {
         </span>
         <span className="vtf-profile-text user-details-text">
           <span className="vtf-profile-name">{nombre}</span>
-          <span className="vtf-profile-role">
-            {rol} • {user?.cargo || 'Directiva'}
-          </span>
+          <span className="vtf-profile-role">{subtitle || `${rol} • ${user?.cargo || 'Directiva'}`}</span>
         </span>
         <ChevronDown size={16} className="vtf-profile-chevron" aria-hidden="true" />
       </button>
@@ -120,9 +121,12 @@ export function ProfileMenu() {
         </div>
       )}
 
-      {showPassword && (
-        <ChangePasswordModal onClose={() => setShowPassword(false)} onDone={() => setShowPassword(false)} />
-      )}
+      {showPassword &&
+        (renderPasswordModal ? (
+          renderPasswordModal(() => setShowPassword(false))
+        ) : (
+          <ChangePasswordModal onClose={() => setShowPassword(false)} onDone={() => setShowPassword(false)} />
+        ))}
     </div>
   );
 }
