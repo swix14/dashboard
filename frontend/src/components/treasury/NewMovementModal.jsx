@@ -8,15 +8,20 @@ import { formatFileSize } from '../../utils/formatters.js';
 const COMPROBANTE_MAX_MB = 5;
 const COMPROBANTE_TIPOS = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 
-const INITIAL_FORM = {
-  fecha: new Date().toISOString().split('T')[0],
+// Fecha de hoy en Chile al abrir el modal (toISOString usa UTC: desde las 21:00 daba el día siguiente)
+const hoyChile = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
+
+const initialForm = () => ({
+  fecha: hoyChile(),
   monto: '',
   metodo: 'Transferencia Bancaria',
   descripcion: '',
   centroCosto: 'ASOCIACION',
   categoria: 'ASOCIACION',
   archivoComprobante: null
-};
+});
+
+const DESCRIPCION_FEDERACION = 'Cuota Federación Nacional VTF';
 
 /** Pestaña que corresponde a un movimiento existente */
 const tabDe = (mov) => (mov.centroCosto === 'FEDERACION' ? 'FEDERACION' : mov.tipo);
@@ -29,7 +34,7 @@ const tabDe = (mov) => (mov.centroCosto === 'FEDERACION' ? 'FEDERACION' : mov.ti
 export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = null }) {
   const editing = Boolean(movement);
   const [modalTab, setModalTab] = useState('INGRESO'); // INGRESO | EGRESO | FEDERACION
-  const [formData, setFormData] = useState(INITIAL_FORM);
+  const [formData, setFormData] = useState(initialForm);
   const [formError, setFormError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -50,7 +55,7 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
       });
     } else {
       setModalTab('INGRESO');
-      setFormData(INITIAL_FORM);
+      setFormData(initialForm());
     }
   }, [isOpen, movement]);
 
@@ -59,24 +64,30 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
   const handleTabChange = (tab) => {
     setModalTab(tab);
     setFormError(null);
+    // La descripción automática de Federación no debe quedar al pasar a Ingreso o Egreso;
+    // si la tesorera la escribió a mano, se respeta.
+    const sinDescripcionFederacion = (prev) =>
+      prev.descripcion === DESCRIPCION_FEDERACION ? '' : prev.descripcion;
     if (tab === 'INGRESO') {
       setFormData((prev) => ({
         ...prev,
         centroCosto: 'ASOCIACION',
-        categoria: 'ASOCIACION'
+        categoria: 'ASOCIACION',
+        descripcion: sinDescripcionFederacion(prev)
       }));
     } else if (tab === 'EGRESO') {
       setFormData((prev) => ({
         ...prev,
         centroCosto: 'CENA ANUAL',
-        categoria: 'S.O.S'
+        categoria: 'S.O.S',
+        descripcion: sinDescripcionFederacion(prev)
       }));
     } else if (tab === 'FEDERACION') {
       setFormData((prev) => ({
         ...prev,
         centroCosto: 'FEDERACION',
         categoria: 'PAGO FEDERACION',
-        descripcion: 'Cuota Federación Nacional VTF'
+        descripcion: prev.descripcion.trim() ? prev.descripcion : DESCRIPCION_FEDERACION
       }));
     }
   };
@@ -154,7 +165,7 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
         await TreasuryApiService.createMovement({ ...datos, tipo: modalTab === 'INGRESO' ? 'INGRESO' : 'EGRESO' });
       }
 
-      setFormData(INITIAL_FORM);
+      setFormData(initialForm());
       onSuccess(mensaje);
       onClose();
     } catch (err) {
