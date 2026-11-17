@@ -452,6 +452,34 @@ Recorrido completo en celular, tablet y computador, en modo claro y oscuro. Se c
 
 ---
 
+### Revisión de calidad de todo el sistema (17-11-2026)
+> [!NOTE]
+> **Estado:** **Terminado**. Se hizo en tres fases, cada una en su propio commit y con pruebas antes de pasar a la siguiente. Las pantallas, los permisos y las respuestas de la API quedaron iguales. Pruebas: 168 del backend y 10 del frontend.
+
+#### 1. Bugs corregidos y causa
+- **La delegada perdía "Mi jardín" al recargar:** `/auth/me` devolvía el perfil de la socia sin `esDelegada` ni apellidos por separado, y al recargar ese perfil reemplazaba al del login. Ahora `AuthService.getProfile` entrega los mismos datos que el login del portal, y la sesión se arma en un solo lugar (`sesionDeSocia` en `SociaLoginPage.jsx`).
+- **Una falla momentánea al recargar cerraba la sesión:** `AuthContext` borraba la sesión ante cualquier error de `/auth/me`. Ahora solo la borra con 401 o 403.
+- **La directiva podía escribir en el buzón de socias:** a `POST /api/socia/buzon` le faltaba `requireRole('SOCIA')`.
+- **Errores internos mostrados a la socia:** en el buzón y en el cambio de clave, cualquier error respondía 400 con su mensaje. Ahora las reglas de negocio llevan `statusCode` (`ClaveError`), una falla interna va al middleware central, y el adjunto de un mensaje no guardado se elimina.
+- **Cargo inexistente en la sesión de la directiva:** Tesorería mostraba "Tesorera" también para el Admin. Ahora muestra `role.name`, y el portal muestra el cargo con su etiqueta (`CARGO_LABELS`).
+- **Pantalla en blanco con datos dañados en el navegador:** se protegió la lectura de `vtf_user`.
+- **Inicio:** el contenido de "Alertas y Notificaciones" ocupaba el 100 % del alto y se centraba en vertical, así que quedaba corrido y se salía del recuadro (ahora usa las clases `.dash-alerta*`). En celular, la leyenda del gráfico de recaudación chocaba con el filtro de año.
+
+#### 2. Limpieza de código
+- `backend/src/utils/controllerHelpers.js`: `audit`, `responsable`, `invalid`, `handle` y `sociaIdDe`, que estaban copiados en 7 controladores.
+- `treasuryService.js`: el listado y el detalle usan las mismas columnas y el mismo armado del movimiento (`COLUMNAS_MOVIMIENTO`, `aMovimiento`). Los movimientos de ejemplo del modo memoria se movieron a `seedData.js` (`INITIAL_MOVEMENTS`).
+- Las rutas del portal con `:id` se validan con `validateIdParam`.
+- `frontend/src/components/treasury/KpiCard.jsx`: reemplaza los 7 recuadros copiados de Tesorería, con clases `.tes-kpi-*`. Los estilos calculados son idénticos antes y después.
+- Se eliminaron imports y exports sin uso.
+
+#### 3. Qué viene después (en orden)
+1. **Subir al servidor:** aplicar las migraciones del 17 al 23, correr NPM Install en cPanel, cargar las 21 delegadas con el script y probar con comprobantes reales.
+2. **Decisiones de la directiva:** las delegadas de J-04 y J-10, si la Directora ve los convenios, quién reemplaza a la Tesorera y el tope del S.O.S.
+3. **V6:** custodia documental y bitácora de auditoría visible.
+4. **V8:** pruebas de punta a punta; que cada pantalla se descargue solo al abrirla (hoy el paquete principal pesa 583 KB); revisión a fondo del Inicio, el Padrón y la carga de planillas; despliegue oficial.
+
+---
+
 ### Versión 8: Validación Integral E2E y Despliegue Oficial en cPanel
 > [!NOTE]
 > **Estado:** Pendiente — **Asignado para resolución del equipo completo**  
