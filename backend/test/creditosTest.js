@@ -447,6 +447,52 @@ await test('Liquidación Excel: una fila por socia con cuota social y cada conve
   assert.deepStrictEqual([d.getCell(col('Dental')).value, d.getCell(col('Total')).value], [0, 4000]);
 });
 
+// ---------------------------------------------------------------------------
+// Comisión de Isi Mundo con % ajustable
+const periodoMarzo = async () => (await call('GET', '/creditos/periodo?mes=3&anio=2027', TESORERA)).body.data;
+const hoyChileTest = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
+
+await test('Comisión: el % parte en 2, solo Admin y Tesorera lo ajustan y tiene tope', async () => {
+  assert.strictEqual((await call('GET', '/creditos/comision', PRESIDENTA)).body.data.pct, 2);
+  assert.strictEqual((await call('PUT', '/creditos/comision', PRESIDENTA, { pct: 3 })).status, 403);
+  assert.strictEqual((await call('PUT', '/creditos/comision', TESORERA, { pct: 25 })).status, 400);
+  assert.strictEqual((await call('PUT', '/creditos/comision', TESORERA, { pct: 2.555 })).status, 400);
+  const ok = await call('PUT', '/creditos/comision', TESORERA, { pct: 2.5 });
+  assert.strictEqual(ok.status, 200, ok.body.message);
+  assert.strictEqual(ok.body.data.pct, 2.5);
+});
+
+await test('Comisión: se calculó al verificar ISIMUNDO con el % de ese día y no cambia al ajustarlo', async () => {
+  const filas = await periodoMarzo();
+  const isi = filas.find((f) => f.codigo === 'ISIMUNDO');
+  // Marzo se verificó con 2 %: 2 % de $10.000 = $200, aunque hoy el % sea 2,5
+  assert.deepStrictEqual([isi.comision.pct, isi.comision.monto, isi.comision.registrada], [2, 200, false]);
+  assert.strictEqual(filas.find((f) => f.codigo === 'SOS').comision, null, 'solo Isi Mundo tiene comisión');
+});
+
+await test('Comisión: se registra una vez como ingreso en Tesorería, con monto ajustable', async () => {
+  const filas = await periodoMarzo();
+  const { pagoId } = filas.find((f) => f.codigo === 'ISIMUNDO').comision;
+  const sosPago = filas.find((f) => f.codigo === 'SOS').pago.id;
+  assert.strictEqual((await call('POST', `/creditos/pagos/${pagoId}/comision`, PRESIDENTA, { monto: 200, fecha: hoyChileTest })).status, 403);
+  assert.strictEqual((await call('POST', `/creditos/pagos/${sosPago}/comision`, TESORERA, { monto: 200, fecha: hoyChileTest })).status, 400);
+  assert.strictEqual((await call('POST', `/creditos/pagos/${pagoId}/comision`, TESORERA, { monto: 200, fecha: '2099-01-01' })).status, 400);
+
+  const res = await call('POST', `/creditos/pagos/${pagoId}/comision`, TESORERA, { monto: 210, fecha: hoyChileTest });
+  assert.strictEqual(res.status, 201, res.body.message);
+  const [mov] = await query('SELECT tipo, centro_costo, monto FROM movimientos_tesoreria WHERE id = ?', [res.body.data.movimientoId]);
+  assert.deepStrictEqual([mov.tipo, mov.centro_costo, mov.monto], ['INGRESO', 'ISI MUNDO COMISION', 210]);
+  const isi = (await periodoMarzo()).find((f) => f.codigo === 'ISIMUNDO');
+  assert.deepStrictEqual([isi.comision.registrada, isi.comision.correlativo], [true, res.body.data.correlativo]);
+  assert.strictEqual((await call('POST', `/creditos/pagos/${pagoId}/comision`, TESORERA, { monto: 210, fecha: hoyChileTest })).status, 409);
+
+  // Si el ingreso se anula en Tesorería, la comisión se puede registrar de nuevo
+  await call('POST', `/tesoreria/movimientos/${res.body.data.movimientoId}/anular`, TESORERA, { motivo: 'Monto equivocado' });
+  const otra = await call('POST', `/creditos/pagos/${pagoId}/comision`, TESORERA, { monto: 200, fecha: hoyChileTest });
+  assert.strictEqual(otra.status, 201, otra.body.message);
+  await call('PUT', '/creditos/comision', TESORERA, { pct: 2 });
+});
+
 console.log(`\n[RESULTADOS CRÉDITOS] ${passed} pasados, ${failed} fallidos`);
 server.closeAllConnections?.();
 server.close();

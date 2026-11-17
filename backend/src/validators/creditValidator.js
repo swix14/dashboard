@@ -57,6 +57,19 @@ export const anularCreditoSchema = z.object({
   motivo: z.string({ error: 'Indique el motivo de la anulación.' }).trim().min(3, 'Indique el motivo de la anulación.').max(255, 'Motivo demasiado largo.')
 });
 
+// % de comisión de Isi Mundo: entre 0 y 20, hasta 2 decimales (ej. 2 o 2,5)
+export const comisionPctSchema = z.object({
+  pct: z.coerce.number({ error: 'Indique el porcentaje.' }).min(0, 'El porcentaje no puede ser negativo.')
+    .max(20, 'El porcentaje no puede superar el 20 %.')
+    .refine((v) => Math.abs(Math.round(v * 100) - v * 100) < 1e-9, 'Use como máximo 2 decimales.')
+});
+
+// Registro de la comisión en Tesorería: monto (ajustable) y fecha en que llegó
+export const registrarComisionSchema = z.object({
+  monto: entero('Monto de la comisión', 1, 100000000),
+  fecha: z.string({ error: 'Indique la fecha.' }).regex(FECHA, 'Fecha inválida.')
+});
+
 export const prepagoSchema = z.object({
   fecha: z.string({ error: 'Indique la fecha del pago.' }).regex(FECHA, 'Fecha del pago inválida.')
 });

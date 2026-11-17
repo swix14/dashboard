@@ -6,6 +6,7 @@ import { Badge } from '../common/Badge.jsx';
 import { CreditoApiService } from '../../services/creditoService.js';
 import { formatCurrencyCLP, formatFileSize } from '../../utils/formatters.js';
 import { MESES, aniosDisponibles, mesTexto, periodoActual } from './creditoLabels.js';
+import { ComisionPago, ComisionPctEditor } from './ComisionIsimundo.jsx';
 
 // Por defecto se verifica el mes anterior: el pago se hace entre el 1 y el 5 del mes siguiente
 function mesAnterior() {
@@ -73,6 +74,7 @@ export function VerificacionPagos({ puedeGestionar, onVerified, refreshKey }) {
     <Card
       title="Verificación de pagos mensuales"
       subtitle="Entre el 1 y el 5 de cada mes: adjunte el comprobante de cada empresa y confirme para descontar las cuotas."
+      action={<ComisionPctEditor puedeGestionar={puedeGestionar} onChanged={setOk} />}
     >
       <div className="cred-verif-head">
         <div className="cred-form-row">
@@ -148,6 +150,18 @@ export function VerificacionPagos({ puedeGestionar, onVerified, refreshKey }) {
               </label>
             ) : (
               <Badge variant="neutral">{f.cargado ? 'Pendiente' : 'Sin datos'}</Badge>
+            )}
+
+            {f.comision && (
+              <ComisionPago
+                key={`${f.comision.pagoId}-${f.comision.registrada}`}
+                comision={f.comision}
+                puedeGestionar={puedeGestionar}
+                onRegistered={(mensaje) => {
+                  setOk(mensaje);
+                  cargar();
+                }}
+              />
             )}
           </li>
         ))}

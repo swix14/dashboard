@@ -19,6 +19,23 @@ export const CreditoApiService = {
     return res.data.data;
   },
 
+  /** % de comisión de Isi Mundo vigente */
+  async getComision() {
+    const res = await api.get('/creditos/comision');
+    return res.data.data;
+  },
+
+  async setComision(pct) {
+    const res = await api.put('/creditos/comision', { pct });
+    return res.data;
+  },
+
+  /** Registra la comisión de un pago verificado de ISIMUNDO como ingreso en Tesorería */
+  async registrarComision(pagoId, monto, fecha) {
+    const res = await api.post(`/creditos/pagos/${pagoId}/comision`, { monto, fecha });
+    return res.data;
+  },
+
   /** Liquidación del mes para el empleador: totales por empresa */
   async getLiquidacion(mes, anio) {
     const res = await api.get('/creditos/liquidacion', { params: { mes, anio } });

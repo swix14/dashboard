@@ -26,6 +26,10 @@ router.post('/importar/previsualizar', canManage, uploadPlanilla('planilla'), Cr
 router.post('/importar/aplicar', canManage, uploadPlanilla('planilla'), CreditController.aplicar);
 router.post('/pagos/verificar', canManage, uploadComprobantesEmpresas(CODIGOS_EMPRESA), CreditController.verificarPagos);
 router.get('/pagos/:id/comprobante', canView, validateIdParam, CreditController.descargarComprobante);
+// Comisión de Isi Mundo: % ajustable y registro como ingreso en Tesorería
+router.get('/comision', canView, CreditController.getComision);
+router.put('/comision', canManage, CreditController.setComision);
+router.post('/pagos/:id/comision', canManage, validateIdParam, CreditController.registrarComision);
 
 router.get('/', canView, CreditController.getCreditos);
 router.get('/:id', canView, validateIdParam, CreditController.getCredito);

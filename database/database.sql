@@ -184,11 +184,25 @@ CREATE TABLE IF NOT EXISTS `pagos_convenio` (
     `comprobante_mime` VARCHAR(100) NULL,
     `verificado_por` VARCHAR(150) NULL,
     `verificado_at` DATETIME NULL,
+    -- Comisión de Isi Mundo: % vigente al verificar, monto calculado e ingreso de Tesorería que la registró
+    `comision_pct` DECIMAL(5,2) NULL,
+    `comision_monto` INT NULL,
+    `comision_movimiento_id` INT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY `uk_pago_convenio_periodo` (`convenio_id`, `anio`, `mes`),
     CONSTRAINT `fk_pagos_convenio` FOREIGN KEY (`convenio_id`) REFERENCES `convenios` (`id`),
     CONSTRAINT `fk_pagos_carga` FOREIGN KEY (`carga_id`) REFERENCES `cargas_creditos` (`id`) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 4d. Parámetros ajustables por la directiva (ej. % de comisión de Isi Mundo)
+CREATE TABLE IF NOT EXISTS `configuracion` (
+    `clave` VARCHAR(60) PRIMARY KEY,
+    `valor` VARCHAR(255) NOT NULL,
+    `actualizado_por` VARCHAR(150) NULL,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+INSERT IGNORE INTO `configuracion` (`clave`, `valor`) VALUES ('comision_isimundo_pct', '2');
 
 -- 5. Cabecera de Rendición / Descuento Mensual por Socia
 CREATE TABLE IF NOT EXISTS `liquidaciones_mensuales` (

@@ -10,8 +10,11 @@ import {
   crearCreditoSchema,
   editarCreditoSchema,
   anularCreditoSchema,
-  prepagoSchema
+  prepagoSchema,
+  comisionPctSchema,
+  registrarComisionSchema
 } from '../validators/creditValidator.js';
+import { ConfigService } from '../services/configService.js';
 
 const responsable = (req) => `${req.user.firstName} ${req.user.lastName || ''}`.trim();
 
@@ -113,6 +116,31 @@ export const CreditController = {
       message: `Pagos verificados: ${data.map((d) => d.nombre).join(', ')}.`,
       data
     });
+  }),
+
+  /** GET /api/creditos/comision — % de comisión de Isi Mundo vigente */
+  getComision: handle(async (req, res) => {
+    res.json({ success: true, data: await ConfigService.getComisionIsimundo() });
+  }),
+
+  /** PUT /api/creditos/comision — { pct }: ajusta el % (rige para los pagos que se verifiquen desde ahora) */
+  setComision: handle(async (req, res) => {
+    const parsed = comisionPctSchema.safeParse(req.body || {});
+    if (!parsed.success) return invalid(res, parsed);
+    const anterior = await ConfigService.getComisionIsimundo();
+    const data = await ConfigService.setComisionIsimundo(parsed.data.pct, responsable(req));
+    await audit(req, 'COMISION_ISIMUNDO_UPDATED', { antes: anterior.pct, despues: data.pct });
+    res.json({ success: true, message: `Comisión de Isi Mundo ajustada a ${data.pct.toLocaleString('es-CL')} %.`, data });
+  }),
+
+  /** POST /api/creditos/pagos/:id/comision — { monto, fecha }: registra la comisión como ingreso en Tesorería */
+  registrarComision: handle(async (req, res) => {
+    const parsed = registrarComisionSchema.safeParse(req.body || {});
+    if (!parsed.success) return invalid(res, parsed);
+    if (parsed.data.fecha > hoyChile()) return res.status(400).json({ success: false, message: 'La fecha no puede ser futura.' });
+    const data = await CreditService.registrarComision(Number(req.params.id), parsed.data, responsable(req));
+    await audit(req, 'COMISION_ISIMUNDO_REGISTRADA', data);
+    res.status(201).json({ success: true, message: `Comisión registrada en Tesorería (${data.correlativo}).`, data });
   }),
 
   /** GET /api/creditos/liquidacion?mes&anio — resumen de lo que se descuenta por planilla en el mes */

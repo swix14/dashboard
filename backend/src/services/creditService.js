@@ -12,6 +12,8 @@ import { query, withTransaction } from '../config/db.js';
 import { hoyChile } from '../utils/fecha.js';
 import { guardarArchivoHistorico, resolverArchivoHistorico } from '../utils/archivoHistorico.js';
 import { CreditoError, recalcularCredito, NOMBRE_MES } from './creditImportService.js';
+import { ConfigService, calcularComision } from './configService.js';
+import { TreasuryService } from './treasuryService.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -27,6 +29,19 @@ const ESTADO_SQL = `CASE
     ELSE 'VIGENTE' END`;
 
 const ESTADOS_FILTRO = { VIGENTE: 'VIGENTE', ULTIMAS_DOS: 'ULTIMAS_DOS', ULTIMA_CUOTA: 'ULTIMA_CUOTA', PAGADO: 'PAGADO' };
+
+/** Comisión de un pago verificado de ISIMUNDO (los verificados antes de esta función usan el % vigente) */
+function comisionDe(p, pctVigente) {
+  const pct = p.comision_pct != null ? Number(p.comision_pct) : pctVigente;
+  const registrada = p.comision_movimiento_id > 0 && !p.comision_anulada;
+  return {
+    pagoId: p.id,
+    pct,
+    monto: p.comision_monto ?? calcularComision(p.monto_pagado, pct),
+    registrada,
+    correlativo: registrada ? p.comision_correlativo : null
+  };
+}
 
 function nombreSocia(r) {
   return [r.nombres, r.apellido_paterno, r.apellido_materno].filter(Boolean).join(' ');
@@ -174,7 +189,13 @@ export const CreditService = {
   /** Estado de la verificación de un mes: monto a pagar, cuotas pendientes y si ya se verificó */
   async getPeriodo({ mes, anio }) {
     const convenios = await query('SELECT id, codigo, nombre FROM convenios WHERE codigo IS NOT NULL AND activo = 1 ORDER BY orden, id');
-    const pagos = await query('SELECT * FROM pagos_convenio WHERE mes = ? AND anio = ?', [mes, anio]);
+    const pagos = await query(
+      `SELECT p.*, m.correlativo AS comision_correlativo, m.anulado AS comision_anulada
+       FROM pagos_convenio p LEFT JOIN movimientos_tesoreria m ON m.id = p.comision_movimiento_id
+       WHERE p.mes = ? AND p.anio = ?`,
+      [mes, anio]
+    );
+    const { pct: pctVigente } = await ConfigService.getComisionIsimundo();
     const pendientes = await query(
       `SELECT c.convenio_id, COUNT(*) AS n, COALESCE(SUM(q.monto), 0) AS monto
        FROM cuotas_credito q JOIN creditos c ON c.id = q.credito_id
@@ -202,9 +223,56 @@ export const CreditService = {
               verificadoPor: p.verificado_por,
               verificadoAt: p.verificado_at
             }
-          : null
+          : null,
+        // Comisión de Isi Mundo: se calcula al verificar el pago con el % vigente ese día
+        comision: cv.codigo === 'ISIMUNDO' && p?.verificado_at ? comisionDe(p, pctVigente) : null
       };
     });
+  },
+
+  /**
+   * Registra en Tesorería la comisión de Isi Mundo de un mes ya verificado (ingreso en
+   * ISI MUNDO COMISION). El monto viene calculado pero se puede ajustar a lo que realmente llegó.
+   * Un mes no se registra dos veces, salvo que su ingreso se haya anulado en Tesorería.
+   */
+  async registrarComision(pagoId, { monto, fecha }, responsable) {
+    const [p] = await query(
+      `SELECT p.id, p.mes, p.anio, p.monto_pagado, p.verificado_at, p.comision_pct, p.comision_monto, cv.codigo
+       FROM pagos_convenio p JOIN convenios cv ON cv.id = p.convenio_id WHERE p.id = ?`,
+      [pagoId]
+    );
+    if (!p) throw new CreditoError('El pago no existe.', 404);
+    if (p.codigo !== 'ISIMUNDO') throw new CreditoError('Solo Isi Mundo paga comisión a la Asociación.');
+    if (!p.verificado_at) throw new CreditoError('Primero verifique el pago de ISIMUNDO de ese mes.', 409);
+
+    // Se "reserva" el mes antes de crear el ingreso: dos clics seguidos no registran dos veces
+    const reserva = await query(
+      `UPDATE pagos_convenio SET comision_movimiento_id = 0
+       WHERE id = ? AND (comision_movimiento_id IS NULL
+         OR comision_movimiento_id IN (SELECT id FROM movimientos_tesoreria WHERE anulado = 1))`,
+      [pagoId]
+    );
+    if (reserva.affectedRows === 0) throw new CreditoError('La comisión de ese mes ya está registrada en Tesorería.', 409);
+
+    const { pct: pctVigente } = await ConfigService.getComisionIsimundo();
+    const pct = p.comision_pct != null ? Number(p.comision_pct) : pctVigente;
+    try {
+      const mov = await TreasuryService.createMovement({
+        tipo: 'INGRESO',
+        fecha,
+        descripcion: `Comisión ${pct.toLocaleString('es-CL')} % Isi Mundo — ${NOMBRE_MES[p.mes]} ${p.anio}`,
+        centroCosto: 'ISI MUNDO COMISION',
+        categoria: 'ISI MUNDO COMISION',
+        monto,
+        metodo: 'Transferencia Bancaria',
+        responsable
+      });
+      await query('UPDATE pagos_convenio SET comision_movimiento_id = ? WHERE id = ?', [mov.id, pagoId]);
+      return { pagoId, movimientoId: mov.id, correlativo: mov.correlativo, monto: mov.monto, pct };
+    } catch (err) {
+      await query('UPDATE pagos_convenio SET comision_movimiento_id = NULL WHERE id = ? AND comision_movimiento_id = 0', [pagoId]);
+      throw err;
+    }
   },
 
   /**
@@ -222,6 +290,8 @@ export const CreditService = {
       codigos
     );
     const pagos = await query('SELECT convenio_id, verificado_at FROM pagos_convenio WHERE mes = ? AND anio = ?', [periodo.mes, periodo.anio]);
+    // % de comisión de Isi Mundo vigente hoy: queda guardado con el pago y no cambia si después se ajusta
+    const { pct: pctComision } = await ConfigService.getComisionIsimundo();
     for (const codigo of codigos) {
       const cv = convenios.find((c) => c.codigo === codigo);
       if (!cv) throw new CreditoError(`Empresa desconocida: ${codigo}.`);
@@ -275,6 +345,13 @@ export const CreditService = {
                                        comprobante_mime = ?, verificado_por = ?, verificado_at = NOW() WHERE id = ?`,
             [monto, cuotas.length, g.original, g.relative, g.mime, realizadoPor, pago.id]
           );
+          if (g.codigo === 'ISIMUNDO') {
+            await tx('UPDATE pagos_convenio SET comision_pct = ?, comision_monto = ? WHERE id = ?', [
+              pctComision,
+              calcularComision(monto, pctComision),
+              pago.id
+            ]);
+          }
           resultado.push({ empresa: g.codigo, nombre: cv.nombre, pagoId: pago.id, montoPagado: monto, cuotasDescontadas: cuotas.length });
         }
         return resultado;
