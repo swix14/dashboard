@@ -6,8 +6,8 @@
 [![Frontend](https://img.shields.io/badge/Frontend-React%2018%20%7C%20Vite-61DAFB?style=flat-square&logo=react&logoColor=black)](#4-arquitectura-del-sistema)
 [![Backend](https://img.shields.io/badge/Backend-Express%20%7C%20REST%20API-000000?style=flat-square&logo=express&logoColor=white)](#4-arquitectura-del-sistema)
 [![Base de Datos](https://img.shields.io/badge/Persistencia-MySQL%20%2F%20MariaDB-4479A1?style=flat-square&logo=mysql&logoColor=white)](#53-persistencia-de-datos)
-[![Versión](https://img.shields.io/badge/Versión-V3%20Padrón%20MySQL-725682?style=flat-square)](#3-estado-del-proyecto-versiones-y-hoja-de-ruta)
-[![Estado de Pruebas](https://img.shields.io/badge/Validación-83%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
+[![Versión](https://img.shields.io/badge/Versión-V3%20%2B%20ajustes%2017--11-725682?style=flat-square)](#3-estado-del-proyecto-versiones-y-hoja-de-ruta)
+[![Estado de Pruebas](https://img.shields.io/badge/Validación-110%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
 
 Plataforma web institucional concebida para la gobernanza corporativa, fiscalización contable, administración del padrón gremial, custodia documental y rendición periódica de cuentas de los establecimientos de Educación Parvularia Vía Transferencia de Fondos (VTF) de la comuna de Temuco.
 
@@ -36,14 +36,17 @@ El sistema opera bajo el principio de **mínimo privilegio (PoLP)** y estricta *
 | :--- | :--- | :--- | :--- | :--- |
 | **Administración Técnica** | Administrador de Plataforma | Mantenimiento de infraestructura, seguridad, bitácora y base de datos | Auditoría global y supervisión técnica | `admin@vtftemuco.cl` |
 | **Tesorería General** | Tesorera Titular | Registro de ingresos, emisión de egresos, conciliación y comprobantes | Ejecución y control contable total | `tesorera@vtftemuco.cl` |
-| **Presidencia Gremial** | Presidenta de la Asociación | Supervisión ejecutiva y representación institucional | **Supervisión (Solo Lectura)**; sin edición de egresos | `presidenta@vtftemuco.cl` |
-| **Secretaría General** | Secretaria de la Directiva | Administración del Padrón (incorporaciones, retiros, traslados y carga de planilla) | Sin acceso a finanzas operativas | `secretaria@vtftemuco.cl` |
-| **Dirección de Bienestar** | Directora de Convenios | Fiscalización y enlace con entidades de crédito social | Consolidado general de convenios | `directora@vtftemuco.cl` |
-| **Delegadas de Base** | Representantes de Jardín (23) | Fiscalización de su establecimiento ante la asamblea | **Transparencia Institucional** (sin acceso a deudas individuales) | `delegada@vtftemuco.cl` |
-| **Portal de Afiliadas** | Funcionarias Sindicalizadas | Buzón de consultas/denuncias, solicitudes S.O.S y noticias | Ficha personal e historial individual | *Acceso individual por RUT* |
+| **Presidencia Gremial** | Presidenta de la Asociación | Supervisión ejecutiva, representación institucional, noticias y buzón de socias | **Supervisión (Solo Lectura)**; sin edición de egresos | `presidenta@vtftemuco.cl` |
+| **Secretaría General** | Secretaria de la Directiva | Padrón (incorporaciones, retiros, traslados, planilla y restablecer clave del portal), noticias, buzón e informe mensual | Sin acceso a finanzas: no ve Tesorería, pagos a la Federación, alertas ni recaudación; solo la ficha socia, sin créditos | `secretaria@vtftemuco.cl` |
+| **Dirección de Bienestar** | Directora | Mismos permisos que la Secretaria (desde el 16-11-2026) | Sin acceso a finanzas ni a datos de créditos (se redefine en V4) | `directora@vtftemuco.cl` |
+| **Delegadas de Base** | Representantes de Jardín (23) | Fiscalización de su establecimiento ante la asamblea | **Informe mensual en solo lectura** con exportación a Excel (sin acceso a deudas individuales) | `delegada@vtftemuco.cl` |
+| **Portal de Afiliadas** | Funcionarias Sindicalizadas | Buzón de consultas, reclamos y sugerencias, y noticias | Ficha personal e historial individual | *Acceso individual por RUT* |
 
 > **Acceso y seguridad:**
-> La directiva ingresa **solo** con su correo exacto `@vtftemuco.cl` o con su RUT, y debe cambiar la clave en el primer ingreso. Las sesiones usan tokens JWT y las claves se guardan con bcrypt. En producción la aplicación no arranca sin un `JWT_SECRET` propio de 32 caracteres o más. Los datos sensibles se configuran en variables de entorno (`.env`), nunca en el código fuente.
+> - **Ingreso de la directiva:** solo con su RUT y contraseña. Debe cambiar la clave en el primer ingreso.
+> - **Ingreso de las socias:** con su RUT, y la clave inicial son los 6 primeros dígitos del RUT. Si la olvidan, la directiva la restablece desde la ficha de la socia.
+> - **Sesiones:** se cierran tras 10 minutos de inactividad. El servidor invalida el token al cerrar sesión o al cambiar la contraseña.
+> - **Claves y configuración:** las claves se guardan con bcrypt. La aplicación no arranca sin un `JWT_SECRET` propio de 32 caracteres o más, y en producción exige `CORS_ORIGIN`. Los datos sensibles van en variables de entorno (`.env`), nunca en el código fuente.
 
 ---
 
@@ -56,9 +59,9 @@ graph TD
     V1["V1: Consola Ejecutiva y Seguridad Base ✓"] --> V2["V2: Tesorería con Respaldo Digital ✓"]
     V2 --> V3["V3: Padrón Centralizado 100% MySQL ✓"]
     V3 --> V4["V4: Créditos y Convenios"]
-    V4 --> V5["V5: Portal de Afiliadas y Buzón (prototipo)"]
+    V4 --> V5["V5: Portal de Afiliadas y Buzón (en avance)"]
     V5 --> V6["V6: Custodia Documental"]
-    V6 --> V7["V7: Rendición Formal PDF y Portal Delegadas"]
+    V6 --> V7["V7: Rendición Formal PDF y Portal Delegadas (en avance)"]
     V7 --> V8["V8: Validación E2E y Despliegue Oficial"]
 ```
 
@@ -66,11 +69,11 @@ graph TD
 | :---: | :--- | :--- |
 | **V1** | Consola Ejecutiva, Directiva y Seguridad Base (PoLP) | Terminado ✓ |
 | **V2** | Tesorería Robusta y Respaldo Digital Obligatorio | Terminado ✓ |
-| **V3** | Padrón Centralizado 100% Persistente en MySQL | Terminado ✓ — despliegue desde cero el 10/11/2026 |
+| **V3** | Padrón Centralizado 100% Persistente en MySQL | Terminado ✓ — con ajustes de la directiva y cierre de la auditoría de seguridad (17/11/2026) |
 | **V4** | Módulo Independiente de Créditos y Convenios | **Siguiente** |
-| **V5** | Portal de Afiliadas, Primer Ingreso y Buzón Gremial | Prototipo adelantado (falta remediación) |
+| **V5** | Portal de Afiliadas, Primer Ingreso y Buzón Gremial | En avance: comunicaciones de la directiva y recuperación de clave hechas; faltan las solicitudes S.O.S |
 | **V6** | Custodia Documental y Carpeta por Proveedor | Pendiente |
-| **V7** | Rendición Formal de Cuentas (PDF) y Portal Delegadas | Pendiente |
+| **V7** | Rendición Formal de Cuentas (PDF) y Portal Delegadas | En avance: informe mensual con Excel hecho; falta el Balance Anual en PDF |
 | **V8** | Validación Integral E2E y Despliegue Oficial en cPanel | Pendiente |
 
 ### 3.1. Módulos Operativos (Entregados y Verificados)
@@ -80,9 +83,10 @@ graph TD
   * Modo nocturno/diurno calibrado con tokens HSL y persistencia en cliente.
   * Menú de navegación lateral institucional, 100% responsivo.
 * **V1 — Consola Ejecutiva y Autenticación:**
-  * Ingreso con correo exacto `@vtftemuco.cl` o RUT, y cambio de clave obligatorio en el primer ingreso.
+  * Ingreso solo con RUT, botón para ver u ocultar la contraseña y cambio de clave obligatorio en el primer ingreso.
+  * Cierre de sesión por 10 minutos de inactividad, y sesiones que el servidor invalida al cerrar sesión o cambiar la clave.
   * Indicadores calculados con datos reales: socias activas, créditos por convenio, alertas de última cuota, gráfico mensual de ingresos y egresos, y estado del pago a la Federación.
-  * Saldos de Tesorería ocultos para Directora, Delegadas y Socias.
+  * Secciones financieras del Inicio ocultas para Secretaria, Directora, Delegadas y Socias.
 * **V2 — Tesorería y Control Financiero:**
   * Cuatro Centros de Costo: `ASOCIACION`, `CENA ANUAL`, `FEDERACION` e `ISI MUNDO COMISION`.
   * **Respaldo Digital Obligatorio:** ningún egreso se registra sin comprobante (PDF, JPG, PNG o WEBP), con su metadata guardada en MySQL.
@@ -94,6 +98,15 @@ graph TD
   * Traslados entre jardines en transacción, con motivo obligatorio e historial.
   * Carga de la planilla **"Maestra Socias"** (Excel) con vista previa y aplicación en una sola transacción.
   * Exportación del padrón según el filtro aplicado.
+  * Ficha socia y ficha crédito separadas: los créditos solo los ven Admin, Presidenta y Tesorera.
+  * Botón "Restablecer clave" en la ficha de la socia para recuperar su acceso al portal.
+* **Comunicaciones (adelanto de V5):** la directiva publica y elimina noticias, lee el buzón de las socias, marca los mensajes como leídos o respondidos y descarga los adjuntos.
+* **Informe mensual (adelanto de V7):** pago a la Federación, total de egresos, total disponible y cantidad de movimientos, con exportación a Excel. Las delegadas lo ven en modo solo lectura.
+* **Seguridad (auditoría de 27 hallazgos, 17/11/2026):**
+  * Validación con zod en todos los endpoints y login sin enumeración de cuentas.
+  * Protección contra planillas Excel maliciosas y tope de montos.
+  * Respaldo de la auditoría en archivo si MySQL falla.
+  * Pruebas de la matriz de accesos por rol.
 * **Persistencia y estabilidad:**
   * Base de datos MySQL / MariaDB como única fuente de datos. En producción, si MySQL no está disponible la API responde **503** en vez de mostrar datos de prueba, y `/api/health` informa el estado de la conexión.
   * Fechas registradas en hora de Chile (`America/Santiago`).
@@ -101,10 +114,14 @@ graph TD
 ### 3.2. Hoja de Ruta (Próximas Versiones)
 
 * **V4 — Créditos y Convenios:** modelo independiente para las 4 empresas en convenio (`S.O.S`, `ISIMUNDO`, `OPTICA` y `DENTAL`), procesamiento de la planilla maestra mensual y verificación de los 4 comprobantes bancarios. Sus tablas se agregan como migración en `database/migraciones/`.
-* **V5 — Portal de Afiliadas:** remediación del prototipo actual (descarga de adjuntos del buzón, límite de intentos de ingreso y solicitudes S.O.S en línea).
+* **V5 — Portal de Afiliadas:** solicitudes S.O.S en línea y revisión final del portal. La gestión del buzón, la descarga de adjuntos, el límite de intentos y la recuperación de clave ya están hechos.
 * **V6 — Custodia Documental:** repositorio de instrumentos legales y pagarés, ordenado por empresa proveedora (`año / mes / día`).
-* **V7 — Rendición Formal de Cuentas:** consola de fiscalización para delegadas y Balance Anual en PDF para la asamblea.
-* **V8 — Validación E2E y Despliegue Oficial:** pruebas de extremo a extremo, auditoría de dependencias y cierre del despliegue.
+* **V7 — Rendición Formal de Cuentas:** Balance Anual en PDF para la asamblea y cifras por jardín para las delegadas. El informe mensual ya está hecho.
+* **V8 — Validación E2E y Despliegue Oficial:**
+  * Pruebas de extremo a extremo.
+  * Actualización mayor de dependencias (`uuid`, `react-router`, `zod` del frontend).
+  * Cierre por inactividad también en el servidor.
+  * Hallazgos de la auditoría que se revisan en cPanel.
 
 ---
 
@@ -123,7 +140,7 @@ dashboard/
 │   │   ├── validators/      # Esquemas de validación (Zod)
 │   │   └── server.js        # Configuración de Express
 │   ├── app.cjs              # Punto de entrada para cPanel (Passenger)
-│   ├── test/                # Suites de pruebas automatizadas (7)
+│   ├── test/                # Suites de pruebas automatizadas (8)
 │   └── uploads/             # Comprobantes y planillas cargadas
 ├── database/
 │   ├── database.sql         # Esquema relacional
@@ -138,7 +155,7 @@ dashboard/
 │   ├── src/
 │   │   ├── components/      # Componentes visuales institucionales
 │   │   ├── context/         # Autenticación, permisos y tema
-│   │   ├── pages/           # Inicio, Tesorería, Socias y Portal de Socias
+│   │   ├── pages/           # Inicio, Tesorería, Socias, Comunicaciones, Reportes y Portal de Socias
 │   │   ├── routes/          # Rutas protegidas por rol
 │   │   ├── services/        # Cliente de la API
 │   │   └── styles/          # Tokens HSL y estilos SIGAV
@@ -180,7 +197,7 @@ npm run dev:frontend
 
 ### 5.4. Verificación Automatizada del Sistema
 
-Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 7 suites (83 pruebas) contra ella; nunca toca `jardines_vtf`:
+Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 8 suites (110 pruebas) contra ella; nunca toca `jardines_vtf`:
 
 ```powershell
 npm run test:backend
@@ -194,7 +211,7 @@ npm run build:frontend
 
 ### 5.5. Despliegue en Producción
 
-La instalación en cPanel (`vtftemuco.cl`) se describe paso a paso en [`docs/GUIA_DESPLIEGUE_CPANEL.md`](docs/GUIA_DESPLIEGUE_CPANEL.md): paquete de producción, base con prefijo `vtftemuc_`, aplicación Node con `app.cjs`, variables de entorno y verificación con `/api/health`.
+La instalación en cPanel (`vtftemuco.cl`) se describe paso a paso en [`docs/GUIA_DESPLIEGUE_CPANEL.md`](docs/GUIA_DESPLIEGUE_CPANEL.md): paquete de producción, base con prefijo `vtftemuc_`, aplicación Node con `app.cjs`, variables de entorno (`JWT_SECRET` y `CORS_ORIGIN=https://vtftemuco.cl` son obligatorias) y verificación con `/api/health`.
 
 ---
 

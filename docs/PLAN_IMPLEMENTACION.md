@@ -26,11 +26,11 @@ El sistema opera bajo el principio de **mínimo privilegio (PoLP)** y estricta *
 | Nivel de Acceso | Perfil / Rol | Alcance Operativo | Perfil Financiero | Restricciones Estrictas |
 | :--- | :--- | :--- | :--- | :--- |
 | **Administración Técnica** | `ADMIN` / `SUPER_ADMIN` | Configuración, infraestructura, bitácora de auditoría y base de datos. | Supervisión contable técnica. | Sin autoasignación no auditada. |
-| **Presidencia Gremial** | `PRESIDENTA` | Supervisión ejecutiva y representación institucional. | **Supervisión (Solo Lectura)**; consulta de balances y movimientos. | **Sin edición ni creación** de egresos. |
+| **Presidencia Gremial** | `PRESIDENTA` | Supervisión ejecutiva, representación institucional, noticias y buzón de socias. | **Supervisión (Solo Lectura)**; consulta de balances y movimientos. | **Sin edición ni creación** de egresos. |
 | **Tesorería General** | `TESORERA` | Emisión de egresos, recaudación de ingresos, conciliación y comprobantes. | **Gestión Total** de Tesorería. | Obligatoriedad de respaldo digital en egresos. |
-| **Secretaría General** | `SECRETARIA` | Administración del Padrón (altas, bajas, suspensiones y traslados). | Sin acceso a finanzas operativas. | Bloqueo de libro contable. |
-| **Dirección de Bienestar** | `DIRECTORA` | Consulta del padrón de su jardín y fiscalización de convenios sociales. | **Solo lectura de convenios** de su establecimiento. | **Bloqueo estricto de Tesorería general** y cuentas bancarias. |
-| **Delegadas de Base** | `DELEGADA` | Representación de su establecimiento (23) ante la asamblea. | **Transparencia Institucional** (estadísticas agregadas de su jardín). | **Bloqueo estricto de deudas y saldos individuales**. |
+| **Secretaría General** | `SECRETARIA` | Administración del Padrón (altas, bajas, traslados, planilla y restablecer clave del portal), noticias, buzón e informe mensual. | Sin acceso a finanzas operativas. | Sin Tesorería, pagos a la Federación, tareas, alertas ni recaudación. Ve solo la ficha socia (sin créditos). |
+| **Dirección de Bienestar** | `DIRECTORA` | Desde el 16-11-2026 tiene los mismos permisos que la Secretaria (padrón, noticias, buzón e informe mensual). | Sin acceso a finanzas operativas. | **Bloqueo estricto de Tesorería general**; sin datos de créditos hasta que V4 defina su alcance. |
+| **Delegadas de Base** | `DELEGADA` | Representación de su establecimiento (23) ante la asamblea. | **Informe mensual en solo lectura** (pago Federación, egresos, disponible y cantidad de movimientos) con exportación a Excel. | **Bloqueo estricto de deudas y saldos individuales**. |
 | **Portal de Afiliadas** | `SOCIA` | Ficha personal, aportes individuales, consulta de noticias y buzón gremial. | Solo su propio estado y cuota. | Solo accede con su RUT personal. |
 
 ---
@@ -75,11 +75,11 @@ dashboard/
 | :---: | :--- | :--- | :---: | :--- |
 | **V1** | **Consola Ejecutiva, Directiva y Seguridad Base (PoLP)** | **Sebastian Olguín** | **Terminado ✓** | Commits `2a194fb`, `a768d64` (39 tests OK) |
 | **V2** | **Tesorería Robusta y Respaldo Digital Obligatorio** | **Sebastian Olguín** | **Terminado ✓** | Commit `c3608ed` (46 tests OK) |
-| **V3** | **Padrón Centralizado 100% Persistente en MySQL** | **Sebastian Victoriano** | **Terminado ✓** | 75 tests OK (`npm test`) |
+| **V3** | **Padrón Centralizado 100% Persistente en MySQL** | **Sebastian Victoriano** | **Terminado ✓** | 75 tests OK; con ajustes de la directiva y auditoría: 110 tests OK (`e8abdb7`) |
 | **V4** | **Módulo Independiente de Créditos y Convenios** | Carlos S. y Luis C. | **Pendiente (Equipo)** | Asignado para resolución del equipo |
-| **V5** | **Portal de Afiliadas, Primer Ingreso y Buzón Gremial** | Sebastian A. y Braulio P. | **Pendiente (Equipo)** | Asignado para resolución del equipo |
+| **V5** | **Portal de Afiliadas, Primer Ingreso y Buzón Gremial** | Sebastian A. y Braulio P. | **En avance** | Comunicaciones de la directiva y recuperación de clave (`e8abdb7`, `68ede07`) |
 | **V6** | **Custodia Documental y Carpeta por Proveedor** | Equipo Técnico | **Pendiente (Equipo)** | Asignado para resolución del equipo |
-| **V7** | **Rendición Formal de Cuentas (PDF) y Portal Delegadas** | Equipo Técnico | **Pendiente (Equipo)** | Asignado para resolución del equipo |
+| **V7** | **Rendición Formal de Cuentas (PDF) y Portal Delegadas** | Equipo Técnico | **En avance** | Informe mensual con Excel para delegadas (`e8abdb7`); falta el Balance Anual en PDF |
 | **V8** | **Validación Integral E2E y Despliegue Oficial en cPanel** | Equipo Completo | **Pendiente (Equipo)** | Asignado para resolución del equipo |
 
 ```mermaid
@@ -87,9 +87,9 @@ flowchart TD
     V1["V1: Consola Ejecutiva y Seguridad Base [Terminado ✓]"] --> V2["V2: Tesorería y Respaldo Digital [Terminado ✓]"]
     V2 --> V3["V3: Padrón Centralizado MySQL [Terminado ✓]"]
     V3 --> V4["V4: Módulo Créditos y Convenios [Equipo]"]
-    V4 --> V5["V5: Portal de Afiliadas y Buzón [Equipo]"]
+    V4 --> V5["V5: Portal de Afiliadas y Buzón [En avance]"]
     V5 --> V6["V6: Custodia Documental [Equipo]"]
-    V6 --> V7["V7: Rendición Formal PDF y Delegadas [Equipo]"]
+    V6 --> V7["V7: Rendición Formal PDF y Delegadas [En avance]"]
     V7 --> V8["V8: Despliegue Oficial en cPanel [Equipo]"]
 ```
 
@@ -228,7 +228,61 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
 - **Delegadas:** el Inicio las cuenta con `socias.es_delegada` en vez de usar el número de jardines. *En el padrón real ninguna socia está marcada aún como delegada: la directiva debe marcarlas.*
 - Se eliminó código sin uso (`registerUserSchema`, con roles inexistentes, y referencias a `SUPER_ADMIN` en el dashboard).
 
-**Pendiente de decisión de la directiva:** alcance de la Directora en el padrón (hoy ve el padrón completo) y si se necesita cerrar sesiones al instante (hoy el token vence a las 8 horas).
+**Pendiente de decisión de la directiva:** alcance de la Directora en el padrón y cierre inmediato de sesiones. *Ambos resueltos el 17-11-2026 (ver la sección siguiente).*
+
+---
+
+### Ajustes de la directiva y cierre de la auditoría de seguridad (17-11-2026)
+> [!IMPORTANT]
+> **Estado:** **Terminado ✓** (pendiente de aplicar en el hosting)  
+> **Responsable:** Sebastian Victoriano  
+> **Commits:** `e8abdb7`, `68ede07`  
+> **Resultados:** 110 pruebas de backend aprobadas en 8 suites (`npm test`; la nueva suite `test/accesosTest.js` cubre la matriz de accesos por rol). Build Vite limpio. Verificado en el navegador con cada rol.
+
+#### 1. Pedidos de la directiva (lista "DATOS VTF VERIFICADOS 10-11")
+- **Login de la directiva solo con RUT.** Se eliminó el ingreso por correo. Todos los campos de contraseña tienen el botón para mostrarla u ocultarla, y el RUT de las socias no acepta letras (`RutInput.jsx`).
+- **Cierre por inactividad:** aviso al minuto 9 y cierre de sesión a los 10 minutos sin actividad (`useIdleTimeout.js`, `IdleSessionGuard.jsx`).
+- **Sitio responsivo** y sin el buscador superior, que no funcionaba.
+- **Tesorería:** el botón "Agregar Movimiento" no abría el formulario. La causa era la llamada a una función inexistente (`setFormError`), que lanzaba un error.
+- **Permisos por rol** (`frontend/src/utils/permissions.js`, espejo de `requireRole` en el backend):
+  - La Secretaria no ve pagos a la Federación, tareas, alertas, recaudación ni Tesorería (`secciones.finanzas = false` en el Inicio).
+  - La Directora 1 recibe los mismos permisos que la Secretaria.
+- **Ficha socia y ficha crédito separadas** (`CreditoDetailModal.jsx`). Los datos de crédito llegan solo a Admin, Presidenta y Tesorera; para el resto el backend los quita de la respuesta.
+- **Comunicaciones** (`ComunicacionesPage.jsx`): Admin, Presidenta, Secretaria y Directora publican y eliminan noticias, leen el buzón de las socias, marcan los mensajes como leídos o respondidos y descargan los adjuntos.
+- **Informe mensual** (`ReportesPage.jsx`, `GET /api/reportes/mensual`): pago a la Federación, total de egresos, total disponible y cantidad de movimientos, con exportación a Excel. Las delegadas lo ven en modo solo lectura (adelanto de V7).
+- **Recuperación de clave de socia:** desde Socias → Ficha socia → "Restablecer clave". La clave vuelve a los 6 primeros dígitos del RUT con cambio obligatorio, se cierran sus sesiones y queda en la auditoría (H-008). La clave inicial se mantiene por decisión de la directiva (H-001).
+
+#### 2. Auditoría de seguridad (27 hallazgos)
+- **Sesiones revocables (H-005):** cada token lleva un identificador único. Cerrar sesión lo invalida (`sesiones_revocadas`) y cambiar la contraseña cierra las demás sesiones de la persona (`sesiones_corte`). Las tablas se crean solas; la migración `2026-11-17_sesiones_revocadas.sql` es opcional.
+- **Login sin enumeración de cuentas:** el mismo mensaje y el mismo tiempo de respuesta para un RUT inexistente, una clave incorrecta o una cuenta inactiva.
+- **Configuración:**
+  - Sin `JWT_SECRET` por defecto en ningún entorno, salvo en las pruebas.
+  - `CORS_ORIGIN` obligatorio en producción.
+  - Cuerpo de las peticiones limitado a 100 KB.
+  - `/api/health` sin datos internos y errores 500 sin detalles en producción.
+- **Validación con zod en todos los endpoints** (`portalValidator.js`, filtros de Tesorería y del padrón). Además, `validateIdParam.js` rechaza con 400 los `:id` no numéricos.
+- **Planilla Excel protegida** (`utils/xlsxGuard.js`): antes de abrirla se revisa el ZIP (máximo 40 MB descomprimido, 300 elementos y compresión normal). Además, máximo 5000 filas y 60 columnas.
+- **Auditoría sin pérdidas:** si MySQL falla, el evento se guarda en `backend/logs/auditoria-pendiente.jsonl` y se traspasa a la tabla al volver la conexión.
+- **Montos:** tope de $100.000.000 por movimiento.
+- **Pruebas de aislamiento y de accesos:**
+  - Una socia no ve los mensajes de otra.
+  - La inyección SQL en búsquedas y filtros no altera las consultas.
+  - Se probó la matriz completa de accesos por rol.
+
+#### 3. Bugs corregidos y causa
+- **El buzón guardaba todos los mensajes como CONSULTA:** el portal enviaba "Consultas" o "Reclamos" y el backend no reconocía esas palabras. Ahora se envía el código y se aceptan las palabras antiguas. Los mensajes anteriores no se pueden reclasificar automáticamente.
+- **Botón "Agregar Movimiento" de Tesorería:** ver el punto 1.
+
+#### 4. Pendiente
+- **Revisar en cPanel:** H-021, H-022, H-023 y H-027 (configuración del servidor).
+- **Dependencias con actualización mayor (H-024):** `uuid` (vía exceljs), `react-router` y el `zod` del frontend. Quedan para V8.
+- **H-004:** pospuesto a V8.
+- **Cierre por inactividad en el servidor:** hoy lo controla solo el navegador.
+- **Delegadas:** la directiva debe marcarlas en el padrón para que puedan entrar.
+
+#### 5. Aplicación en el hosting
+1. Subir el código y configurar `CORS_ORIGIN=https://vtftemuco.cl` y un `JWT_SECRET` propio de 32 caracteres o más.
+2. Hacer Restart de la aplicación y comprobar `https://vtftemuco.cl/api/health`.
 
 ---
 
@@ -248,8 +302,9 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
 
 ### Versión 5: Portal de Afiliadas, Primer Ingreso y Buzón Gremial
 > [!NOTE]
-> **Estado:** Pendiente — **Asignado para resolución del equipo** (Sebastian A., Braulio P.)  
-> **Objetivo:** Conectar el acceso de socias al padrón real de MySQL, aplicar el bloqueo obligatorio de primer ingreso hasta cambiar la clave inicial y estructurar el buzón con soporte de adjuntos.
+> **Estado:** **En avance** (Sebastian A., Braulio P.)  
+> **Objetivo:** Conectar el acceso de socias al padrón real de MySQL, aplicar el bloqueo obligatorio de primer ingreso hasta cambiar la clave inicial y estructurar el buzón con soporte de adjuntos.  
+> **Avance:** el portal ya usa solo MySQL (V3). Ya están hechos el límite de intentos de ingreso, la gestión del buzón y las noticias por la directiva, la descarga de adjuntos, la recuperación de clave desde la ficha y el cierre de sesiones al cambiar la clave. **Falta:** las solicitudes S.O.S en línea y la revisión final del portal.
 
 #### 1. Archivos Involucrados
 - `backend/src/services/sociaAuthService.js`: Sincronización 100% con la tabla `socias` de MySQL.
@@ -275,10 +330,11 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
 ### Versión 7: Rendición Formal de Cuentas (PDF) y Portal Delegadas
 > [!NOTE]
 > **Estado:** Pendiente — **Asignado para resolución del equipo**  
-> **Objetivo:** Habilitar la consola exclusiva para las 23 delegadas con cifras consolidadas y generación automática del Balance Anual en PDF para asambleas.
+> **Objetivo:** Habilitar la consola exclusiva para las 23 delegadas con cifras consolidadas y generación automática del Balance Anual en PDF para asambleas.  
+> **Avance (17-11-2026):** el informe mensual con exportación a Excel ya existe (`reporteService.js`, `ReportesPage.jsx`) y las delegadas lo ven en modo solo lectura. **Falta:** el Balance Anual en PDF y las cifras por jardín.
 
 #### 1. Archivos Involucrados
-- `backend/src/services/reportService.js`: Motor de generación de reportes y balances en PDF.
+- `backend/src/services/reporteService.js`: Informe mensual (hecho) y, pendiente, el Balance Anual en PDF.
 - `frontend/src/pages/ReportesPage.jsx`: Consola de fiscalización para Delegadas (sin acceso a deudas individuales).
 
 ---
@@ -299,8 +355,11 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
 
 | N° | Tema / Parámetro | Definición Oficial de Negocio |
 | :--- | :--- | :--- |
-| **D1** | **Directora en Créditos** | La Directora puede fiscalizar convenios y créditos vigentes de su jardín, pero tiene **bloqueado el acceso a la Tesorería general**. |
+| **D1** | **Directora en Créditos** | Desde el 16-11-2026 la Directora tiene los permisos de la Secretaria: sin Tesorería y sin datos de créditos. Su acceso a los convenios se redefine en V4. |
 | **D2** | **Acceso Delegadas** | Las Delegadas acceden únicamente a estadísticas agregadas de su establecimiento y rendición formal; **nunca ven deudas individuales**. |
-| **D3** | **Políticas de Claves** | Contraseña inicial: primeros 6 dígitos del cuerpo del RUT. Cambio obligatorio al primer ingreso para desbloquear el sistema. |
+| **D3** | **Políticas de Claves** | Contraseña inicial: primeros 6 dígitos del cuerpo del RUT. Cambio obligatorio al primer ingreso para desbloquear el sistema. Si la socia la olvida, la directiva la restablece desde su ficha (vuelve a la inicial). |
 | **D4** | **Créditos Pagados** | Se muestran con estado `PAGADO` durante el mes de cierre y al mes siguiente se archivan en la vista histórica. |
 | **D5** | **Saldos Iniciales** | Se registran como asientos contables formales de tipo `SALDO_APERTURA` fechados al inicio del ejercicio contable (01/01/2026). |
+| **D6** | **Ingreso de la Directiva** | Solo con RUT y contraseña (desde el 17-11-2026 ya no se acepta el correo). |
+| **D7** | **Inactividad** | La sesión se cierra tras 10 minutos sin actividad, con aviso un minuto antes. |
+| **D8** | **Comunicaciones** | Publican noticias y leen el buzón: Admin, Presidenta, Secretaria y Directora. La Tesorera y las Delegadas no. |
