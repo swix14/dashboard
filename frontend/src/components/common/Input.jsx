@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useId, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 /**
@@ -6,16 +6,21 @@ import { Eye, EyeOff } from 'lucide-react';
  * Con type="password" agrega automáticamente el botón del ojo para mostrar/ocultar la clave.
  */
 export const Input = forwardRef(function Input(
-  { label, error, helperText, icon: Icon, className = '', type, ...props },
+  { label, error, helperText, icon: Icon, className = '', type, id, ...props },
   ref
 ) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
   const effectiveType = isPassword && showPassword ? 'text' : type;
+  // La etiqueta queda asociada al campo (lector de pantalla y clic en la etiqueta)
+  const autoId = useId();
+  const inputId = id || autoId;
+  const hintId = `${inputId}-hint`;
+  const hint = error || helperText;
 
   return (
     <div className="vtf-form-group">
-      {label && <label className="vtf-label">{label}</label>}
+      {label && <label className="vtf-label" htmlFor={inputId}>{label}</label>}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         {Icon && (
           <div
@@ -33,6 +38,9 @@ export const Input = forwardRef(function Input(
         )}
         <input
           ref={ref}
+          id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={hint ? hintId : undefined}
           type={effectiveType}
           className={`vtf-input ${className}`}
           style={{
@@ -55,9 +63,9 @@ export const Input = forwardRef(function Input(
           </button>
         )}
       </div>
-      {error && <span className="vtf-error-text">{error}</span>}
+      {error && <span id={hintId} className="vtf-error-text">{error}</span>}
       {helperText && !error && (
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{helperText}</span>
+        <span id={hintId} className="vtf-helper-text">{helperText}</span>
       )}
     </div>
   );

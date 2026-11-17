@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CheckCircle2, KeyRound, Lock } from 'lucide-react';
+import { AlertCircle, CheckCircle2, KeyRound, Lock } from 'lucide-react';
 import { Modal } from '../common/Modal.jsx';
 import { Input } from '../common/Input.jsx';
 import { Button } from '../common/Button.jsx';
@@ -44,48 +44,26 @@ export function SociaChangePasswordModal({ onClose }) {
   };
 
   return (
-    <Modal title="Cambiar contraseña" subtitle="Actualice su clave de acceso al portal." onClose={onClose} maxWidth="460px">
+    <Modal title="Cambiar contraseña" subtitle="Actualice su clave de acceso al portal." onClose={onClose} maxWidth="440px">
       {done ? (
-        <div style={{ padding: '1.5rem', display: 'grid', gap: '1rem' }}>
-          <div
-            role="status"
-            style={{
-              display: 'flex',
-              gap: '0.625rem',
-              alignItems: 'flex-start',
-              padding: '0.875rem 1rem',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--success-bg)',
-              border: '1px solid var(--success-border)',
-              color: 'var(--success-text)',
-              fontSize: '0.875rem'
-            }}
-          >
-            <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: '1px' }} />
+        <div className="pwd-form">
+          <p role="status" className="pwd-aviso is-ok">
+            <CheckCircle2 size={18} aria-hidden="true" />
             <span>Contraseña actualizada. Las sesiones abiertas en otros equipos se cerraron.</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          </p>
+          <div className="pwd-acciones">
             <Button type="button" variant="primary" onClick={onClose}>
               Listo
             </Button>
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '1.5rem', display: 'grid', gap: '1rem' }}>
+        <form onSubmit={handleSubmit(onSubmit)} className="pwd-form" noValidate>
           {serverError && (
-            <div
-              role="alert"
-              style={{
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--error-bg)',
-                border: '1px solid var(--error-border)',
-                color: 'var(--error-text)',
-                fontSize: '0.8125rem'
-              }}
-            >
-              {serverError}
-            </div>
+            <p role="alert" className="pwd-aviso is-error">
+              <AlertCircle size={16} aria-hidden="true" />
+              <span>{serverError}</span>
+            </p>
           )}
           <Input
             label="Contraseña actual"
@@ -112,7 +90,10 @@ export function SociaChangePasswordModal({ onClose }) {
             error={errors.confirmar?.message}
             {...register('confirmar')}
           />
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="pwd-acciones">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
             <Button type="submit" variant="primary" isLoading={isSaving}>
               Guardar contraseña
             </Button>

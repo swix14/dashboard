@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { KeyRound, Lock, LogOut } from 'lucide-react';
+import { AlertCircle, KeyRound, Lock, LogOut } from 'lucide-react';
 import { Modal } from '../common/Modal.jsx';
 import { Input } from '../common/Input.jsx';
 import { Button } from '../common/Button.jsx';
@@ -70,20 +70,14 @@ export function ChangePasswordModal({ mandatory = false, onDone, onClose }) {
       }
       onClose={onClose || (() => {})}
       dismissible={!mandatory}
-      maxWidth="460px"
+      maxWidth="440px"
     >
-      <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '1.5rem', display: 'grid', gap: '1rem' }}>
+      <form onSubmit={handleSubmit(onSubmit)} className="pwd-form" noValidate>
         {serverError && (
-          <div role="alert" className="vtf-alert-error" style={{
-            padding: '0.75rem 1rem',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--error-bg)',
-            border: '1px solid var(--error-border)',
-            color: 'var(--error-text)',
-            fontSize: '0.8125rem'
-          }}>
-            {serverError}
-          </div>
+          <p role="alert" className="pwd-aviso is-error">
+            <AlertCircle size={16} aria-hidden="true" />
+            <span>{serverError}</span>
+          </p>
         )}
 
         <Input
@@ -112,10 +106,14 @@ export function ChangePasswordModal({ mandatory = false, onDone, onClose }) {
           {...register('confirmPassword')}
         />
 
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          {mandatory && (
+        <div className="pwd-acciones">
+          {mandatory ? (
             <Button type="button" variant="outline" icon={LogOut} onClick={logout}>
               Cerrar sesión
+            </Button>
+          ) : (
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
             </Button>
           )}
           <Button type="submit" variant="primary" isLoading={isSaving}>

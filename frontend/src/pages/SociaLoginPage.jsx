@@ -179,6 +179,14 @@ export function SociaLoginPage() {
     }
   };
 
+  // Cancelar el primer ingreso descarta la sesión provisional: la socia vuelve al login
+  const cerrarCambioClave = () => {
+    setShowPasswordModal(false);
+    setProvisionalSession(null);
+    setModalError(null);
+    resetPassForm();
+  };
+
   // Obtener iniciales del nombre completo para el avatar de la directiva
   const getInitials = (name = '') =>
     name
@@ -561,12 +569,9 @@ export function SociaLoginPage() {
         <Modal
           title="Cambio Obligatorio de Contraseña"
           subtitle={`Bienvenida ${provisionalSession?.socia?.nombreCompleto || 'Socia'}. Por seguridad institucional, debes establecer una contraseña personal antes de ingresar a tu portal.`}
-          onClose={() => {
-            setShowPasswordModal(false);
-            setProvisionalSession(null);
-            resetPassForm();
-          }}
-          maxWidth="480px"
+          onClose={cerrarCambioClave}
+          dismissible={!isChangingPass && !modalSuccess}
+          maxWidth="440px"
         >
           {modalSuccess ? (
             <div
@@ -601,93 +606,45 @@ export function SociaLoginPage() {
               </p>
             </div>
           ) : (
-            <form onSubmit={handleSubmitPass(onSubmitCambioClave)}>
-              <div
-                style={{
-                  backgroundColor: 'var(--bg-surface-subtle)',
-                  padding: '0.875rem',
-                  borderRadius: 'var(--radius-md)',
-                  marginBottom: '1.25rem',
-                  fontSize: '0.8125rem',
-                  color: 'var(--text-muted)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <KeyRound size={18} style={{ color: 'var(--primary-600)', flexShrink: 0 }} />
-                <span>
-                  Elige una clave segura de al menos 6 caracteres que recuerdes fácilmente.
-                </span>
-              </div>
+            <form onSubmit={handleSubmitPass(onSubmitCambioClave)} className="pwd-form" noValidate>
+              <p className="pwd-aviso is-info">
+                <KeyRound size={16} aria-hidden="true" />
+                <span>Elige una clave de al menos 6 caracteres que recuerdes fácilmente. No puede ser la clave inicial.</span>
+              </p>
 
               {modalError && (
-                <div
-                  style={{
-                    backgroundColor: 'var(--error-bg)',
-                    color: 'var(--error-text)',
-                    border: '1px solid var(--error-border)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.75rem 1rem',
-                    fontSize: '0.8125rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    marginBottom: '1rem'
-                  }}
-                >
-                  <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                <p role="alert" className="pwd-aviso is-error">
+                  <AlertCircle size={16} aria-hidden="true" />
                   <span>{modalError}</span>
-                </div>
+                </p>
               )}
 
               <Input
-                label="Nueva Contraseña"
+                label="Nueva contraseña"
                 type="password"
                 placeholder="Mínimo 6 caracteres"
                 icon={Lock}
+                autoComplete="new-password"
                 error={passErrors.nuevaClave?.message}
                 {...registerPass('nuevaClave')}
               />
 
               <Input
-                label="Confirmar Nueva Contraseña"
+                label="Confirmar nueva contraseña"
                 type="password"
                 placeholder="Repite tu nueva contraseña"
                 icon={ShieldCheck}
+                autoComplete="new-password"
                 error={passErrors.confirmarClave?.message}
                 {...registerPass('confirmarClave')}
               />
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: '0.75rem',
-                  marginTop: '1.5rem',
-                  paddingTop: '1rem',
-                  borderTop: '1px solid var(--border-light)'
-                }}
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setShowPasswordModal(false);
-                    setProvisionalSession(null);
-                    resetPassForm();
-                  }}
-                  disabled={isChangingPass}
-                >
+              <div className="pwd-acciones">
+                <Button type="button" variant="outline" onClick={cerrarCambioClave} disabled={isChangingPass}>
                   Cancelar
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  isLoading={isChangingPass}
-                  icon={ShieldCheck}
-                >
-                  Guardar y Entrar al Portal
+                <Button type="submit" variant="primary" isLoading={isChangingPass} icon={ShieldCheck}>
+                  Guardar y entrar al portal
                 </Button>
               </div>
             </form>

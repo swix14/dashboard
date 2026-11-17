@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 /**
@@ -13,7 +14,9 @@ export function Modal({ title, subtitle, onClose, children, maxWidth = '560px', 
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose, dismissible]);
 
-  return (
+  // Portal al <body>: abierto desde la barra superior (menú de perfil) quedaba dentro de su
+  // contexto de apilamiento (z-index 30) y el fondo oscuro no cubría la sidebar.
+  return createPortal(
     <div
       onClick={dismissible ? onClose : undefined}
       style={{
@@ -109,7 +112,8 @@ export function Modal({ title, subtitle, onClose, children, maxWidth = '560px', 
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

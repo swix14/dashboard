@@ -43,7 +43,9 @@ export function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // El portal de socias tiene su propio login (antes caía en el de la directiva)
+    const loginPath = location.pathname.startsWith('/socia') ? '/socia/login' : '/login';
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   if (allowedRoles && allowedRoles.length > 0 && !hasRole(...allowedRoles)) {

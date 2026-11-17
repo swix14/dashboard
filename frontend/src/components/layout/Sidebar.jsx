@@ -151,21 +151,10 @@ export function Sidebar({ isOpen, onClose }) {
                       onClick={() => {
                         if (window.innerWidth < 1024) onClose();
                       }}
-                      style={({ isActive }) => ({
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.625rem 0.75rem',
-                        borderRadius: 'var(--radius-md)',
-                        fontSize: '0.875rem',
-                        fontWeight: isActive ? 600 : 500,
-                        color: isActive ? 'var(--primary-700)' : 'var(--text-main)',
-                        backgroundColor: isActive ? 'var(--primary-100)' : 'transparent',
-                        transition: 'all var(--transition-fast)'
-                      })}
+                      className="vtf-nav-link"
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Icon size={18} style={{ color: 'inherit' }} />
+                        <Icon size={18} aria-hidden="true" />
                         <span>{item.label}</span>
                       </div>
                       {item.badge && (
