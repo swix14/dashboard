@@ -1,20 +1,8 @@
-import React, { useState } from 'react';
-import { LogOut, Menu, User } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext.jsx';
-import { ThemeToggle } from '../common/ThemeToggle.jsx';
+import React from 'react';
+import { Menu } from 'lucide-react';
+import { ProfileMenu } from './ProfileMenu.jsx';
 
 export function Navbar({ onToggleSidebar }) {
-  const { user, logout } = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
 
   return (
     <header
@@ -81,99 +69,12 @@ export function Navbar({ onToggleSidebar }) {
       {/* Espaciador: el buscador se quitó porque no buscaba nada */}
       <div style={{ flex: '1 1 auto' }} />
 
-      {/* Icono con nombre de quien ingresó a la app (sesión, perfil, cargo) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flex: '0 0 auto' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.625rem',
-            padding: '0.25rem 0.625rem',
-            borderRadius: 'var(--radius-full)',
-            backgroundColor: 'var(--bg-surface-subtle)',
-            border: '1px solid var(--border-light)'
-          }}
-          className="user-profile-badge"
-        >
-          {/* Avatar con iniciales o icono */}
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--primary-500)',
-              color: 'var(--on-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '0.8125rem',
-              boxShadow: 'var(--shadow-sm)'
-            }}
-          >
-            {user?.firstName ? user.firstName.charAt(0) : <User size={16} />}
-          </div>
-
-          {/* Nombre, perfil y cargo */}
-          <div style={{ textAlign: 'left', lineHeight: 1.25 }} className="user-details-text">
-            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              {user?.firstName} {user?.lastName}
-            </div>
-            <div style={{ fontSize: '0.6875rem', color: 'var(--primary-700)', fontWeight: 600 }}>
-              {user?.role?.name || user?.role?.code} • {user?.cargo || 'Directiva'}
-            </div>
-          </div>
-        </div>
-
-        {/* Toggle Modo Oscuro / Claro */}
-        <ThemeToggle size="sm" />
-        <button
-          type="button"
-          className="navbar-logout-btn"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          aria-label={isLoggingOut ? 'Cerrando sesión' : 'Cerrar sesión'}
-          title="Cerrar sesión"
-        >
-          <LogOut size={18} aria-hidden="true" />
-          <span>{isLoggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}</span>
-        </button>
+      {/* Perfil: al hacer clic se despliegan cambiar contraseña, tema y cerrar sesión */}
+      <div style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>
+        <ProfileMenu />
       </div>
 
       <style>{`
-        .navbar-logout-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          min-height: 40px;
-          padding: 0.5rem 0.75rem;
-          border: 1px solid var(--border-light);
-          border-radius: var(--radius-md);
-          background: transparent;
-          color: var(--error-text);
-          font: inherit;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          white-space: nowrap;
-          cursor: pointer;
-        }
-        .navbar-logout-btn:hover {
-          background: var(--error-bg);
-        }
-        .navbar-logout-btn:focus-visible {
-          outline: 2px solid var(--primary-500);
-          outline-offset: 2px;
-        }
-        .navbar-logout-btn:disabled {
-          opacity: 0.6;
-          cursor: wait;
-        }
-        @media (max-width: 639px) {
-          .navbar-logout-btn span {
-            display: none;
-          }
-        }
         .navbar-menu-btn {
           background: transparent;
           border: none;

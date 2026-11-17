@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { ChangePasswordModal } from '../auth/ChangePasswordModal.jsx';
 import {
-  KeyRound,
   LayoutDashboard,
   Users,
   DollarSign,
@@ -10,17 +8,15 @@ import {
   FileSpreadsheet,
   ShieldAlert,
   Megaphone,
-  LogOut,
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { puedeAcceder } from '../../utils/permissions.js';
 
 export function Sidebar({ isOpen, onClose }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const roleCode = user?.role?.code;
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const navItems = [
     { to: '/dashboard', label: 'Inicio Institucional', icon: LayoutDashboard, allowed: true },
@@ -202,61 +198,8 @@ export function Sidebar({ isOpen, onClose }) {
           </ul>
         </nav>
 
-        {/* Footer Sidebar */}
-        <div style={{ padding: '1rem', borderTop: '1px solid var(--border-light)', display: 'grid', gap: '0.5rem' }}>
-          <button
-            type="button"
-            onClick={() => setShowPasswordModal(true)}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.625rem',
-              padding: '0.625rem 0.875rem',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-light)',
-              background: 'transparent',
-              color: 'var(--text-main)',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            <KeyRound size={16} />
-            <span>Cambiar contraseña</span>
-          </button>
-          <button
-            onClick={logout}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.625rem',
-              padding: '0.625rem 0.875rem',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-light)',
-              background: 'transparent',
-              color: 'var(--error-text)',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'background var(--transition-fast)'
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--error-bg)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
-            <LogOut size={16} />
-            <span>Cerrar Sesión</span>
-          </button>
-        </div>
+        {/* Cambiar contraseña, tema y cerrar sesión están en el menú de perfil (Navbar) */}
       </aside>
-
-      {showPasswordModal && (
-        <ChangePasswordModal
-          onClose={() => setShowPasswordModal(false)}
-          onDone={() => setShowPasswordModal(false)}
-        />
-      )}
 
       <style>{`
         @media (max-width: 1023px) {
