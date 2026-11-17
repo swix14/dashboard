@@ -7,7 +7,7 @@
 [![Backend](https://img.shields.io/badge/Backend-Express%20%7C%20REST%20API-000000?style=flat-square&logo=express&logoColor=white)](#4-arquitectura-del-sistema)
 [![Base de Datos](https://img.shields.io/badge/Persistencia-MySQL%20%2F%20MariaDB-4479A1?style=flat-square&logo=mysql&logoColor=white)](#53-persistencia-de-datos)
 [![Versión](https://img.shields.io/badge/Versión-V4%20Créditos%20y%20Convenios-725682?style=flat-square)](#3-estado-del-proyecto-versiones-y-hoja-de-ruta)
-[![Estado de Pruebas](https://img.shields.io/badge/Validación-163%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
+[![Estado de Pruebas](https://img.shields.io/badge/Validación-166%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
 
 Plataforma web institucional concebida para la gobernanza corporativa, fiscalización contable, administración del padrón gremial, custodia documental y rendición periódica de cuentas de los establecimientos de Educación Parvularia Vía Transferencia de Fondos (VTF) de la comuna de Temuco.
 
@@ -39,7 +39,7 @@ El sistema opera bajo el principio de **mínimo privilegio (PoLP)** y estricta *
 | **Presidencia Gremial** | Presidenta de la Asociación | Supervisión ejecutiva, representación institucional, noticias y buzón de socias | **Supervisión (Solo Lectura)**; sin edición de egresos | `presidenta@vtftemuco.cl` |
 | **Secretaría General** | Secretaria de la Directiva | Padrón (incorporaciones, retiros, traslados, planilla y restablecer clave del portal), noticias, buzón e informe mensual | Sin acceso a finanzas: no ve Tesorería, pagos a la Federación, alertas ni recaudación; solo la ficha socia, sin créditos | `secretaria@vtftemuco.cl` |
 | **Dirección de Bienestar** | Directora | Mismos permisos que la Secretaria (desde el 16-11-2026) | Sin acceso a finanzas ni a datos de créditos (se redefine en V4) | `directora@vtftemuco.cl` |
-| **Delegadas de Base** | Representantes de Jardín (23) | Fiscalización de su establecimiento ante la asamblea | **Informe mensual en solo lectura** con exportación a Excel y **Balance Anual en PDF** (sin acceso a deudas individuales) | `delegada@vtftemuco.cl` |
+| **Delegadas de Base** | Representantes de Jardín (23) | Fiscalización de su establecimiento ante la asamblea | **"Mi jardín"** en el portal de socias (cifras de su jardín), informe mensual en Excel y **Balance Anual en PDF**, sin acceso a deudas individuales | *Su cuenta del portal, marcada como delegada en el padrón* |
 | **Portal de Afiliadas** | Funcionarias Sindicalizadas | Buzón de consultas, reclamos y sugerencias, y noticias | Ficha personal e historial individual | *Acceso individual por RUT* |
 
 > **Acceso y seguridad:**
@@ -61,7 +61,7 @@ graph TD
     V3 --> V4["V4: Créditos y Convenios ✓"]
     V4 --> V5["V5: Portal de Afiliadas y Buzón (en avance)"]
     V5 --> V6["V6: Custodia Documental"]
-    V6 --> V7["V7: Rendición Formal PDF y Portal Delegadas (en avance)"]
+    V6 --> V7["V7: Rendición Formal PDF y Portal Delegadas ✓"]
     V7 --> V8["V8: Validación E2E y Despliegue Oficial"]
 ```
 
@@ -73,7 +73,7 @@ graph TD
 | **V4** | Módulo Independiente de Créditos y Convenios | Terminado ✓ (18/11/2026) |
 | **V5** | Portal de Afiliadas, Primer Ingreso y Buzón Gremial | En avance: comunicaciones de la directiva, recuperación de clave y solicitudes S.O.S hechas; falta la revisión final del portal |
 | **V6** | Custodia Documental y Carpeta por Proveedor | Pendiente |
-| **V7** | Rendición Formal de Cuentas (PDF) y Portal Delegadas | En avance: informe mensual con Excel y Balance Anual en PDF hechos; faltan las cifras por jardín |
+| **V7** | Rendición Formal de Cuentas (PDF) y Portal Delegadas | Terminado ✓ (17/11/2026) |
 | **V8** | Validación Integral E2E y Despliegue Oficial en cPanel | Pendiente |
 
 ### 3.1. Módulos Operativos (Entregados y Verificados)
@@ -117,6 +117,7 @@ graph TD
 * **S.O.S en línea (V5):** la socia pide su crédito de emergencia desde el portal (monto, 1 a 4 cuotas y motivo) y ve la respuesta. Admin y Tesorera lo aprueban desde Créditos, lo que crea su crédito S.O.S, o lo rechazan con motivo.
 * **Informe mensual (adelanto de V7):** pago a la Federación, total de egresos, total disponible y cantidad de movimientos, con exportación a Excel. Las delegadas lo ven en modo solo lectura.
 * **Balance Anual en PDF (V7):** resumen del año, fondos Asociación y Cena Anual, movimiento mes a mes y totales por categoría, con la misma regla contable de Tesorería; el año en curso se emite con corte al día de hoy. Lo descargan la directiva y las delegadas desde Reportes, y cada descarga queda en la auditoría.
+* **Cifras por jardín (V7):** la socia marcada como delegada en el padrón ve la pestaña **"Mi jardín"** en su portal: socias activas, aporte mensual, incorporaciones, retiros y traslados del año, solicitudes S.O.S y socias con crédito vigente por empresa. Son solo totales, sin nombres ni deudas individuales (decisión D2), y desde ahí descarga el informe mensual y el Balance Anual. Si la directiva le quita la marca, pierde el acceso de inmediato. La directiva ve los 23 jardines en una tabla en Reportes, con los que aún no tienen delegada marcada.
 * **Seguridad (auditoría de 27 hallazgos, 17/11/2026):**
   * Validación con zod en todos los endpoints y login sin enumeración de cuentas.
   * Protección contra planillas Excel maliciosas y tope de montos.
@@ -130,7 +131,6 @@ graph TD
 
 * **V5 — Portal de Afiliadas:** revisión final del portal. Las solicitudes S.O.S en línea, la gestión del buzón, la descarga de adjuntos, el límite de intentos y la recuperación de clave ya están hechos.
 * **V6 — Custodia Documental:** repositorio de instrumentos legales y pagarés, ordenado por empresa proveedora (`año / mes / día`).
-* **V7 — Rendición Formal de Cuentas:** cifras por jardín para las delegadas. El informe mensual y el Balance Anual en PDF ya están hechos.
 * **V8 — Validación E2E y Despliegue Oficial:**
   * Pruebas de extremo a extremo.
   * Actualización mayor de dependencias (`uuid`, `react-router`, `zod` del frontend).
@@ -211,7 +211,7 @@ npm run dev:frontend
 
 ### 5.4. Verificación Automatizada del Sistema
 
-Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 10 suites (163 pruebas) contra ella; nunca toca `jardines_vtf`:
+Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 10 suites (166 pruebas) contra ella; nunca toca `jardines_vtf`:
 
 ```powershell
 npm run test:backend

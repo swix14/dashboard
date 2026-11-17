@@ -30,7 +30,7 @@ El sistema opera bajo el principio de **mínimo privilegio (PoLP)** y estricta *
 | **Tesorería General** | `TESORERA` | Emisión de egresos, recaudación de ingresos, conciliación y comprobantes. | **Gestión Total** de Tesorería. | Obligatoriedad de respaldo digital en egresos. |
 | **Secretaría General** | `SECRETARIA` | Administración del Padrón (altas, bajas, traslados, planilla y restablecer clave del portal), noticias, buzón e informe mensual. | Sin acceso a finanzas operativas. | Sin Tesorería, pagos a la Federación, tareas, alertas ni recaudación. Ve solo la ficha socia (sin créditos). |
 | **Dirección de Bienestar** | `DIRECTORA` | Desde el 16-11-2026 tiene los mismos permisos que la Secretaria (padrón, noticias, buzón e informe mensual). | Sin acceso a finanzas operativas. | **Bloqueo estricto de Tesorería general**; sin datos de créditos hasta que V4 defina su alcance. |
-| **Delegadas de Base** | `DELEGADA` | Representación de su establecimiento (23) ante la asamblea. | **Informe mensual en solo lectura** (pago Federación, egresos, disponible y cantidad de movimientos) con exportación a Excel. | **Bloqueo estricto de deudas y saldos individuales**. |
+| **Delegadas de Base** | `DELEGADA` | Representación de su establecimiento (23) ante la asamblea. | Entran con su cuenta del **portal de socias** si están marcadas como delegadas en el padrón: **"Mi jardín"** (cifras de su jardín), informe mensual en Excel y Balance Anual en PDF. | **Bloqueo estricto de deudas y saldos individuales**. |
 | **Portal de Afiliadas** | `SOCIA` | Ficha personal, aportes individuales, consulta de noticias y buzón gremial. | Solo su propio estado y cuota. | Solo accede con su RUT personal. |
 
 ---
@@ -79,7 +79,7 @@ dashboard/
 | **V4** | **Módulo Independiente de Créditos y Convenios** | Sebastian Victoriano | **Terminado ✓** | Commit `4c1c5dc` (124 tests OK) |
 | **V5** | **Portal de Afiliadas, Primer Ingreso y Buzón Gremial** | Sebastian A. y Braulio P. | **En avance** | Comunicaciones de la directiva, recuperación de clave (`e8abdb7`, `68ede07`) y S.O.S en línea (`ab12830`) |
 | **V6** | **Custodia Documental y Carpeta por Proveedor** | Equipo Técnico | **Pendiente (Equipo)** | Asignado para resolución del equipo |
-| **V7** | **Rendición Formal de Cuentas (PDF) y Portal Delegadas** | Equipo Técnico | **En avance** | Informe mensual con Excel para delegadas (`e8abdb7`) y Balance Anual en PDF hechos; faltan las cifras por jardín |
+| **V7** | **Rendición Formal de Cuentas (PDF) y Portal Delegadas** | Equipo Técnico | **Terminado** | Informe mensual con Excel (`e8abdb7`), Balance Anual en PDF y cifras por jardín ("Mi jardín" en el portal de la delegada) |
 | **V8** | **Validación Integral E2E y Despliegue Oficial en cPanel** | Equipo Completo | **Pendiente (Equipo)** | Asignado para resolución del equipo |
 
 ```mermaid
@@ -89,7 +89,7 @@ flowchart TD
     V3 --> V4["V4: Módulo Créditos y Convenios [Terminado ✓]"]
     V4 --> V5["V5: Portal de Afiliadas y Buzón [En avance]"]
     V5 --> V6["V6: Custodia Documental [Equipo]"]
-    V6 --> V7["V7: Rendición Formal PDF y Delegadas [En avance]"]
+    V6 --> V7["V7: Rendición Formal PDF y Delegadas [Terminado]"]
     V7 --> V8["V8: Despliegue Oficial en cPanel [Equipo]"]
 ```
 
@@ -279,7 +279,7 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
 - **Dependencias con actualización mayor (H-024):** `uuid` (vía exceljs), `react-router` y el `zod` del frontend. Quedan para V8.
 - **H-004:** pospuesto a V8.
 - **Cierre por inactividad en el servidor:** hoy lo controla solo el navegador.
-- **Delegadas:** la directiva debe marcarlas en el padrón para que puedan entrar.
+- **Delegadas:** la directiva debe marcarlas en el padrón para que vean "Mi jardín" en su portal (V7).
 
 #### 5. Aplicación en el hosting
 1. Subir el código y configurar `CORS_ORIGIN=https://vtftemuco.cl` y un `JWT_SECRET` propio de 32 caracteres o más.
@@ -409,9 +409,9 @@ Pedido de la reunión: exportar en Excel lo que se descuenta por planilla, desgl
 
 ### Versión 7: Rendición Formal de Cuentas (PDF) y Portal Delegadas
 > [!NOTE]
-> **Estado:** Pendiente — **Asignado para resolución del equipo**  
+> **Estado:** **Terminado (17-11-2026)**  
 > **Objetivo:** Habilitar la consola exclusiva para las 23 delegadas con cifras consolidadas y generación automática del Balance Anual en PDF para asambleas.  
-> **Avance (17-11-2026):** el informe mensual con exportación a Excel ya existe (`reporteService.js`, `ReportesPage.jsx`) y las delegadas lo ven en modo solo lectura. Ya existe el módulo de PDF institucional (`backend/src/utils/pdf.js`, usado en el resumen de créditos de la socia). **Balance Anual en PDF hecho (17-11-2026).** **Falta:** las cifras por jardín.
+> **Resultado:** informe mensual con Excel, Balance Anual en PDF y cifras por jardín. **Decisión de acceso (17-11-2026):** la delegada entra con su cuenta del **portal de socias**. Si está marcada como delegada en el padrón (`socias.es_delegada`), ve la pestaña "Mi jardín"; no se crean cuentas ni claves nuevas. La marca se revisa en cada consulta: si la directiva se la quita, pierde el acceso de inmediato. La cuenta `DELEGADA` de la consola (de demostración y desactivada) se mantiene, pero no ve las cifras de los demás jardines.
 
 #### 1. Archivos Involucrados
 - `backend/src/services/reporteService.js`: Informe mensual y `getBalanceAnual(anio, hoy)` (hechos). El balance usa la misma regla contable de Tesorería (`resumirMovimientos`) y excluye los anulados.
@@ -419,6 +419,16 @@ Pedido de la reunión: exportar en Excel lo que se descuenta por planilla, desgl
 - `GET /api/reportes/anual/pdf?anio=AAAA`: lo descargan la directiva y las delegadas; responde 400 si el año es inválido y 404 si no hay movimientos. Cada descarga queda en la auditoría como `BALANCE_ANUAL_PDF`.
 - `frontend/src/components/reportes/BalanceAnualCard.jsx`: tarjeta en Reportes con selector de año y descarga.
 - `frontend/src/pages/ReportesPage.jsx`: Consola de fiscalización para Delegadas (sin acceso a deudas individuales).
+- `backend/src/services/jardinStatsService.js`: cifras por jardín, solo totales (D2). Incluye socias activas y suspendidas, incorporaciones y retiros del año, traslados que entran y salen, socias con crédito vigente (en total y por empresa, contadas sin repetir), solicitudes S.O.S del año y aporte mensual (cuota social × activas).
+- `GET /api/reportes/jardines`: los jardines activos con una fila de totales. Solo la directiva: Admin, Presidenta, Tesorera, Secretaria y Directora.
+- `GET /api/socia/mi-jardin`: el jardín de la socia que inició sesión, solo si está marcada como delegada y activa (si no, 403).
+- `backend/src/middlewares/delegadaMiddleware.js`: con `requireRoleODelegada`, la delegada del portal también descarga el informe mensual y el Balance Anual.
+- El login del portal informa `esDelegada`, que solo sirve para mostrar la pestaña; el backend verifica la marca en cada consulta.
+- `frontend/src/components/portal/MiJardin.jsx`: pestaña "Mi jardín" con cuatro cifras, socias con crédito por empresa y los documentos para la asamblea.
+- `frontend/src/components/reportes/CifrasJardinesCard.jsx`: tabla de los jardines en Reportes; indica cuáles no tienen delegada marcada.
+
+#### 2. Pendiente para la directiva
+- **Marcar a las delegadas** en el Padrón de Socias (editar socia → "Delegada de jardín"). Hasta entonces la tabla muestra "Sin delegada marcada" en todos los jardines.
 
 ---
 
