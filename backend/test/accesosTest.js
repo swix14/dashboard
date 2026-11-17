@@ -331,6 +331,29 @@ await test('Una socia no accede a datos de la directiva ni de otras socias', asy
   }
 });
 
+await test('Solo las socias escriben en el buzón: la directiva recibe 403 y no se guarda nada', async () => {
+  const [antes] = await query('SELECT COUNT(*) AS n FROM buzon_mensajes');
+  const form = new FormData();
+  form.append('tipo', 'CONSULTA');
+  form.append('asunto', 'Mensaje desde una cuenta de la directiva');
+  form.append('mensaje', 'Este mensaje no debe quedar en el buzón de socias.');
+  const res = await fetch(`${baseUrl}/socia/buzon`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.SECRETARIA}` }, body: form });
+  assert.strictEqual(res.status, 403);
+  const [despues] = await query('SELECT COUNT(*) AS n FROM buzon_mensajes');
+  assert.strictEqual(Number(despues.n), Number(antes.n));
+});
+
+await test('Al recargar (/auth/me) la socia conserva apellidos y marca de delegada', async () => {
+  const [s] = await query('SELECT nombres, apellido_paterno, apellido_materno, es_delegada FROM socias WHERE rut = ?', [RUT_A]);
+  const { status, body } = await call('GET', '/auth/me', sociaA);
+  assert.strictEqual(status, 200);
+  const u = body.data.user;
+  assert.strictEqual(u.nombres, s.nombres);
+  assert.strictEqual(u.apellidoPaterno, s.apellido_paterno || '');
+  assert.strictEqual(u.apellidoMaterno, s.apellido_materno || '');
+  assert.strictEqual(u.esDelegada, Boolean(s.es_delegada));
+});
+
 // ---------------------------------------------------------------------------
 // V7: cifras por jardín (directiva) y "Mi jardín" (delegada en el portal)
 // ---------------------------------------------------------------------------

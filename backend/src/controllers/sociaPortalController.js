@@ -90,10 +90,10 @@ export const SociaPortalController = {
         }
       });
     } catch (err) {
-      res.status(400).json({
-        success: false,
-        message: err.message
-      });
+      // Reglas de la clave → 400 con su mensaje; una falla interna (MySQL) va al middleware
+      // central, que en producción no muestra el detalle técnico a la socia
+      if (err.statusCode) return badRequest(res, err.message);
+      next(err);
     }
   },
 
@@ -218,10 +218,10 @@ export const SociaPortalController = {
         data: nuevoMensaje
       });
     } catch (err) {
-      res.status(400).json({
-        success: false,
-        message: err.message
-      });
+      // Si el mensaje no se guardó, su adjunto no debe quedar huérfano en el servidor
+      if (req.file) fs.rmSync(resolveUploadPath(req.file.filename), { force: true });
+      if (err.statusCode) return badRequest(res, err.message);
+      next(err);
     }
   },
 

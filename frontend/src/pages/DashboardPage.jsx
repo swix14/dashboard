@@ -128,7 +128,7 @@ export function DashboardPage() {
                 {user?.role?.name || user?.role?.code}
               </Badge>
               <Badge variant="neutral">
-                {user?.cargo || 'Directiva'}
+                Directiva
               </Badge>
               {user?.socia?.jardin?.name && (
                 <Badge variant="neutral">

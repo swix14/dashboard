@@ -27,13 +27,26 @@ import { ThemeToggle } from '../components/common/ThemeToggle.jsx';
 import { Modal } from '../components/common/Modal.jsx';
 import { DIRECTIVA_OFICIAL } from '../utils/directiva.js';
 
-// Nombre y apellidos por separado (formulario S.O.S); firstName sigue siendo el nombre visible
-const nombresSeparados = (socia) => ({
+/**
+ * Sesión de la socia a partir de la respuesta del login. Tiene la misma forma que el perfil de
+ * /auth/me, para que al recargar la página el portal se vea igual.
+ */
+const sesionDeSocia = (socia) => ({
+  id: `socia-${socia.id}`,
+  sociaId: socia.id,
+  rut: socia.rut,
+  firstName: socia.nombres || '',
+  lastName: [socia.apellidoPaterno, socia.apellidoMaterno].filter(Boolean).join(' '),
+  // Nombre y apellidos por separado (formulario S.O.S)
   nombres: socia.nombres || '',
   apellidoPaterno: socia.apellidoPaterno || '',
   apellidoMaterno: socia.apellidoMaterno || '',
   // Muestra la pestaña "Mi jardín" del portal (el backend verifica la marca en cada consulta)
-  esDelegada: Boolean(socia.esDelegada)
+  esDelegada: Boolean(socia.esDelegada),
+  role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
+  cargo: socia.cargo,
+  jardin: socia.jardin,
+  primerIngreso: false
 });
 
 const sociaLoginSchema = z.object({
@@ -105,20 +118,7 @@ export function SociaLoginPage() {
       }
 
       // Si ya tiene contraseña personalizada previa, iniciamos sesión normalmente
-      const userSession = {
-        id: `socia-${socia.id}`,
-        sociaId: socia.id,
-        rut: socia.rut,
-        firstName: socia.nombreCompleto,
-        lastName: '',
-        ...nombresSeparados(socia),
-        role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
-        cargo: socia.cargo,
-        jardin: socia.jardin,
-        primerIngreso: false
-      };
-
-      setAuthenticatedSession(token, userSession);
+      setAuthenticatedSession(token, sesionDeSocia(socia));
       navigate('/socia/portal', { replace: true });
     } catch (err) {
       setAuthError(
@@ -137,34 +137,21 @@ export function SociaLoginPage() {
       setIsChangingPass(true);
       setModalError(null);
 
-      const res = await api.post(
+      await api.post(
         '/socia/cambiar-clave',
         { nuevaClave: data.nuevaClave },
         { headers: { Authorization: `Bearer ${provisionalSession.token}` } }
       );
 
-      const { token } = res.data.data;
       setModalSuccess(true);
 
       // La respuesta del cambio de clave solo trae id y primerIngreso: los datos de la socia
-      // salen del login (antes el portal quedaba sin nombre, RUT ni jardín hasta recargar)
-      const socia = provisionalSession.socia;
-      const updatedUser = {
-        id: `socia-${socia.id}`,
-        sociaId: socia.id,
-        rut: socia.rut,
-        firstName: socia.nombreCompleto,
-        lastName: '',
-        ...nombresSeparados(socia),
-        role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
-        cargo: socia.cargo,
-        jardin: socia.jardin,
-        primerIngreso: false
-      };
+      // salen del login, y la sesión sigue con el mismo token (el cambio no emite uno nuevo)
+      const updatedUser = sesionDeSocia(provisionalSession.socia);
 
       // Breve pausa para que la socia vea la confirmación visual de éxito
       setTimeout(() => {
-        setAuthenticatedSession(token || provisionalSession.token, updatedUser);
+        setAuthenticatedSession(provisionalSession.token, updatedUser);
         setShowPasswordModal(false);
         navigate('/socia/portal', { replace: true });
       }, 1200);

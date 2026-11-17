@@ -12,6 +12,14 @@ export class LoginError extends Error {
   }
 }
 
+// Cambio de clave rechazado por una regla (400). Una falla de la base de datos sigue siendo un error interno
+export class ClaveError extends Error {
+  constructor(message) {
+    super(message);
+    this.statusCode = 400;
+  }
+}
+
 /**
  * Normaliza un RUT removiendo puntos, espacios y guion, dejando solo dígitos y K
  */
@@ -131,10 +139,10 @@ export const SociaAuthService = {
    */
   async cambiarClave(sociaId, nuevaClave, rut, claveActual) {
     if (!nuevaClave || nuevaClave.trim().length < 6) {
-      throw new Error('La nueva contraseña debe tener al menos 6 caracteres.');
+      throw new ClaveError('La nueva contraseña debe tener al menos 6 caracteres.');
     }
     if (rut && nuevaClave.trim() === getInitialPasswordFromRut(rut)) {
-      throw new Error('La nueva contraseña no puede ser la clave inicial (6 primeros dígitos del RUT).');
+      throw new ClaveError('La nueva contraseña no puede ser la clave inicial (6 primeros dígitos del RUT).');
     }
 
     const cleanId = String(sociaId).replace('socia-', '');
@@ -143,14 +151,14 @@ export const SociaAuthService = {
     // abierta en otro equipo no baste para quitarle la cuenta. El primer ingreso no la pide.
     const [actual] = await query(`SELECT password, primer_ingreso FROM socias WHERE id = ? AND estado = 'ACTIVA'`, [cleanId]);
     if (!actual) {
-      throw new Error('No fue posible actualizar la contraseña: socia no encontrada o no activa.');
+      throw new ClaveError('No fue posible actualizar la contraseña: socia no encontrada o no activa.');
     }
     if (actual.password && Number(actual.primer_ingreso) === 0) {
       if (!claveActual || !(await bcrypt.compare(claveActual, actual.password))) {
-        throw new Error('La contraseña actual no es correcta.');
+        throw new ClaveError('La contraseña actual no es correcta.');
       }
       if (claveActual === nuevaClave.trim()) {
-        throw new Error('La nueva contraseña debe ser distinta a la actual.');
+        throw new ClaveError('La nueva contraseña debe ser distinta a la actual.');
       }
     }
 
@@ -161,7 +169,7 @@ export const SociaAuthService = {
       cleanId
     ]);
     if (result.affectedRows === 0) {
-      throw new Error('No fue posible actualizar la contraseña: socia no encontrada o no activa.');
+      throw new ClaveError('No fue posible actualizar la contraseña: socia no encontrada o no activa.');
     }
 
     return {

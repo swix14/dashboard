@@ -75,7 +75,7 @@ export function ProfileMenu({ subtitle, onLogout, renderPasswordModal }) {
         </span>
         <span className="vtf-profile-text user-details-text">
           <span className="vtf-profile-name">{nombre}</span>
-          <span className="vtf-profile-role">{subtitle || `${rol} • ${user?.cargo || 'Directiva'}`}</span>
+          <span className="vtf-profile-role">{subtitle || `${rol} • Directiva`}</span>
         </span>
         <ChevronDown size={16} className="vtf-profile-chevron" aria-hidden="true" />
       </button>

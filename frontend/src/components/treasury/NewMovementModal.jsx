@@ -282,7 +282,7 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
       subtitle={
         editing
           ? `${movement.tipo === 'INGRESO' ? 'Ingreso' : 'Egreso'} · el tipo no se cambia: si está mal, anúlelo y regístrelo de nuevo`
-          : `Operador: ${user?.firstName || ''} ${user?.lastName || ''} (${user?.cargo || 'Tesorera'})`
+          : `Operador: ${user?.firstName || ''} ${user?.lastName || ''} (${user?.role?.name || 'Tesorera'})`
       }
       onClose={onClose}
       maxWidth="560px"
@@ -510,7 +510,7 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
 
         {/* Responsable según sesión */}
         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '0.25rem' }}>
-          <strong>Responsable de Registro:</strong> {user?.firstName} {user?.lastName} ({user?.cargo || 'Tesorera'})
+          <strong>Responsable de Registro:</strong> {user?.firstName} {user?.lastName} ({user?.role?.name || 'Tesorera'})
         </div>
 
         {/* Botones de Acción */}

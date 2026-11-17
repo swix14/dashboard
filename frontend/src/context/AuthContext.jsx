@@ -7,8 +7,13 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('vtf_user');
-    return saved ? JSON.parse(saved) : null;
+    // Un valor dañado en el navegador no debe dejar la aplicación en blanco: se trata como sin sesión
+    try {
+      return JSON.parse(localStorage.getItem('vtf_user') || 'null');
+    } catch {
+      localStorage.removeItem('vtf_user');
+      return null;
+    }
   });
   const [token, setToken] = useState(() => localStorage.getItem('vtf_token'));
   const [isLoading, setIsLoading] = useState(true);
@@ -23,12 +28,16 @@ export function AuthProvider({ children }) {
             setUser(res.data.data.user);
             localStorage.setItem('vtf_user', JSON.stringify(res.data.data.user));
           }
-        } catch {
-          // Token inválido o expirado
-          localStorage.removeItem('vtf_token');
-          localStorage.removeItem('vtf_user');
-          setUser(null);
-          setToken(null);
+        } catch (err) {
+          // Solo un rechazo del servidor (sesión inválida, expirada o cuenta inactiva) cierra la sesión.
+          // Sin conexión o con el servidor arrancando (cPanel) se conserva la sesión guardada.
+          const status = err.response?.status;
+          if (status === 401 || status === 403) {
+            localStorage.removeItem('vtf_token');
+            localStorage.removeItem('vtf_user');
+            setUser(null);
+            setToken(null);
+          }
         }
       }
       setIsLoading(false);

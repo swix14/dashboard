@@ -10,6 +10,7 @@ import { NoticiasSocia } from '../components/portal/NoticiasSocia.jsx';
 import { BuzonSocia } from '../components/portal/BuzonSocia.jsx';
 import { SosSocia } from '../components/portal/SosSocia.jsx';
 import { MiJardin } from '../components/portal/MiJardin.jsx';
+import { CARGO_LABELS } from '../components/socias/sociaLabels.js';
 
 /**
  * Portal de socias (V5): cabecera, directiva, identificación, menú y la sección activa.
@@ -88,7 +89,7 @@ export function SociaPortalPage() {
               <li>
                 <Building2 size={14} aria-hidden="true" /> <strong>Jardín:</strong> {user?.jardin || 'Sin jardín asignado'}
               </li>
-              {user?.cargo && <li><strong>Cargo:</strong> {user.cargo}</li>}
+              {user?.cargo && <li><strong>Cargo:</strong> {CARGO_LABELS[user.cargo] || user.cargo}</li>}
             </ul>
           </div>
         </section>

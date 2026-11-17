@@ -293,7 +293,7 @@ export const AuthService = {
         try {
           const rows = await query(
             `SELECT s.id, s.rut, s.nombres, s.apellido_paterno, s.apellido_materno, s.cargo,
-                    j.nombre AS jardin, s.primer_ingreso, s.estado
+                    j.nombre AS jardin, s.primer_ingreso, s.estado, s.es_delegada
              FROM socias s LEFT JOIN jardines j ON j.id = s.jardin_id
              WHERE s.id = ?`,
             [rawId]
@@ -311,6 +311,12 @@ export const AuthService = {
               rut: row.rut,
               firstName: row.nombres,
               lastName: `${row.apellido_paterno || ''} ${row.apellido_materno || ''}`.trim(),
+              // Mismos datos que entrega el login del portal: al recargar la página (/auth/me) la
+              // socia conserva sus apellidos por separado (S.O.S) y la pestaña "Mi jardín" si es delegada
+              nombres: row.nombres,
+              apellidoPaterno: row.apellido_paterno || '',
+              apellidoMaterno: row.apellido_materno || '',
+              esDelegada: Boolean(row.es_delegada),
               isActive: true,
               role: { id: 'role-socia', code: 'SOCIA', name: 'Socia' },
               cargo: row.cargo,

@@ -8,10 +8,10 @@ export const BuzonService = {
    */
   async crearMensaje({ sociaId, sociaRut, sociaNombre, sociaJardin, tipo, asunto, mensaje, archivoAdjunto }) {
     if (!asunto || !asunto.trim()) {
-      throw new Error('El asunto del mensaje es obligatorio.');
+      throw Object.assign(new Error('El asunto del mensaje es obligatorio.'), { statusCode: 400 });
     }
     if (!mensaje || !mensaje.trim()) {
-      throw new Error('El cuerpo del mensaje no puede estar vacío.');
+      throw Object.assign(new Error('El cuerpo del mensaje no puede estar vacío.'), { statusCode: 400 });
     }
 
     const tipoValido = ['FELICITACION', 'RECLAMO', 'SUGERENCIA', 'CONSULTA', 'OTRO'].includes(tipo)

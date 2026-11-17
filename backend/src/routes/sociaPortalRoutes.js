@@ -21,15 +21,17 @@ router.get('/noticias', SociaPortalController.getNoticias);
 router.post('/noticias', authMiddleware, canComunicar, SociaPortalController.createNoticia);
 router.delete('/noticias/:id', authMiddleware, canComunicar, SociaPortalController.deleteNoticia);
 
-// 3. Buzón de Socias (Sugerencias, Reclamos, Felicitaciones, Consultas)
-router.post('/buzon', authMiddleware, uploadComprobante('adjunto'), SociaPortalController.enviarMensajeBuzon);
+const soloSocia = requireRole('SOCIA');
+
+// 3. Buzón de Socias (Sugerencias, Reclamos, Felicitaciones, Consultas): solo las socias escriben
+// (el rol se revisa antes de recibir el adjunto, para no guardar archivos de quien no puede enviar)
+router.post('/buzon', authMiddleware, soloSocia, uploadComprobante('adjunto'), SociaPortalController.enviarMensajeBuzon);
 router.get('/buzon/mis-mensajes', authMiddleware, SociaPortalController.getMisMensajes);
 router.get('/buzon/admin', authMiddleware, canComunicar, SociaPortalController.getBuzonAdmin);
 router.patch('/buzon/:id/estado', authMiddleware, canComunicar, SociaPortalController.cambiarEstadoBuzon);
 router.get('/buzon/:id/adjunto', authMiddleware, canComunicar, SociaPortalController.descargarAdjuntoBuzon);
 
 // 4. Solicitudes S.O.S en línea (solo la socia; la directiva las revisa en /api/creditos/sos)
-const soloSocia = requireRole('SOCIA');
 router.post('/sos', authMiddleware, soloSocia, SosController.solicitar);
 router.get('/sos', authMiddleware, soloSocia, SosController.misSolicitudes);
 

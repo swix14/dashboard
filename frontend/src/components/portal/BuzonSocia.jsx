@@ -287,7 +287,7 @@ export function BuzonSocia({ user }) {
           <p className="sp-nota">
             <User size={16} aria-hidden="true" />
             <span>
-              Se envía a la directiva a nombre de <strong>{user?.firstName || 'Socia'}</strong>, del jardín{' '}
+              Se envía a la directiva a nombre de <strong>{`${user?.firstName || 'Socia'} ${user?.lastName || ''}`.trim()}</strong>, del jardín{' '}
               <strong>{user?.jardin || 'sin jardín asignado'}</strong>.
             </span>
           </p>
