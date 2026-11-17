@@ -19,6 +19,9 @@ router.get('/resumen', canView, CreditController.getResumen);
 router.get('/grafico', canView, CreditController.getGrafico);
 router.get('/periodo', canView, CreditController.getPeriodo);
 router.get('/importar/historial', canView, CreditController.historialCargas);
+// Liquidación mensual para el empleador (cuota social + convenios por socia)
+router.get('/liquidacion', canView, CreditController.getLiquidacion);
+router.get('/liquidacion/excel', canView, CreditController.exportarLiquidacion);
 router.post('/importar/previsualizar', canManage, uploadPlanilla('planilla'), CreditController.previsualizar);
 router.post('/importar/aplicar', canManage, uploadPlanilla('planilla'), CreditController.aplicar);
 router.post('/pagos/verificar', canManage, uploadComprobantesEmpresas(CODIGOS_EMPRESA), CreditController.verificarPagos);

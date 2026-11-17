@@ -19,6 +19,23 @@ export const CreditoApiService = {
     return res.data.data;
   },
 
+  /** Liquidación del mes para el empleador: totales por empresa */
+  async getLiquidacion(mes, anio) {
+    const res = await api.get('/creditos/liquidacion', { params: { mes, anio } });
+    return res.data.data;
+  },
+
+  /** Descarga el Excel de la liquidación (una fila por socia) */
+  async descargarLiquidacion(mes, anio) {
+    const res = await api.get('/creditos/liquidacion/excel', { params: { mes, anio }, responseType: 'blob', timeout: 60000 });
+    const url = URL.createObjectURL(res.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `liquidacion-descuentos-${anio}-${String(mes).padStart(2, '0')}.xlsx`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
   /** Créditos a mano (sin planilla) */
   async crearCredito(datos) {
     const res = await api.post('/creditos', datos);

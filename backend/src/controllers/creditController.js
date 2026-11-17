@@ -1,6 +1,7 @@
 import { CreditService } from '../services/creditService.js';
 import { CreditImportService } from '../services/creditImportService.js';
 import { CreditManualService } from '../services/creditManualService.js';
+import { LiquidacionService } from '../services/liquidacionService.js';
 import { AuditService } from '../services/auditService.js';
 import { hoyChile } from '../utils/fecha.js';
 import {
@@ -112,6 +113,27 @@ export const CreditController = {
       message: `Pagos verificados: ${data.map((d) => d.nombre).join(', ')}.`,
       data
     });
+  }),
+
+  /** GET /api/creditos/liquidacion?mes&anio — resumen de lo que se descuenta por planilla en el mes */
+  getLiquidacion: handle(async (req, res) => {
+    const parsed = periodoSchema.safeParse(req.query);
+    if (!parsed.success) return invalid(res, parsed);
+    const { filas, ...resumen } = await LiquidacionService.generar(parsed.data);
+    res.json({ success: true, data: resumen });
+  }),
+
+  /** GET /api/creditos/liquidacion/excel?mes&anio — Excel por socia para el empleador */
+  exportarLiquidacion: handle(async (req, res) => {
+    const parsed = periodoSchema.safeParse(req.query);
+    if (!parsed.success) return invalid(res, parsed);
+    const liq = await LiquidacionService.generar(parsed.data);
+    const buffer = await LiquidacionService.generarExcel(liq, responsable(req));
+    await audit(req, 'CREDITOS_LIQUIDACION_EXPORTED', { periodo: parsed.data, socias: liq.totalSocias, total: liq.totalGeneral });
+    const nombre = `liquidacion-descuentos-${parsed.data.anio}-${String(parsed.data.mes).padStart(2, '0')}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    res.send(buffer);
   }),
 
   /** POST /api/creditos — nuevo crédito ingresado a mano */

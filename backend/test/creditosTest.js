@@ -397,6 +397,56 @@ await test('Anular: exige motivo, saca el crédito del historial y sus cuotas no
   assert.strictEqual(await pendientesDental(), antes);
 });
 
+// ---------------------------------------------------------------------------
+// Liquidación para el empleador
+await test('Liquidación: la ven Tesorera y Presidenta; no la Secretaria; mes inválido 400', async () => {
+  assert.strictEqual((await call('GET', '/creditos/liquidacion?mes=3&anio=2027', PRESIDENTA)).status, 200);
+  assert.strictEqual((await call('GET', '/creditos/liquidacion?mes=3&anio=2027', SECRETARIA)).status, 403);
+  assert.strictEqual((await call('GET', '/creditos/liquidacion/excel?mes=3&anio=2027', DELEGADA)).status, 403);
+  assert.strictEqual((await call('GET', '/creditos/liquidacion?mes=13&anio=2027', TESORERA)).status, 400);
+});
+
+await test('Liquidación: totales por empresa cuadran con las cuotas del mes (sin anulados ni prepagadas)', async () => {
+  const { body } = await call('GET', '/creditos/liquidacion?mes=3&anio=2027', TESORERA);
+  const esperado = await query(
+    `SELECT cv.codigo, SUM(q.monto) AS total FROM cuotas_credito q JOIN creditos c ON c.id = q.credito_id
+     JOIN convenios cv ON cv.id = c.convenio_id
+     WHERE q.mes_cobro = 3 AND q.anio_cobro = 2027 AND q.estado IN ('pendiente', 'descontada') AND c.estado <> 'anulado'
+     GROUP BY cv.codigo`
+  );
+  for (const e of body.data.empresas) {
+    assert.strictEqual(e.total, Number(esperado.find((x) => x.codigo === e.codigo)?.total || 0), e.codigo);
+  }
+  const [{ activas }] = await query("SELECT COUNT(*) AS activas FROM socias WHERE estado = 'ACTIVA'");
+  assert.strictEqual(body.data.cuotaSocial.total, activas * 4000);
+  assert.ok(!('filas' in body.data), 'el resumen no expone el detalle por socia');
+});
+
+await test('Liquidación Excel: una fila por socia con cuota social y cada convenio', async () => {
+  const { status, body } = await call('GET', '/creditos/liquidacion/excel?mes=3&anio=2027', TESORERA);
+  assert.strictEqual(status, 200);
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(body);
+  const ws = wb.getWorksheet('Liquidación');
+  assert.ok(wb.getWorksheet('Resumen'));
+  const encabezados = ws.getRow(4).values.slice(1);
+  const col = (t) => encabezados.indexOf(t) + 1;
+  const filaDe = (rut) => {
+    let fila = null;
+    ws.eachRow((row) => { if (row.getCell(2).value === rut) fila = row; });
+    return fila;
+  };
+  // A: igual que su fila en la hoja resumen de la planilla (4.000 + 30.000 SOS + 15.000 Óptica)
+  const a = filaDe(A.rut);
+  assert.deepStrictEqual(
+    [a.getCell(col('Cuota social')).value, a.getCell(col('SOS')).value, a.getCell(col('Óptica')).value, a.getCell(col('Total')).value],
+    [4000, 30000, 15000, 49000]
+  );
+  // D: su crédito Dental de marzo está anulado y su SOS fue prepagado: solo la cuota social
+  const d = filaDe(D.rut);
+  assert.deepStrictEqual([d.getCell(col('Dental')).value, d.getCell(col('Total')).value], [0, 4000]);
+});
+
 console.log(`\n[RESULTADOS CRÉDITOS] ${passed} pasados, ${failed} fallidos`);
 server.closeAllConnections?.();
 server.close();

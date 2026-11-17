@@ -880,6 +880,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .tes-nota-anulado { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-style: normal; color: var(--error-text); }
 .tes-anular-form { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
 .tes-anular-texto { margin: 0; font-size: .875rem; line-height: 1.5; color: var(--text-main); }
+/* Liquidación para el empleador */
+.cred-liq-controles { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; margin-bottom: 1rem; }
+.cred-liq-controles .cred-campo { min-width: 140px; }
+.cred-liq-controles .vtf-btn { margin-left: auto; }
+.cred-liq-stats { grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); }
+.cred-liq-total { grid-column: span 2; background: var(--primary-50); border-color: var(--primary-200); }
+.cred-liq-total .cred-stat-value { color: var(--primary-700); }
+@media (max-width: 560px) {
+  .cred-liq-controles .cred-campo { flex: 1; min-width: 0; }
+  .cred-liq-controles .vtf-btn { margin-left: 0; width: 100%; }
+  .cred-liq-total { grid-column: 1 / -1; }
+}
 .cred-header-actions { display: flex; flex-wrap: wrap; gap: .625rem; }
 @media (max-width: 560px) { .cred-header-actions { width: 100%; } .cred-header-actions .vtf-btn { flex: 1; } }
 .cred-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .875rem 1rem; }

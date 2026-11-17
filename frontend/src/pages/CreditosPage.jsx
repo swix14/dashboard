@@ -13,6 +13,7 @@ import { CreditosHistorial } from '../components/creditos/CreditosHistorial.jsx'
 import { CreditoFichaModal } from '../components/creditos/CreditoFichaModal.jsx';
 import { CreditosGrafico } from '../components/creditos/CreditosGrafico.jsx';
 import { CreditoFormModal } from '../components/creditos/CreditoFormModal.jsx';
+import { LiquidacionCard } from '../components/creditos/LiquidacionCard.jsx';
 import { ESTADO_CREDITO } from '../components/creditos/creditoLabels.js';
 
 /**
@@ -97,6 +98,8 @@ export function CreditosPage() {
       <EmpresaCards empresas={empresas} loading={loading} />
 
       <VerificacionPagos puedeGestionar={puedeGestionar} onVerified={refrescar} refreshKey={refreshKey} />
+
+      <LiquidacionCard refreshKey={refreshKey} />
 
       <CreditosHistorial onOpen={setFichaId} refreshKey={refreshKey} estadoInicial={estadoInicial} />
 
