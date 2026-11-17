@@ -7,7 +7,7 @@
 [![Backend](https://img.shields.io/badge/Backend-Express%20%7C%20REST%20API-000000?style=flat-square&logo=express&logoColor=white)](#4-arquitectura-del-sistema)
 [![Base de Datos](https://img.shields.io/badge/Persistencia-MySQL%20%2F%20MariaDB-4479A1?style=flat-square&logo=mysql&logoColor=white)](#53-persistencia-de-datos)
 [![Versión](https://img.shields.io/badge/Versión-V4%20Créditos%20y%20Convenios-725682?style=flat-square)](#3-estado-del-proyecto-versiones-y-hoja-de-ruta)
-[![Estado de Pruebas](https://img.shields.io/badge/Validación-137%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
+[![Estado de Pruebas](https://img.shields.io/badge/Validación-140%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
 
 Plataforma web institucional concebida para la gobernanza corporativa, fiscalización contable, administración del padrón gremial, custodia documental y rendición periódica de cuentas de los establecimientos de Educación Parvularia Vía Transferencia de Fondos (VTF) de la comuna de Temuco.
 
@@ -107,6 +107,7 @@ graph TD
   * Verificación de pagos entre el 1 y el 5 con un comprobante por empresa, guardado por mes y empresa sin sobrescribirse.
   * Historial con búsqueda, filtros y ficha de cada crédito, y gráfico de créditos vigentes y en última cuota.
   * Ingreso a mano sin Excel: **Nuevo crédito** (socia, empresa, valor cuota, cuotas, mes de la primera cuota y cuotas ya pagadas) y, desde la ficha, **Editar**, **Registrar prepago** y **Anular** con motivo.
+  * **Liquidación para el empleador:** por mes, Excel con una fila por socia (cuota social y cuota de cada convenio) y hoja de resumen por empresa.
   * Estados por color: Vigente, **Quedan 2 cuotas** (naranjo), **Última cuota** (rojo suave) y Pagado (verde).
   * Ven la sección Admin, Presidenta (solo lectura) y Tesorera; cargan, verifican e ingresan créditos Admin y Tesorera.
 * **Comunicaciones (adelanto de V5):** la directiva publica y elimina noticias, lee el buzón de las socias, marca los mensajes como leídos o respondidos y descarga los adjuntos.
@@ -205,7 +206,7 @@ npm run dev:frontend
 
 ### 5.4. Verificación Automatizada del Sistema
 
-Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 9 suites (137 pruebas) contra ella; nunca toca `jardines_vtf`:
+Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 9 suites (140 pruebas) contra ella; nunca toca `jardines_vtf`:
 
 ```powershell
 npm run test:backend

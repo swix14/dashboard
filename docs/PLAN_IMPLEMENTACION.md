@@ -349,7 +349,14 @@ Pedido de la reunión: la Tesorera "modifica registros". Antes un movimiento mal
 - Los saldos de apertura no se editan ni se anulan. Solo Tesorera y Admin; la auditoría guarda el antes y el después de cada edición.
 - Migración `database/migraciones/2026-11-20_tesoreria_correcciones.sql`. 6 pruebas nuevas en `treasuryPersistenceTest.js` (137 en total).
 
-#### 7. Pendiente
+#### 7. Liquidación para el empleador (ajuste posterior a V4)
+Pedido de la reunión: exportar en Excel lo que se descuenta por planilla, desglosado por convenio.
+- Tarjeta **"Liquidación para el empleador"** en Créditos y Convenios (`LiquidacionCard.jsx`, `liquidacionService.js`): elige mes y año, muestra el total a descontar, la cuota social y el total de cada empresa, y descarga el Excel.
+- **Excel** (`GET /api/creditos/liquidacion/excel`): hoja "Liquidación" con una fila por socia (RUT, nombre, jardín, cuota social, S.O.S, ISIMUNDO, Óptica, Dental, Abogada y total) y hoja "Resumen" con el total por empresa y el reparto de la cuota social ($1.000 Federación, $1.000 Asociación, $2.000 Cena Anual).
+- Reglas: cuota social solo para socias ACTIVAS; cuentan las cuotas pendientes o descontadas del mes; las prepagadas, condonadas y de créditos anulados no se descuentan.
+- La ven Admin, Presidenta y Tesorera. 3 pruebas nuevas en `creditosTest.js` (140 en total).
+
+#### 8. Pendiente
 - Comisión del 2 % de Isi Mundo: hoy se registra en Tesorería como ingreso; no se calcula sola.
 - Acceso de la Directora a los convenios: a definir por la directiva.
 
