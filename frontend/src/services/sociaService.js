@@ -52,6 +52,20 @@ export const SociaApiService = {
     return res.data;
   },
 
+  /** Descarga el resumen de créditos de la socia en PDF (solo Admin, Presidenta y Tesorera) */
+  async descargarCreditosPdf(id, rut) {
+    const res = await api.get(`/socias/${id}/creditos/pdf`, { responseType: 'blob' });
+    // En desarrollo (otro puerto) el navegador no expone Content-Disposition: se arma el nombre con el RUT
+    const disposition = res.headers['content-disposition'] || '';
+    const nombre = disposition.match(/filename="?([^";]+)"?/)?.[1] || `creditos-${String(rut || id).replace(/[^0-9kK-]/g, '')}.pdf`;
+    const url = URL.createObjectURL(res.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombre;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
   /** Carga de la planilla Maestra Socias: vista previa (no modifica nada) */
   async previsualizarPlanilla(file) {
     const form = new FormData();

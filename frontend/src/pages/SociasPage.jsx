@@ -16,6 +16,8 @@ import {
   ChevronLeft,
   ChevronRight,
   FileSpreadsheet,
+  FileDown,
+  Loader2,
   Wallet
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -152,6 +154,19 @@ export function SociasPage() {
     setFilterEstado('TODOS');
     setFilterCargo('TODOS');
     setFilterCredito('TODOS');
+  };
+
+  // Resumen de créditos en PDF (pedido de la directiva: el botón de crédito genera un PDF)
+  const [pdfLoadingId, setPdfLoadingId] = useState(null);
+  const descargarPdf = async (socia) => {
+    try {
+      setPdfLoadingId(socia.id);
+      await SociaApiService.descargarCreditosPdf(socia.id, socia.rut);
+    } catch (err) {
+      setError('No fue posible generar el PDF de créditos.');
+    } finally {
+      setPdfLoadingId(null);
+    }
   };
 
   const openDetail = async (sociaId, mode = 'socia') => {
@@ -518,6 +533,18 @@ export function SociasPage() {
                                 }}
                               >
                                 SI · {s.creditosActivos.map((c) => `${c.tipo} ${c.cuotasPagadas}/${c.totalCuotas}`).join(', ')}
+                              </button>
+                            ) : null}
+                            {s.tieneCredito ? (
+                              <button
+                                type="button"
+                                className="soc-pdf-btn"
+                                onClick={() => descargarPdf(s)}
+                                disabled={pdfLoadingId === s.id}
+                                title="Descargar resumen de créditos en PDF"
+                                aria-label={`Descargar PDF de créditos de ${nombreCompleto(s)}`}
+                              >
+                                {pdfLoadingId === s.id ? <Loader2 size={14} className="soc-spin" /> : <FileDown size={14} />}
                               </button>
                             ) : (
                               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>NO</span>

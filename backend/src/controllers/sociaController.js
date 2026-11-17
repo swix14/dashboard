@@ -2,6 +2,7 @@ import { SociaService } from '../services/sociaService.js';
 import { PadronImportService } from '../services/padronImportService.js';
 import { AuditService } from '../services/auditService.js';
 import { SessionService } from '../services/sessionService.js';
+import { SociaPdfService } from '../services/sociaPdfService.js';
 import {
   createSociaSchema,
   updateSociaSchema,
@@ -88,6 +89,19 @@ export const SociaController = {
   },
 
   /** GET /api/socias/:id */
+  /** GET /api/socias/:id/creditos/pdf — resumen de créditos en PDF (solo Admin, Presidenta y Tesorera) */
+  async descargarCreditosPdf(req, res, next) {
+    try {
+      const { buffer, nombre, socia, creditos } = await SociaPdfService.creditosSocia(req.params.id, responsable(req));
+      await audit(req, 'SOCIA_CREDITOS_PDF', { sociaId: socia.id, rut: socia.rut, creditos });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+      return res.send(buffer);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async getSociaById(req, res, next) {
     try {
       const socia = await SociaService.getSociaById(req.params.id);

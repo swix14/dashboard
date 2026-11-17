@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { SociaController } from '../controllers/sociaController.js';
+import { SociaController, CREDITO_ROLES } from '../controllers/sociaController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/roleMiddleware.js';
 import { validateIdParam } from '../middlewares/validateIdParam.js';
@@ -27,6 +27,8 @@ router.post('/importar/aplicar', canModify, uploadPlanilla('planilla'), SociaCon
 
 router.get('/', canView, SociaController.getSocias);
 router.get('/:id', canView, validateIdParam, SociaController.getSociaById);
+// Resumen de créditos en PDF: solo quienes ven la ficha de crédito
+router.get('/:id/creditos/pdf', requireRole(...CREDITO_ROLES), validateIdParam, SociaController.descargarCreditosPdf);
 
 router.post('/', canModify, SociaController.createSocia);
 router.put('/:id', canModify, validateIdParam, SociaController.updateSocia);

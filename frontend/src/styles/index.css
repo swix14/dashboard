@@ -896,6 +896,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .vtf-card > div:first-child:has(.cred-comision-chip, .cred-comision-editor) { flex-wrap: wrap; gap: .75rem; }
 }
 
+/* Padrón: descarga del resumen de créditos en PDF junto al "SI" */
+.soc-pdf-btn { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-left: .375rem; vertical-align: middle; border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--primary-700); cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.soc-pdf-btn:hover:not(:disabled) { background: var(--primary-50); border-color: var(--primary-200, var(--border-light)); }
+.soc-pdf-btn:focus-visible { outline: 2px solid var(--primary-500); outline-offset: 2px; }
+.soc-pdf-btn:disabled { cursor: progress; opacity: .7; }
+.soc-spin { animation: soc-spin 0.9s linear infinite; }
+@keyframes soc-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .soc-spin { animation: none; } }
+
 /* S.O.S en línea — portal de socias */
 .sos-nav { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .75rem 1rem; border: 1px solid transparent; border-radius: var(--radius-lg); background: transparent; color: var(--accent-pink-700); font: inherit; font-size: .9rem; font-weight: 600; text-align: left; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
 .sos-nav:hover { background: var(--accent-pink-50); }

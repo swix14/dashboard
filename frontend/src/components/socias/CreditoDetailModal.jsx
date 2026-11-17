@@ -1,7 +1,9 @@
-import React from 'react';
-import { CreditCard } from 'lucide-react';
+import React, { useState } from 'react';
+import { CreditCard, FileDown } from 'lucide-react';
 import { Modal } from '../common/Modal.jsx';
 import { Badge } from '../common/Badge.jsx';
+import { Button } from '../common/Button.jsx';
+import { SociaApiService } from '../../services/sociaService.js';
 import { formatCurrencyCLP, formatDateCLP } from '../../utils/formatters.js';
 import { CREDITO_ESTADO_BADGE, nombreCompleto } from './sociaLabels.js';
 import { InfoItem, sectionTitle } from './SociaDetailModal.jsx';
@@ -11,9 +13,24 @@ import { InfoItem, sectionTitle } from './SociaDetailModal.jsx';
  * Visible para Admin, Presidenta y Tesorera; el backend no envía estos datos a otros roles.
  */
 export function CreditoDetailModal({ detail, onClose }) {
+  const [descargando, setDescargando] = useState(false);
+  const [error, setError] = useState(null);
   if (!detail) return null;
+
+  const descargarPdf = async () => {
+    try {
+      setDescargando(true);
+      setError(null);
+      await SociaApiService.descargarCreditosPdf(detail.id, detail.rut);
+    } catch {
+      setError('No fue posible generar el PDF.');
+    } finally {
+      setDescargando(false);
+    }
+  };
   const creditos = detail.creditos || [];
-  const vigentes = creditos.filter((c) => c.estado === 'vigente');
+  // El backend envía el estado en mayúsculas (VIGENTE, FINALIZADO, ANULADO)
+  const vigentes = creditos.filter((c) => c.estado === 'VIGENTE');
   const saldoTotal = vigentes.reduce((sum, c) => sum + (Number(c.saldoPendiente) || 0), 0);
 
   return (
@@ -22,6 +39,14 @@ export function CreditoDetailModal({ detail, onClose }) {
       subtitle={`RUT ${detail.rut} · ${detail.jardin?.name || 'Sin jardín asignado'}`}
       onClose={onClose}
       maxWidth="660px"
+      footer={
+        <>
+          {error && <span role="alert" style={{ marginRight: 'auto', alignSelf: 'center', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--error-text)' }}>{error}</span>}
+          <Button variant="primary" icon={FileDown} onClick={descargarPdf} isLoading={descargando}>
+            Descargar PDF
+          </Button>
+        </>
+      }
     >
       <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>

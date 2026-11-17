@@ -536,6 +536,40 @@ await test('A pagar a mano: corrige el de la planilla y una nueva planilla lo vu
   assert.deepStrictEqual([(await sosAbril()).aPagar, (await sosAbril()).origenAPagar], [55000, 'PLANILLA']);
 });
 
+// ---------------------------------------------------------------------------
+// Resumen de créditos de una socia en PDF (sección Socias)
+await test('PDF de créditos: Tesorera y Presidenta lo descargan; queda en la auditoría', async () => {
+  for (const token of [TESORERA, PRESIDENTA]) {
+    const res = await call('GET', `/socias/${A.id}/creditos/pdf`, token);
+    assert.strictEqual(res.status, 200);
+    assert.ok(Buffer.isBuffer(res.body) && res.body.subarray(0, 5).toString() === '%PDF-', 'debe ser un PDF');
+    assert.ok(res.body.length > 2000, 'el PDF trae contenido');
+  }
+  // A tiene S.O.S y Óptica vigentes: el PDF lista 2 créditos
+  const [log] = await query(`SELECT detalles FROM auditoria WHERE accion = 'SOCIA_CREDITOS_PDF' ORDER BY id DESC LIMIT 1`);
+  assert.strictEqual(JSON.parse(log.detalles).creditos, 2);
+});
+
+await test('PDF de créditos: sin créditos también se genera, y los anulados no se cuentan', async () => {
+  const [sinCreditos] = await query(
+    `SELECT s.id FROM socias s WHERE NOT EXISTS (SELECT 1 FROM creditos c WHERE c.socia_id = s.id) ORDER BY s.id LIMIT 1`
+  );
+  assert.strictEqual((await call('GET', `/socias/${sinCreditos.id}/creditos/pdf`, TESORERA)).status, 200);
+  // D tiene un crédito Dental anulado: no aparece en el PDF
+  await call('GET', `/socias/${D.id}/creditos/pdf`, TESORERA);
+  const [log] = await query(`SELECT detalles FROM auditoria WHERE accion = 'SOCIA_CREDITOS_PDF' ORDER BY id DESC LIMIT 1`);
+  const [{ n }] = await query(`SELECT COUNT(*) AS n FROM creditos WHERE socia_id = ? AND estado <> 'anulado'`, [D.id]);
+  assert.strictEqual(JSON.parse(log.detalles).creditos, Number(n));
+});
+
+await test('PDF de créditos: Secretaria, Directora y Delegada no acceden; socia inexistente da 404', async () => {
+  for (const token of [SECRETARIA, DIRECTORA, DELEGADA]) {
+    assert.strictEqual((await call('GET', `/socias/${A.id}/creditos/pdf`, token)).status, 403);
+  }
+  assert.strictEqual((await call('GET', '/socias/999999/creditos/pdf', TESORERA)).status, 404);
+  assert.strictEqual((await call('GET', `/socias/${A.id}/creditos/pdf`, null)).status, 401);
+});
+
 console.log(`\n[RESULTADOS CRÉDITOS] ${passed} pasados, ${failed} fallidos`);
 server.closeAllConnections?.();
 server.close();
