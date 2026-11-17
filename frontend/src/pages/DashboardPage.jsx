@@ -513,8 +513,8 @@ export function DashboardPage() {
           title="Recaudación Mensual (Ingresos vs Egresos)"
           subtitle={`Flujo financiero consolidado correspondiente al período ${anioVisible}`}
         >
-          {/* Filtro superior por año */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+          {/* Leyenda y filtro por año: en pantallas angostas el filtro baja de línea en vez de chocar con la leyenda */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem 1rem', marginBottom: '1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8125rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                 <span style={{ width: '12px', height: '12px', backgroundColor: 'var(--primary-500)', borderRadius: '2px' }} />
