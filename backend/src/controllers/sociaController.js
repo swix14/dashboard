@@ -1,7 +1,7 @@
 import { SociaService } from '../services/sociaService.js';
 import { PadronImportService } from '../services/padronImportService.js';
-import { AuditService } from '../services/auditService.js';
 import { SessionService } from '../services/sessionService.js';
+import { audit, responsable } from '../utils/controllerHelpers.js';
 import { SociaPdfService } from '../services/sociaPdfService.js';
 import {
   createSociaSchema,
@@ -36,19 +36,6 @@ function sinCreditosEnFicha(socia) {
 function sinCreditosEnResumen(summary) {
   const { sociasConCredito, creditosVigentes, saldoCreditosPendiente, porTipoCredito, ...resto } = summary;
   return resto;
-}
-
-const responsable = (req) => `${req.user.firstName} ${req.user.lastName}`.trim();
-
-function audit(req, action, details) {
-  return AuditService.log({
-    userId: req.user.id,
-    rut: req.user.rut,
-    action,
-    details,
-    ipAddress: req.ip,
-    userAgent: req.headers['user-agent']
-  });
 }
 
 export const SociaController = {
@@ -88,7 +75,6 @@ export const SociaController = {
     }
   },
 
-  /** GET /api/socias/:id */
   /** GET /api/socias/:id/creditos/pdf — resumen de créditos en PDF (solo Admin, Presidenta y Tesorera) */
   async descargarCreditosPdf(req, res, next) {
     try {
@@ -102,6 +88,7 @@ export const SociaController = {
     }
   },
 
+  /** GET /api/socias/:id */
   async getSociaById(req, res, next) {
     try {
       const socia = await SociaService.getSociaById(req.params.id);

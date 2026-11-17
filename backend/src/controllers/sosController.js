@@ -1,38 +1,7 @@
 import { SosService } from '../services/sosService.js';
-import { AuditService } from '../services/auditService.js';
 import { hoyChile } from '../utils/fecha.js';
+import { audit, handle, invalid, responsable, sociaIdDe } from '../utils/controllerHelpers.js';
 import { solicitudSosSchema, aprobarSosSchema, rechazarSosSchema, listarSosSchema } from '../validators/creditValidator.js';
-
-const responsable = (req) => `${req.user.firstName} ${req.user.lastName || ''}`.trim();
-
-function audit(req, action, details) {
-  return AuditService.log({
-    userId: req.user.id,
-    rut: req.user.rut,
-    action,
-    details,
-    ipAddress: req.ip,
-    userAgent: req.headers['user-agent']
-  });
-}
-
-function invalid(res, parsed) {
-  return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message || 'Datos inválidos.' });
-}
-
-// Errores de negocio (con statusCode) van a la persona; el resto al middleware central
-function handle(fn) {
-  return async (req, res, next) => {
-    try {
-      await fn(req, res);
-    } catch (err) {
-      if (err.statusCode) return res.status(err.statusCode).json({ success: false, message: err.message });
-      next(err);
-    }
-  };
-}
-
-const sociaIdDe = (req) => Number(String(req.user.sociaId ?? '').replace('socia-', ''));
 
 export const SosController = {
   /** POST /api/socia/sos — { monto, cuotas, motivo } */

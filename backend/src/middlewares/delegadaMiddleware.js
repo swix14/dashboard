@@ -1,7 +1,5 @@
 import { JardinStatsService } from '../services/jardinStatsService.js';
-
-/** Id numérico de la socia del token del portal ("socia-12" o 12) */
-export const sociaIdDe = (req) => Number(String(req.user?.sociaId ?? '').replace('socia-', ''));
+import { sociaIdDe } from '../utils/controllerHelpers.js';
 
 /**
  * Permite los roles indicados y, además, a las socias marcadas como delegadas en el padrón

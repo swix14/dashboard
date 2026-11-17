@@ -2,8 +2,8 @@ import { CreditService } from '../services/creditService.js';
 import { CreditImportService } from '../services/creditImportService.js';
 import { CreditManualService } from '../services/creditManualService.js';
 import { LiquidacionService } from '../services/liquidacionService.js';
-import { AuditService } from '../services/auditService.js';
 import { hoyChile } from '../utils/fecha.js';
+import { audit, handle, invalid, responsable } from '../utils/controllerHelpers.js';
 import {
   periodoSchema,
   listCreditosSchema,
@@ -16,35 +16,6 @@ import {
   aPagarSchema
 } from '../validators/creditValidator.js';
 import { ConfigService } from '../services/configService.js';
-
-const responsable = (req) => `${req.user.firstName} ${req.user.lastName || ''}`.trim();
-
-function audit(req, action, details) {
-  return AuditService.log({
-    userId: req.user.id,
-    rut: req.user.rut,
-    action,
-    details,
-    ipAddress: req.ip,
-    userAgent: req.headers['user-agent']
-  });
-}
-
-function invalid(res, parsed) {
-  return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message || 'Datos inválidos.' });
-}
-
-// Los errores de negocio (CreditoError) traen su código; el resto va al middleware central
-function handle(fn) {
-  return async (req, res, next) => {
-    try {
-      await fn(req, res);
-    } catch (err) {
-      if (err.statusCode) return res.status(err.statusCode).json({ success: false, message: err.message });
-      next(err);
-    }
-  };
-}
 
 export const CreditController = {
   /** GET /api/creditos/resumen — tarjetas por empresa */

@@ -1,9 +1,8 @@
 import { z } from 'zod';
 import { ReporteService } from '../services/reporteService.js';
-import { AuditService } from '../services/auditService.js';
 import { BalancePdfService } from '../services/balancePdfService.js';
 import { JardinStatsService } from '../services/jardinStatsService.js';
-import { sociaIdDe } from '../middlewares/delegadaMiddleware.js';
+import { audit, responsable, sociaIdDe } from '../utils/controllerHelpers.js';
 import { hoyChile } from '../utils/fecha.js';
 
 // Período del informe: por defecto el mes actual (hora de Chile)
@@ -65,17 +64,8 @@ export const ReporteController = {
       if (!balance.hayDatos) {
         return res.status(404).json({ success: false, message: `No hay movimientos de Tesorería registrados hasta ${anio}.` });
       }
-      const emitidoPor = `${req.user.firstName} ${req.user.lastName || ''}`.trim();
-      const { buffer, nombre } = await BalancePdfService.generar(balance, emitidoPor);
-
-      await AuditService.log({
-        userId: req.user.id,
-        rut: req.user.rut,
-        action: 'BALANCE_ANUAL_PDF',
-        details: { anio, hasta: balance.hasta, movimientos: balance.cantidadMovimientos },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent']
-      });
+      const { buffer, nombre } = await BalancePdfService.generar(balance, responsable(req));
+      await audit(req, 'BALANCE_ANUAL_PDF', { anio, hasta: balance.hasta, movimientos: balance.cantidadMovimientos });
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
@@ -103,17 +93,8 @@ export const ReporteController = {
       const periodo = parsePeriodo(req, res);
       if (!periodo) return undefined;
       const informe = await ReporteService.getInformeMensual(periodo.anio, periodo.mes);
-      const generadoPor = `${req.user.firstName} ${req.user.lastName || ''}`.trim();
-      const buffer = await ReporteService.generarExcelMensual(informe, generadoPor);
-
-      await AuditService.log({
-        userId: req.user.id,
-        rut: req.user.rut,
-        action: 'REPORTE_MENSUAL_EXPORTED',
-        details: { anio: periodo.anio, mes: periodo.mes },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent']
-      });
+      const buffer = await ReporteService.generarExcelMensual(informe, responsable(req));
+      await audit(req, 'REPORTE_MENSUAL_EXPORTED', { anio: periodo.anio, mes: periodo.mes });
 
       const fileName = `informe-mensual-${periodo.anio}-${String(periodo.mes).padStart(2, '0')}.xlsx`;
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

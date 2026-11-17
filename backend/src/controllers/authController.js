@@ -1,5 +1,5 @@
 import { AuthService, PasswordChangeError } from '../services/authService.js';
-import { AuditService } from '../services/auditService.js';
+import { audit } from '../utils/controllerHelpers.js';
 import { loginSchema, changePasswordSchema } from '../validators/authValidator.js';
 import { SessionService } from '../services/sessionService.js';
 
@@ -50,15 +50,7 @@ export const AuthController = {
       // Revoca este token en el servidor: copiarlo ya no sirve después de cerrar sesión (H-005)
       await SessionService.revoke(req.session?.jti, req.session?.exp);
 
-      if (req.user) {
-        await AuditService.log({
-          userId: req.user.id,
-          action: 'LOGOUT',
-          details: { email: req.user.email },
-          ipAddress: req.ip,
-          userAgent: req.headers['user-agent']
-        });
-      }
+      if (req.user) await audit(req, 'LOGOUT', { email: req.user.email });
 
       return res.status(200).json({
         success: true,

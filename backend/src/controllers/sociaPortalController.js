@@ -3,28 +3,16 @@ import { NoticiasService } from '../services/noticiasService.js';
 import { BuzonService } from '../services/buzonService.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import { AuditService } from '../services/auditService.js';
 import { SessionService } from '../services/sessionService.js';
 import { resolveUploadPath } from '../middlewares/uploadMiddleware.js';
+import { audit, sociaIdDe } from '../utils/controllerHelpers.js';
 import {
   noticiaSchema,
   estadoBuzonSchema,
-  idParamSchema,
   sociaLoginSchema,
   sociaCambiarClaveSchema,
   buzonMensajeSchema
 } from '../validators/portalValidator.js';
-
-function audit(req, action, details) {
-  return AuditService.log({
-    userId: req.user.id,
-    rut: req.user.rut,
-    action,
-    details,
-    ipAddress: req.ip,
-    userAgent: req.headers['user-agent']
-  });
-}
 
 function badRequest(res, message) {
   return res.status(400).json({ success: false, message });
@@ -57,11 +45,10 @@ export const SociaPortalController = {
    */
   async cambiarClave(req, res, next) {
     try {
-      const rawId = req.user?.sociaId || req.user?.id;
-      const cleanId = String(rawId || '').replace('socia-', '');
+      const sociaId = sociaIdDe(req);
 
       // La directiva cambia su clave en /api/auth/cambiar-clave, nunca sobre la tabla socias
-      if (!cleanId || req.user?.role?.code !== 'SOCIA') {
+      if (!sociaId || req.user?.role?.code !== 'SOCIA') {
         return res.status(401).json({
           success: false,
           message: 'Sesión no válida o no identificada como socia.'
@@ -71,7 +58,7 @@ export const SociaPortalController = {
       const parsed = sociaCambiarClaveSchema.safeParse(req.body || {});
       if (!parsed.success) return badRequest(res, parsed.error.issues[0]?.message || 'Ingrese la nueva contraseña.');
       const result = await SociaAuthService.cambiarClave(
-        cleanId,
+        sociaId,
         parsed.data.nuevaClave,
         req.user?.rut,
         parsed.data.claveActual
@@ -84,7 +71,7 @@ export const SociaPortalController = {
         message: result.message,
         data: {
           socia: {
-            id: cleanId,
+            id: sociaId,
             primerIngreso: false
           }
         }
@@ -135,11 +122,10 @@ export const SociaPortalController = {
   /** DELETE /api/socia/noticias/:id */
   async deleteNoticia(req, res, next) {
     try {
-      const id = idParamSchema.safeParse(req.params.id);
-      if (!id.success) return badRequest(res, 'Noticia inválida.');
-      const existia = await NoticiasService.deleteNoticia(id.data);
+      const id = Number(req.params.id);
+      const existia = await NoticiasService.deleteNoticia(id);
       if (!existia) return res.status(404).json({ success: false, message: 'La noticia no existe.' });
-      await audit(req, 'NOTICIA_DELETED', { noticiaId: id.data });
+      await audit(req, 'NOTICIA_DELETED', { noticiaId: id });
       return res.json({ success: true, message: 'Noticia eliminada.' });
     } catch (err) {
       next(err);
@@ -149,17 +135,16 @@ export const SociaPortalController = {
   /** PATCH /api/socia/buzon/:id/estado */
   async cambiarEstadoBuzon(req, res, next) {
     try {
-      const id = idParamSchema.safeParse(req.params.id);
-      if (!id.success) return badRequest(res, 'Mensaje inválido.');
+      const id = Number(req.params.id);
       const parsed = estadoBuzonSchema.safeParse(req.body);
       if (!parsed.success) return badRequest(res, parsed.error.issues[0]?.message || 'Estado inválido');
-      const existia = await BuzonService.cambiarEstado(id.data, parsed.data.estado);
+      const existia = await BuzonService.cambiarEstado(id, parsed.data.estado);
       if (!existia) return res.status(404).json({ success: false, message: 'El mensaje no existe.' });
-      await audit(req, 'BUZON_ESTADO_CHANGED', { mensajeId: id.data, estado: parsed.data.estado });
+      await audit(req, 'BUZON_ESTADO_CHANGED', { mensajeId: id, estado: parsed.data.estado });
       return res.json({
         success: true,
         message: 'Estado del mensaje actualizado.',
-        data: { id: id.data, estado: parsed.data.estado }
+        data: { id, estado: parsed.data.estado }
       });
     } catch (err) {
       next(err);
@@ -169,9 +154,8 @@ export const SociaPortalController = {
   /** GET /api/socia/buzon/:id/adjunto: descarga privada del archivo que adjuntó la socia */
   async descargarAdjuntoBuzon(req, res, next) {
     try {
-      const id = idParamSchema.safeParse(req.params.id);
-      if (!id.success) return badRequest(res, 'Mensaje inválido.');
-      const mensaje = await BuzonService.getMensajeById(id.data);
+      const id = Number(req.params.id);
+      const mensaje = await BuzonService.getMensajeById(id);
       if (!mensaje || !mensaje.archivoAdjunto) {
         return res.status(404).json({ success: false, message: 'El mensaje no tiene archivo adjunto.' });
       }
@@ -179,8 +163,8 @@ export const SociaPortalController = {
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ success: false, message: 'El archivo adjunto ya no se encuentra en el servidor.' });
       }
-      await audit(req, 'BUZON_ADJUNTO_DOWNLOADED', { mensajeId: id.data });
-      return res.download(filePath, `adjunto-buzon-${id.data}${path.extname(mensaje.archivoAdjunto).toLowerCase()}`);
+      await audit(req, 'BUZON_ADJUNTO_DOWNLOADED', { mensajeId: id });
+      return res.download(filePath, `adjunto-buzon-${id}${path.extname(mensaje.archivoAdjunto).toLowerCase()}`);
     } catch (err) {
       next(err);
     }

@@ -9,9 +9,6 @@ import { AuditService } from './auditService.js';
 // Almacén en memoria sincronizado con seed para pruebas locales de desarrollo
 const memoryUsers = INITIAL_USERS.map((u) => ({ ...u }));
 
-// Dominio de los correos institucionales (el login es solo por RUT)
-export const INSTITUTIONAL_DOMAIN = 'vtftemuco.cl';
-
 // Mensaje único para RUT inexistente o clave incorrecta: no revela si la cuenta existe
 const CREDENCIALES_INVALIDAS = 'Credenciales inválidas. Compruebe su RUT y contraseña.';
 

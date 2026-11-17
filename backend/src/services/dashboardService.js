@@ -1,5 +1,4 @@
 import { isDatabaseReady, query } from '../config/db.js';
-import { INITIAL_JARDINES } from './seedData.js';
 import { TreasuryService } from './treasuryService.js';
 import { hoyChile } from '../utils/fecha.js';
 
