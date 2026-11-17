@@ -279,7 +279,7 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
 - **Dependencias con actualización mayor (H-024):** `uuid` (vía exceljs), `react-router` y el `zod` del frontend. Quedan para V8.
 - **H-004:** pospuesto a V8.
 - **Cierre por inactividad en el servidor:** hoy lo controla solo el navegador.
-- **Delegadas:** la directiva debe marcarlas en el padrón para que vean "Mi jardín" en su portal (V7).
+- **Delegadas:** la directiva entregó 21 de las 23 (17-11-2026); `database/migraciones/2026-11-23_delegadas_jardines.sql` las marca en cPanel. Faltan J-04 Gabriela Mistral y J-10 Los Jardines de Labranza.
 
 #### 5. Aplicación en el hosting
 1. Subir el código y configurar `CORS_ORIGIN=https://vtftemuco.cl` y un `JWT_SECRET` propio de 32 caracteres o más.
@@ -428,7 +428,7 @@ Pedido de la reunión: exportar en Excel lo que se descuenta por planilla, desgl
 - `frontend/src/components/reportes/CifrasJardinesCard.jsx`: tabla de los jardines en Reportes; indica cuáles no tienen delegada marcada.
 
 #### 2. Pendiente para la directiva
-- **Marcar a las delegadas** en el Padrón de Socias (editar socia → "Delegada de jardín"). Hasta entonces la tabla muestra "Sin delegada marcada" en todos los jardines.
+- **Delegadas:** 21 de 23 entregadas; en cPanel se marcan con `database/migraciones/2026-11-23_delegadas_jardines.sql`. Faltan J-04 Gabriela Mistral y J-10 Los Jardines de Labranza (se marcan en Socias → editar → "Delegada de jardín").
 
 ---
 

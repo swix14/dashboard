@@ -277,7 +277,8 @@ La carpeta `/home/USUARIO/sigav-app/uploads` no existe o no tiene permisos de es
 
 - [ ] `https://vtftemuco.cl/api/health` → `"conectada": true`.
 - [ ] Las 5 cuentas de la directiva cambiaron `Admin123!` (o están desactivadas).
-- [ ] La cuenta de delegada de demostración sigue desactivada; crear las delegadas reales cuando estén confirmadas.
+- [ ] La cuenta de delegada de demostración sigue desactivada. Las delegadas reales entran por el portal de socias.
+- [ ] **Delegadas marcadas:** con el padrón ya cargado, ejecutar una vez `database/migraciones/2026-11-23_delegadas_jardines.sql` en la pestaña SQL (vale para una base nueva y para una existente). Debe listar 21 jardines con su delegada y J-04 / J-10 con "SIN DELEGADA". Las que falten se marcan a mano en Socias → editar → "Delegada de jardín".
 - [ ] Candado HTTPS activo en `vtftemuco.cl` y `www.vtftemuco.cl`.
 - [ ] Prueba de egreso con PDF y de ingreso de una socia hechas y anotadas.
 - [ ] **Respaldo semanal:** phpMyAdmin → Exportar, y descargar la carpeta `uploads/`. (Si el plan de INA Networks incluye *JetBackup*, confirmar que respalda base y archivos).
@@ -289,7 +290,7 @@ La carpeta `/home/USUARIO/sigav-app/uploads` no existe o no tiene permisos de es
 Para subir una versión nueva **sin perder datos**:
 
 1. Respaldar la base (phpMyAdmin → Exportar) y la carpeta `uploads/`.
-2. Ejecutar en la pestaña SQL, una sola vez y en orden de fecha, solo las migraciones nuevas de `database/migraciones/` que aún no se hayan aplicado. Para V4 es `2026-11-18_v4_creditos.sql`, que agrega las tablas de cargas y pagos de créditos sin tocar los créditos existentes; al final debe mostrar las 5 empresas con su código. Después va `2026-11-19_creditos_manual.sql` (créditos ingresados a mano, anulación y prepago), que debe mostrar la columna `origen`, y luego `2026-11-20_tesoreria_correcciones.sql` (editar y anular movimientos de Tesorería), que debe mostrar la columna `anulado`, luego `2026-11-21_comision_isimundo.sql` (porcentaje ajustable de la comisión de Isi Mundo), que debe mostrar el 2 %, y por último `2026-11-22_solicitudes_sos.sql` (solicitudes S.O.S desde el portal de socias), que debe mostrar 0 solicitudes. Las migraciones van **antes** de subir el código nuevo: si no, Créditos responde con error hasta aplicarlas.
+2. Ejecutar en la pestaña SQL, una sola vez y en orden de fecha, solo las migraciones nuevas de `database/migraciones/` que aún no se hayan aplicado. Para V4 es `2026-11-18_v4_creditos.sql`, que agrega las tablas de cargas y pagos de créditos sin tocar los créditos existentes; al final debe mostrar las 5 empresas con su código. Después va `2026-11-19_creditos_manual.sql` (créditos ingresados a mano, anulación y prepago), que debe mostrar la columna `origen`, y luego `2026-11-20_tesoreria_correcciones.sql` (editar y anular movimientos de Tesorería), que debe mostrar la columna `anulado`, luego `2026-11-21_comision_isimundo.sql` (porcentaje ajustable de la comisión de Isi Mundo), que debe mostrar el 2 %, y por último `2026-11-22_solicitudes_sos.sql` (solicitudes S.O.S desde el portal de socias), que debe mostrar 0 solicitudes. Al final, `2026-11-23_delegadas_jardines.sql` marca a las 21 delegadas entregadas por la directiva (solo datos; ver paso 10). Las migraciones van **antes** de subir el código nuevo: si no, Créditos responde con error hasta aplicarlas.
 3. Armar el paquete (paso 1) y reemplazar en el servidor **solo** `src/`, `public/`, `app.cjs`, `package.json` y `package-lock.json`. **No tocar `uploads/`.**
 4. **Run NPM Install** (si cambió `package.json`; la versión con el PDF de créditos agrega `pdfkit`) y **Restart**. El logo de los PDF va dentro de `src/assets/`.
 5. Verificar con el paso 7.
