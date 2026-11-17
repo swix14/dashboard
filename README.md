@@ -59,7 +59,7 @@ graph TD
     V1["V1: Consola Ejecutiva y Seguridad Base ✓"] --> V2["V2: Tesorería con Respaldo Digital ✓"]
     V2 --> V3["V3: Padrón Centralizado 100% MySQL ✓"]
     V3 --> V4["V4: Créditos y Convenios ✓"]
-    V4 --> V5["V5: Portal de Afiliadas y Buzón (en avance)"]
+    V4 --> V5["V5: Portal de Afiliadas y Buzón ✓"]
     V5 --> V6["V6: Custodia Documental"]
     V6 --> V7["V7: Rendición Formal PDF y Portal Delegadas ✓"]
     V7 --> V8["V8: Validación E2E y Despliegue Oficial"]
@@ -71,7 +71,7 @@ graph TD
 | **V2** | Tesorería Robusta y Respaldo Digital Obligatorio | Terminado ✓ |
 | **V3** | Padrón Centralizado 100% Persistente en MySQL | Terminado ✓ — con ajustes de la directiva y cierre de la auditoría de seguridad (17/11/2026) |
 | **V4** | Módulo Independiente de Créditos y Convenios | Terminado ✓ (18/11/2026) |
-| **V5** | Portal de Afiliadas, Primer Ingreso y Buzón Gremial | En avance: comunicaciones de la directiva, recuperación de clave y solicitudes S.O.S hechas; falta la revisión final del portal |
+| **V5** | Portal de Afiliadas, Primer Ingreso y Buzón Gremial | Terminado ✓ (17/11/2026) |
 | **V6** | Custodia Documental y Carpeta por Proveedor | Pendiente |
 | **V7** | Rendición Formal de Cuentas (PDF) y Portal Delegadas | Terminado ✓ (17/11/2026) |
 | **V8** | Validación Integral E2E y Despliegue Oficial en cPanel | Pendiente |
@@ -114,6 +114,7 @@ graph TD
   * Estados por color: Vigente, **Quedan 2 cuotas** (naranjo), **Última cuota** (rojo suave) y Pagado (verde).
   * Ven la sección Admin, Presidenta (solo lectura) y Tesorera; cargan, verifican e ingresan créditos Admin y Tesorera.
 * **Comunicaciones (adelanto de V5):** la directiva publica y elimina noticias, lee el buzón de las socias, marca los mensajes como leídos o respondidos y descarga los adjuntos.
+* **Portal de socias (V5):** noticias con filtro, buzón con adjunto y estado de cada mensaje (enviado, leído o respondido), cambio de clave obligatorio en el primer ingreso y voluntario desde el menú de perfil. En el celular el menú queda arriba y la directiva al final.
 * **S.O.S en línea (V5):** la socia pide su crédito de emergencia desde el portal (monto, 1 a 4 cuotas y motivo) y ve la respuesta. Admin y Tesorera lo aprueban desde Créditos, lo que crea su crédito S.O.S, o lo rechazan con motivo.
 * **Informe mensual (adelanto de V7):** pago a la Federación, total de egresos, total disponible y cantidad de movimientos, con exportación a Excel. Las delegadas lo ven en modo solo lectura.
 * **Balance Anual en PDF (V7):** resumen del año, fondos Asociación y Cena Anual, movimiento mes a mes y totales por categoría, con la misma regla contable de Tesorería; el año en curso se emite con corte al día de hoy. Lo descargan la directiva y las delegadas desde Reportes, y cada descarga queda en la auditoría.
@@ -129,7 +130,6 @@ graph TD
 
 ### 3.2. Hoja de Ruta (Próximas Versiones)
 
-* **V5 — Portal de Afiliadas:** revisión final del portal. Las solicitudes S.O.S en línea, la gestión del buzón, la descarga de adjuntos, el límite de intentos y la recuperación de clave ya están hechos.
 * **V6 — Custodia Documental:** repositorio de instrumentos legales y pagarés, ordenado por empresa proveedora (`año / mes / día`).
 * **V8 — Validación E2E y Despliegue Oficial:**
   * Pruebas de extremo a extremo.

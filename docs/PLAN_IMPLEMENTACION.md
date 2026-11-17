@@ -77,7 +77,7 @@ dashboard/
 | **V2** | **Tesorería Robusta y Respaldo Digital Obligatorio** | **Sebastian Olguín** | **Terminado ✓** | Commit `c3608ed` (46 tests OK) |
 | **V3** | **Padrón Centralizado 100% Persistente en MySQL** | **Sebastian Victoriano** | **Terminado ✓** | 75 tests OK; con ajustes de la directiva y auditoría: 110 tests OK (`e8abdb7`) |
 | **V4** | **Módulo Independiente de Créditos y Convenios** | Sebastian Victoriano | **Terminado ✓** | Commit `4c1c5dc` (124 tests OK) |
-| **V5** | **Portal de Afiliadas, Primer Ingreso y Buzón Gremial** | Sebastian A. y Braulio P. | **En avance** | Comunicaciones de la directiva, recuperación de clave (`e8abdb7`, `68ede07`) y S.O.S en línea (`ab12830`) |
+| **V5** | **Portal de Afiliadas, Primer Ingreso y Buzón Gremial** | Sebastian A. y Braulio P. | **Terminado ✓** | Comunicaciones de la directiva, recuperación de clave (`e8abdb7`, `68ede07`), S.O.S en línea (`ab12830`) y revisión final del portal (17-11-2026) |
 | **V6** | **Custodia Documental y Carpeta por Proveedor** | Equipo Técnico | **Pendiente (Equipo)** | Asignado para resolución del equipo |
 | **V7** | **Rendición Formal de Cuentas (PDF) y Portal Delegadas** | Equipo Técnico | **Terminado** | Informe mensual con Excel (`e8abdb7`), Balance Anual en PDF y cifras por jardín ("Mi jardín" en el portal de la delegada) |
 | **V8** | **Validación Integral E2E y Despliegue Oficial en cPanel** | Equipo Completo | **Pendiente (Equipo)** | Asignado para resolución del equipo |
@@ -87,7 +87,7 @@ flowchart TD
     V1["V1: Consola Ejecutiva y Seguridad Base [Terminado ✓]"] --> V2["V2: Tesorería y Respaldo Digital [Terminado ✓]"]
     V2 --> V3["V3: Padrón Centralizado MySQL [Terminado ✓]"]
     V3 --> V4["V4: Módulo Créditos y Convenios [Terminado ✓]"]
-    V4 --> V5["V5: Portal de Afiliadas y Buzón [En avance]"]
+    V4 --> V5["V5: Portal de Afiliadas y Buzón [Terminado]"]
     V5 --> V6["V6: Custodia Documental [Equipo]"]
     V6 --> V7["V7: Rendición Formal PDF y Delegadas [Terminado]"]
     V7 --> V8["V8: Despliegue Oficial en cPanel [Equipo]"]
@@ -376,10 +376,21 @@ Pedido de la reunión: exportar en Excel lo que se descuenta por planilla, desgl
 
 ### Versión 5: Portal de Afiliadas, Primer Ingreso y Buzón Gremial
 > [!NOTE]
-> **Estado:** **En avance** (Sebastian A., Braulio P.)  
+> **Estado:** **Terminado (17-11-2026)** (Sebastian A., Braulio P.)  
 > **Objetivo:** Conectar el acceso de socias al padrón real de MySQL, aplicar el bloqueo obligatorio de primer ingreso hasta cambiar la clave inicial y estructurar el buzón con soporte de adjuntos.  
-> **Avance:** el portal ya usa solo MySQL (V3). Ya están hechos el límite de intentos de ingreso, la gestión del buzón y las noticias por la directiva, la descarga de adjuntos, la recuperación de clave desde la ficha, el cierre de sesiones al cambiar la clave y las solicitudes S.O.S en línea. **Falta:** la revisión final del portal.
+> **Avance:** el portal ya usa solo MySQL (V3). Ya están hechos el límite de intentos de ingreso, la gestión del buzón y las noticias por la directiva, la descarga de adjuntos, la recuperación de clave desde la ficha, el cierre de sesiones al cambiar la clave y las solicitudes S.O.S en línea. La revisión final del portal se cerró el 17-11-2026.
 
+#### Revisión final del portal (17-11-2026)
+Recorrido completo en celular, tablet y computador, en modo claro y oscuro. Se corrigió:
+- **Buzón:** el portal esperaba el estado `EN_REVISION`, que no existe; un mensaje solo leído por la directiva aparecía como "Respondido". Ahora muestra Enviado, Leído por la directiva o Respondido.
+- **Buzón:** el historial leía `created_at` y `archivo_adjunto`, pero la API entrega `createdAt` y `archivoAdjunto`; la socia no veía la fecha ni si el mensaje llevaba adjunto.
+- **Buzón:** el adjunto se valida al elegirlo (PDF, JPG, PNG o WEBP, hasta 5 MB), el botón para adjuntar funciona con teclado y el detalle muestra el contador de caracteres.
+- **Primer ingreso:** en el celular el modal de cambio obligatorio de clave tenía los campos pegados al borde y el botón cortado.
+- **Sesión:** abrir `/socia/portal` sin sesión llevaba al login de la directiva; ahora lleva al de socias.
+- **Celular:** el menú quedaba debajo de la directiva (a unos 850 px); ahora va arriba, en una cuadrícula con las secciones a la vista, y la directiva baja al final.
+- **Noticias:** fecha en formato chileno y mensaje propio cuando aún no hay publicaciones.
+- **Modales:** se dibujan sobre toda la página; abiertos desde el menú de perfil, el fondo oscuro no cubría la sidebar.
+- **Código:** `SociaPortalPage.jsx` bajó de 1.406 a 120 líneas. Noticias, Buzón y Directiva pasaron a `components/portal/` (`NoticiasSocia.jsx`, `BuzonSocia.jsx`, `DirectivaOficial.jsx`) con estilos en clases `.sp-*`.
 #### Solicitudes S.O.S en línea (17-11-2026)
 - **Socia:** sección "Pide tu S.O.S" en el portal con el botón grande pedido por la directiva. El formulario muestra su RUT, nombres, apellidos y jardín (del padrón, no editables) y pide monto, cuotas (1 a 4) y motivo, todo obligatorio. Al enviar aparece la confirmación y vuelve al inicio. Ve sus solicitudes con estado y respuesta. Solo una pendiente a la vez y hasta $1.000.000 (tope técnico, ajustable si la directiva define otro).
 - **Directiva:** tarjeta "Solicitudes S.O.S" en Créditos con el número de pendientes. Admin y Tesorera **aprueban** (valor de cuota y mes de la primera cuota; se crea el crédito S.O.S en la misma transacción y entra a la liquidación) o **rechazan** con motivo. La Presidenta solo ve. El egreso en Tesorería (Cena Anual) se registra aparte con su comprobante.
