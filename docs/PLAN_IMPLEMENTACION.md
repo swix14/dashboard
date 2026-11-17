@@ -333,7 +333,16 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
 - **El pago verificado podía quedar en $0:** se sumaban las cuotas que el sistema marcaba en ese momento, y si ya estaban descontadas el monto era 0. Ahora el monto pagado es el monto A PAGAR del mes, que es lo que respalda el comprobante.
 - **La planilla real trae RUT con el dígito verificador mal escrito** (3 filas de SOS): ahora se asignan por el cuerpo del RUT cuando la socia existe, y se informa.
 
-#### 5. Pendiente
+#### 5. Ingreso manual de créditos (ajuste posterior a V4)
+Pedido de la directiva: la Tesorera debe poder "ingresar montos y modificar registros" sin depender del Excel.
+- **Nuevo crédito** (`CreditoFormModal.jsx`, `creditManualService.js`, `POST /api/creditos`): socia, empresa, N° de crédito (obligatorio en ISIMUNDO), valor cuota, total de cuotas, mes de la primera cuota y cuotas ya pagadas. Usa la misma clave que la planilla, así la del día 18 lo reconoce y no lo duplica.
+- **Desde la ficha:** Editar (solo cambian las cuotas pendientes), **Registrar prepago** (las pendientes quedan "prepagadas" y el crédito, pagado) y **Anular** con motivo (deja de cobrarse; si la planilla lo vuelve a traer, sigue anulado).
+- **Colores de estado** de la reunión: "Quedan 2 cuotas" (naranjo), "Última cuota" (rojo suave), "Pagado" (verde).
+- Migración `database/migraciones/2026-11-19_creditos_manual.sql`: `creditos.origen`, `motivo_anulacion`, `fecha_anulacion` y el estado de cuota `prepagada`.
+- **Bug corregido:** la alerta "Socias con 1 cuota restante" del Inicio mostraba 6 y 3 de ejemplo cuando no llegaban datos, y su botón abría un texto fijo. Ahora muestra las cifras reales y lleva a Créditos filtrado por "Última cuota".
+- 7 pruebas nuevas en `creditosTest.js` (131 en total).
+
+#### 6. Pendiente
 - Comisión del 2 % de Isi Mundo: hoy se registra en Tesorería como ingreso; no se calcula sola.
 - Acceso de la Directora a los convenios: a definir por la directiva.
 
