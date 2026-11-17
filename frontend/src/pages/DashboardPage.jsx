@@ -440,78 +440,52 @@ export function DashboardPage() {
           </div>
         </Card>
 
-        {/* RECUADRO ALERTAS */}
+        {/* RECUADRO ALERTAS (estilos en .dash-alerta*: el contenido fluye desde arriba y se
+            acomoda en pantallas angostas, sin salirse del recuadro) */}
         <Card
           title="Alertas y Notificaciones"
           subtitle="Vigilancia de cuotas y compromisos gremiales"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%', justifyContent: 'center' }}>
-            {/* Botón Alerta Cuotas Restantes */}
-            <div
-              style={{
-                padding: '1rem',
-                backgroundColor: 'var(--warning-bg)',
-                border: '1px solid var(--warning-border)',
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '0.75rem'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <AlertTriangle size={24} style={{ color: 'var(--warning-text)', flexShrink: 0 }} />
+          <div className="dash-alertas">
+            {/* Alerta de cuotas restantes (cifras reales de Créditos) */}
+            <div className="dash-alerta dash-alerta-warning">
+              <div className="dash-alerta-info">
+                <AlertTriangle size={24} aria-hidden="true" className="dash-alerta-icono" />
                 <div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--warning-text)' }}>
-                    Socias con 1 Cuota Restante
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--warning-text)', opacity: 0.9 }}>
-                    {/* Cifras reales de Créditos (antes caían a 6 y 3 de ejemplo si no llegaban datos) */}
+                  <div className="dash-alerta-titulo">Socias con 1 Cuota Restante</div>
+                  <div className="dash-alerta-detalle">
                     {inicioData.alertas?.sociasUltimaCuotaIsimundo ?? 0} en Isi Mundo • {inicioData.alertas?.sociasUltimaCuotaSos ?? 0} en S.O.S
                   </div>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/creditos?estado=ULTIMA_CUOTA')}
-              >
-                Revisar
-              </Button>
+              <div className="dash-alerta-accion">
+                <Button variant="outline" size="sm" onClick={() => navigate('/creditos?estado=ULTIMA_CUOTA')}>
+                  Revisar
+                </Button>
+              </div>
             </div>
 
-            {/* Indicador Pago Federación: calculado con el último pago real (antes siempre decía "Al Día") */}
+            {/* Pago a Federación: calculado con el último pago real */}
             {(() => {
               const alDia = Boolean(inicioData.alertas?.pagoFederacionAlDia);
               const fecha = inicioData.alertas?.pagoFederacionFecha;
               const tono = alDia ? 'success' : 'warning';
               const Icono = alDia ? CheckCircle2 : AlertTriangle;
               return (
-            <div
-              style={{
-                padding: '1rem',
-                backgroundColor: `var(--${tono}-bg)`,
-                border: `1px solid var(--${tono}-border)`,
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '0.75rem'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Icono size={24} style={{ color: `var(--${tono}-text)`, flexShrink: 0 }} />
-                <div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: `var(--${tono}-text)` }}>
-                    {alDia ? 'Pago Federación al Día' : 'Pago Federación pendiente'}
+                <div className={`dash-alerta dash-alerta-${tono}`}>
+                  <div className="dash-alerta-info">
+                    <Icono size={24} aria-hidden="true" className="dash-alerta-icono" />
+                    <div>
+                      <div className="dash-alerta-titulo">{alDia ? 'Pago Federación al Día' : 'Pago Federación pendiente'}</div>
+                      <div className="dash-alerta-detalle">
+                        {fecha ? `Último pago registrado: ${formatDateCLP(fecha)}` : 'Sin pagos a Federación registrados'}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: `var(--${tono}-text)`, opacity: 0.9 }}>
-                    {fecha ? `Último pago registrado: ${formatDateCLP(fecha)}` : 'Sin pagos a Federación registrados'}
+                  <div className="dash-alerta-accion">
+                    <Badge variant={tono}>{alDia ? 'Al Día' : 'Revisar'}</Badge>
                   </div>
                 </div>
-              </div>
-              <Badge variant={tono}>{alDia ? 'Al Día' : 'Revisar'}</Badge>
-            </div>
               );
             })()}
           </div>
