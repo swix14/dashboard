@@ -6,8 +6,8 @@
 [![Frontend](https://img.shields.io/badge/Frontend-React%2018%20%7C%20Vite-61DAFB?style=flat-square&logo=react&logoColor=black)](#4-arquitectura-del-sistema)
 [![Backend](https://img.shields.io/badge/Backend-Express%20%7C%20REST%20API-000000?style=flat-square&logo=express&logoColor=white)](#4-arquitectura-del-sistema)
 [![Base de Datos](https://img.shields.io/badge/Persistencia-MySQL%20%2F%20MariaDB-4479A1?style=flat-square&logo=mysql&logoColor=white)](#53-persistencia-de-datos)
-[![Versión](https://img.shields.io/badge/Versión-V3%20%2B%20ajustes%2017--11-725682?style=flat-square)](#3-estado-del-proyecto-versiones-y-hoja-de-ruta)
-[![Estado de Pruebas](https://img.shields.io/badge/Validación-110%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
+[![Versión](https://img.shields.io/badge/Versión-V4%20Créditos%20y%20Convenios-725682?style=flat-square)](#3-estado-del-proyecto-versiones-y-hoja-de-ruta)
+[![Estado de Pruebas](https://img.shields.io/badge/Validación-124%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
 
 Plataforma web institucional concebida para la gobernanza corporativa, fiscalización contable, administración del padrón gremial, custodia documental y rendición periódica de cuentas de los establecimientos de Educación Parvularia Vía Transferencia de Fondos (VTF) de la comuna de Temuco.
 
@@ -58,7 +58,7 @@ El proyecto avanza por versiones según [`docs/PLAN_IMPLEMENTACION.md`](docs/PLA
 graph TD
     V1["V1: Consola Ejecutiva y Seguridad Base ✓"] --> V2["V2: Tesorería con Respaldo Digital ✓"]
     V2 --> V3["V3: Padrón Centralizado 100% MySQL ✓"]
-    V3 --> V4["V4: Créditos y Convenios"]
+    V3 --> V4["V4: Créditos y Convenios ✓"]
     V4 --> V5["V5: Portal de Afiliadas y Buzón (en avance)"]
     V5 --> V6["V6: Custodia Documental"]
     V6 --> V7["V7: Rendición Formal PDF y Portal Delegadas (en avance)"]
@@ -70,7 +70,7 @@ graph TD
 | **V1** | Consola Ejecutiva, Directiva y Seguridad Base (PoLP) | Terminado ✓ |
 | **V2** | Tesorería Robusta y Respaldo Digital Obligatorio | Terminado ✓ |
 | **V3** | Padrón Centralizado 100% Persistente en MySQL | Terminado ✓ — con ajustes de la directiva y cierre de la auditoría de seguridad (17/11/2026) |
-| **V4** | Módulo Independiente de Créditos y Convenios | **Siguiente** |
+| **V4** | Módulo Independiente de Créditos y Convenios | Terminado ✓ (18/11/2026) |
 | **V5** | Portal de Afiliadas, Primer Ingreso y Buzón Gremial | En avance: comunicaciones de la directiva y recuperación de clave hechas; faltan las solicitudes S.O.S |
 | **V6** | Custodia Documental y Carpeta por Proveedor | Pendiente |
 | **V7** | Rendición Formal de Cuentas (PDF) y Portal Delegadas | En avance: informe mensual con Excel hecho; falta el Balance Anual en PDF |
@@ -100,6 +100,12 @@ graph TD
   * Exportación del padrón según el filtro aplicado.
   * Ficha socia y ficha crédito separadas: los créditos solo los ven Admin, Presidenta y Tesorera.
   * Botón "Restablecer clave" en la ficha de la socia para recuperar su acceso al portal.
+* **V4 — Créditos y Convenios:**
+  * Cinco empresas: S.O.S, ISIMUNDO, Óptica, Dental y Abogada, cada una con su tarjeta "A pagar" y "Último pago".
+  * Carga de la planilla **"Maestra Créditos"** el día 18, con vista previa y aplicación en una sola transacción.
+  * Verificación de pagos entre el 1 y el 5 con un comprobante por empresa, guardado por mes y empresa sin sobrescribirse.
+  * Historial con búsqueda, filtros y ficha de cada crédito, y gráfico de créditos vigentes y en última cuota.
+  * Ven la sección Admin, Presidenta (solo lectura) y Tesorera; cargan y verifican Admin y Tesorera.
 * **Comunicaciones (adelanto de V5):** la directiva publica y elimina noticias, lee el buzón de las socias, marca los mensajes como leídos o respondidos y descarga los adjuntos.
 * **Informe mensual (adelanto de V7):** pago a la Federación, total de egresos, total disponible y cantidad de movimientos, con exportación a Excel. Las delegadas lo ven en modo solo lectura.
 * **Seguridad (auditoría de 27 hallazgos, 17/11/2026):**
@@ -113,7 +119,6 @@ graph TD
 
 ### 3.2. Hoja de Ruta (Próximas Versiones)
 
-* **V4 — Créditos y Convenios:** modelo independiente para las 4 empresas en convenio (`S.O.S`, `ISIMUNDO`, `OPTICA` y `DENTAL`), procesamiento de la planilla maestra mensual y verificación de los 4 comprobantes bancarios. Sus tablas se agregan como migración en `database/migraciones/`.
 * **V5 — Portal de Afiliadas:** solicitudes S.O.S en línea y revisión final del portal. La gestión del buzón, la descarga de adjuntos, el límite de intentos y la recuperación de clave ya están hechos.
 * **V6 — Custodia Documental:** repositorio de instrumentos legales y pagarés, ordenado por empresa proveedora (`año / mes / día`).
 * **V7 — Rendición Formal de Cuentas:** Balance Anual en PDF para la asamblea y cifras por jardín para las delegadas. El informe mensual ya está hecho.
@@ -140,7 +145,7 @@ dashboard/
 │   │   ├── validators/      # Esquemas de validación (Zod)
 │   │   └── server.js        # Configuración de Express
 │   ├── app.cjs              # Punto de entrada para cPanel (Passenger)
-│   ├── test/                # Suites de pruebas automatizadas (8)
+│   ├── test/                # Suites de pruebas automatizadas (9)
 │   └── uploads/             # Comprobantes y planillas cargadas
 ├── database/
 │   ├── database.sql         # Esquema relacional
@@ -155,7 +160,7 @@ dashboard/
 │   ├── src/
 │   │   ├── components/      # Componentes visuales institucionales
 │   │   ├── context/         # Autenticación, permisos y tema
-│   │   ├── pages/           # Inicio, Tesorería, Socias, Comunicaciones, Reportes y Portal de Socias
+│   │   ├── pages/           # Inicio, Tesorería, Socias, Créditos, Comunicaciones, Reportes y Portal de Socias
 │   │   ├── routes/          # Rutas protegidas por rol
 │   │   ├── services/        # Cliente de la API
 │   │   └── styles/          # Tokens HSL y estilos SIGAV
@@ -197,7 +202,7 @@ npm run dev:frontend
 
 ### 5.4. Verificación Automatizada del Sistema
 
-Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 8 suites (110 pruebas) contra ella; nunca toca `jardines_vtf`:
+Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 9 suites (124 pruebas) contra ella; nunca toca `jardines_vtf`:
 
 ```powershell
 npm run test:backend

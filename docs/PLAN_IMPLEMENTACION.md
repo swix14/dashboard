@@ -76,7 +76,7 @@ dashboard/
 | **V1** | **Consola Ejecutiva, Directiva y Seguridad Base (PoLP)** | **Sebastian Olguín** | **Terminado ✓** | Commits `2a194fb`, `a768d64` (39 tests OK) |
 | **V2** | **Tesorería Robusta y Respaldo Digital Obligatorio** | **Sebastian Olguín** | **Terminado ✓** | Commit `c3608ed` (46 tests OK) |
 | **V3** | **Padrón Centralizado 100% Persistente en MySQL** | **Sebastian Victoriano** | **Terminado ✓** | 75 tests OK; con ajustes de la directiva y auditoría: 110 tests OK (`e8abdb7`) |
-| **V4** | **Módulo Independiente de Créditos y Convenios** | Carlos S. y Luis C. | **Pendiente (Equipo)** | Asignado para resolución del equipo |
+| **V4** | **Módulo Independiente de Créditos y Convenios** | Sebastian Victoriano | **Terminado ✓** | Commit `4c1c5dc` (124 tests OK) |
 | **V5** | **Portal de Afiliadas, Primer Ingreso y Buzón Gremial** | Sebastian A. y Braulio P. | **En avance** | Comunicaciones de la directiva y recuperación de clave (`e8abdb7`, `68ede07`) |
 | **V6** | **Custodia Documental y Carpeta por Proveedor** | Equipo Técnico | **Pendiente (Equipo)** | Asignado para resolución del equipo |
 | **V7** | **Rendición Formal de Cuentas (PDF) y Portal Delegadas** | Equipo Técnico | **En avance** | Informe mensual con Excel para delegadas (`e8abdb7`); falta el Balance Anual en PDF |
@@ -86,7 +86,7 @@ dashboard/
 flowchart TD
     V1["V1: Consola Ejecutiva y Seguridad Base [Terminado ✓]"] --> V2["V2: Tesorería y Respaldo Digital [Terminado ✓]"]
     V2 --> V3["V3: Padrón Centralizado MySQL [Terminado ✓]"]
-    V3 --> V4["V4: Módulo Créditos y Convenios [Equipo]"]
+    V3 --> V4["V4: Módulo Créditos y Convenios [Terminado ✓]"]
     V4 --> V5["V5: Portal de Afiliadas y Buzón [En avance]"]
     V5 --> V6["V6: Custodia Documental [Equipo]"]
     V6 --> V7["V7: Rendición Formal PDF y Delegadas [En avance]"]
@@ -287,16 +287,55 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
 ---
 
 ### Versión 4: Módulo Independiente de Créditos y Convenios Sociales
-> [!NOTE]
-> **Estado:** Pendiente — **Asignado para resolución del equipo** (Carlos S., Luis C.)  
-> **Objetivo:** Diseñar el modelo relacional independiente y la lógica de negocio para las 4 empresas de convenio (`S.O.S`, `ISIMUNDO`, `OPTICA` y `DENTAL`), procesamiento de la planilla maestra mensual (día 18) y verificación de los 4 comprobantes bancarios (días 1-5).
+> [!IMPORTANT]
+> **Estado:** **Terminado ✓** (pendiente de aplicar en el hosting)  
+> **Responsable:** Sebastian Victoriano  
+> **Commit:** `4c1c5dc`  
+> **Resultados:** 124 pruebas de backend aprobadas en 9 suites (`npm test`; la nueva `test/creditosTest.js` tiene 13). Build Vite limpio. Planilla real "Maestra Créditos" leída y aplicada en la base de prueba; pantalla verificada con la Tesorera y la Presidenta, en escritorio y móvil, en modo claro y oscuro.
 
-#### 1. Archivos Involucrados
-- `database/database.sql`: Tablas `convenios`, `creditos`, `cuotas_credito`, `cargas_mensuales` y `comprobantes_convenio`.
-- `backend/src/routes/creditRoutes.js`: Endpoints `/api/creditos/...`.
-- `backend/src/controllers/creditController.js`: Carga de planillas, consulta de estados y subida de comprobantes.
-- `backend/src/services/creditService.js`: Reglas de conciliación, comisión 2% Isi Mundo y cálculo de última cuota.
-- `frontend/src/pages/CreditosPage.jsx`: Interfaz de gestión con filtros por empresa, tabla de socias con crédito y vista de directiva.
+#### 1. Decisiones de negocio (18-11-2026)
+- **Cinco empresas:** S.O.S, ISIMUNDO, Óptica, Dental y **Abogada**, que se trata como la quinta empresa porque ya viene en la planilla.
+- **Permisos:** ven Créditos Admin, Presidenta (solo lectura) y Tesorera. Cargan la planilla y verifican pagos solo Admin y Tesorera. La Directora sigue sin acceso hasta que la directiva lo defina.
+- **Sin egreso automático:** verificar un pago no crea un movimiento en Tesorería; la Tesorera lo registra aparte si corresponde.
+- **Cuotas:** la cuota del mes cargado queda pendiente hasta que se verifica el pago (días 1 al 5); recién ahí suman las cuotas pagadas.
+
+#### 2. Flujo mensual
+1. **Día 18 — Planilla Maestra Créditos** (`creditImportService.js`): vista previa y aplicación en una transacción.
+   - Lee las hojas SOS, ISIMUNDO, Optica, Dental y Abogada y la hoja resumen (Hoja1). El resumen define el monto **A PAGAR** de cada empresa en el mes.
+   - Cada crédito se identifica por socia + empresa + clave (ISIMUNDO: N° de crédito; resto: mes de la primera cuota). Subir dos veces la misma planilla no duplica nada.
+   - Las cuotas descontadas nunca se modifican; las pendientes se ajustan a la planilla.
+   - Los créditos que la planilla ya no trae se listan para revisión, sin cerrarse solos.
+   - Un RUT con el dígito verificador mal escrito se asigna a la socia del padrón con el mismo número, y se avisa.
+   - El archivo queda en `uploads/creditos/planillas/AAAA/MM/` y en la tabla `cargas_creditos`.
+2. **Días 1 al 5 — Verificación de pagos** (`creditService.js`): un comprobante (PDF o foto) por empresa. En una transacción:
+   - Marca como descontadas las cuotas del mes.
+   - Recalcula los créditos: cuotas pagadas, última cuota y pagado.
+   - Registra el pago en `pagos_convenio`.
+
+   Cada comprobante queda en `uploads/creditos/comprobantes/AAAA/MM/EMPRESA/`, sin sobrescribirse. Un mes ya verificado no se puede verificar de nuevo, y su monto a pagar no cambia.
+3. **Pantalla** (`CreditosPage.jsx` y `components/creditos/`):
+   - Tarjetas por empresa con "A pagar" y "Último pago".
+   - Verificación mensual.
+   - Historial con búsqueda, filtros y ficha (calendario de cuotas y monto pendiente).
+   - Gráfico de créditos vigentes y en última cuota por empresa, con vista en tabla.
+
+   Los créditos pagados se ocultan un mes después de pagarse (D4).
+
+#### 3. Base de datos
+- Migración `database/migraciones/2026-11-18_v4_creditos.sql` (también incluida en `database.sql` y `data.sql`):
+  - `convenios.codigo` y `convenios.orden`.
+  - `creditos.clave_carga` y `creditos.fecha_finalizacion`.
+  - Índice por período en `cuotas_credito`.
+  - Tablas `cargas_creditos` y `pagos_convenio`.
+- No borra ni cambia los créditos existentes.
+
+#### 4. Bugs corregidos en el camino
+- **El pago verificado podía quedar en $0:** se sumaban las cuotas que el sistema marcaba en ese momento, y si ya estaban descontadas el monto era 0. Ahora el monto pagado es el monto A PAGAR del mes, que es lo que respalda el comprobante.
+- **La planilla real trae RUT con el dígito verificador mal escrito** (3 filas de SOS): ahora se asignan por el cuerpo del RUT cuando la socia existe, y se informa.
+
+#### 5. Pendiente
+- Comisión del 2 % de Isi Mundo: hoy se registra en Tesorería como ingreso; no se calcula sola.
+- Acceso de la Directora a los convenios: a definir por la directiva.
 
 ---
 
@@ -355,7 +394,7 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
 
 | N° | Tema / Parámetro | Definición Oficial de Negocio |
 | :--- | :--- | :--- |
-| **D1** | **Directora en Créditos** | Desde el 16-11-2026 la Directora tiene los permisos de la Secretaria: sin Tesorería y sin datos de créditos. Su acceso a los convenios se redefine en V4. |
+| **D1** | **Directora en Créditos** | Desde el 16-11-2026 la Directora tiene los permisos de la Secretaria: sin Tesorería y sin datos de créditos. En V4 se mantuvo así; su acceso a los convenios queda a definir por la directiva. |
 | **D2** | **Acceso Delegadas** | Las Delegadas acceden únicamente a estadísticas agregadas de su establecimiento y rendición formal; **nunca ven deudas individuales**. |
 | **D3** | **Políticas de Claves** | Contraseña inicial: primeros 6 dígitos del cuerpo del RUT. Cambio obligatorio al primer ingreso para desbloquear el sistema. Si la socia la olvida, la directiva la restablece desde su ficha (vuelve a la inicial). |
 | **D4** | **Créditos Pagados** | Se muestran con estado `PAGADO` durante el mes de cierre y al mes siguiente se archivan en la vista histórica. |
@@ -363,3 +402,4 @@ Se cotejó el *Informe preliminar de auditoría técnica* (03-11-2026) contra el
 | **D6** | **Ingreso de la Directiva** | Solo con RUT y contraseña (desde el 17-11-2026 ya no se acepta el correo). |
 | **D7** | **Inactividad** | La sesión se cierra tras 10 minutos sin actividad, con aviso un minuto antes. |
 | **D8** | **Comunicaciones** | Publican noticias y leen el buzón: Admin, Presidenta, Secretaria y Directora. La Tesorera y las Delegadas no. |
+| **D9** | **Créditos (V4)** | Cinco empresas (con Abogada). Ven Admin, Presidenta y Tesorera; cargan y verifican Admin y Tesorera. Verificar un pago no crea un egreso en Tesorería. La cuota del mes se descuenta al verificar el pago. |
