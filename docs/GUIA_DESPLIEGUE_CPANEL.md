@@ -238,7 +238,7 @@ WHERE correo = 'tesorera@vtftemuco.cl';
 
 Vuelve a `Admin123!` con cambio obligatorio al entrar.
 
-**Restablecer la clave de una socia:** `UPDATE socias SET password = NULL, primer_ingreso = 1 WHERE rut = '12.345.678-5';` Vuelve a los 6 primeros dígitos de su RUT.
+**Restablecer la clave de una socia:** desde el sistema, en Socias → Ficha socia → "Restablecer clave" (Admin, Presidenta, Tesorera, Secretaria y Directora; queda en la auditoría y cierra sus sesiones). Alternativa por SQL: `UPDATE socias SET password = NULL, primer_ingreso = 1 WHERE rut = '12.345.678-5';` Vuelve a los 6 primeros dígitos de su RUT.
 
 ---
 
