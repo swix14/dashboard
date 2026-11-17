@@ -154,6 +154,15 @@ flowchart TD
 2. Corregir `DB_NAME` y `DB_USER` con el prefijo (ver `docs/GUIA_DESPLIEGUE_CPANEL.md`), subir el código nuevo y hacer Restart.
 3. Comprobar que `https://vtftemuco.cl/api/health` responda `"conectada": true`.
 
+#### Monto leído del comprobante (17-11-2026, pedido de la directiva)
+Al adjuntar el comprobante, el monto se lee en el navegador y se **propone** en el campo Monto; la tesorera lo revisa antes de guardar.
+- `frontend/src/utils/montoComprobante.js`: elige el monto del texto: primero "Monto transferido", "Total a pagar" o "Total"; luego "Monto", "Importe" o "Valor"; si no hay, el mayor monto con `$`. Descarta subtotal, IVA, neto, saldo, efectivo y vuelto, y no confunde RUT, fechas, horas ni porcentajes. 10 pruebas en `montoComprobante.test.js` (`npm test` en `frontend/`).
+- `frontend/src/services/lectorComprobante.js`: PDF con `pdfjs-dist` (texto incrustado); imágenes con `tesseract.js` en español, primero en segmentación automática (pantallazos) y, si no encuentra el monto, en bloque único (boletas). Las librerías se cargan solo al adjuntar.
+- `frontend/public/ocr/`: núcleo del OCR (con y sin SIMD) y el modelo `spa`, servidos desde el propio sitio: el comprobante no sale del equipo.
+- `frontend/src/components/treasury/ComprobanteInput.jsx`: en computador, **Adjuntar**; en pantallas táctiles, **Tomar foto** (cámara trasera) y **Subir**. `utils/comprimirImagen.js` lleva las fotos a 2000 px en JPEG (una foto de 6 MB quedaba fuera del máximo de 5 MB).
+- `backend/src/server.js`: la CSP agrega `'wasm-unsafe-eval'` (WebAssembly del OCR); el resto de la política de helmet no cambia.
+- Si el monto ya estaba escrito, no se pisa: se ofrece **Usar $X**. Si no se encuentra, se pide ingresarlo a mano.
+
 ---
 
 ### Versión 3: Padrón Centralizado 100% Persistente en MySQL

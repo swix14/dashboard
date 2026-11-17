@@ -90,6 +90,7 @@ graph TD
 * **V2 — Tesorería y Control Financiero:**
   * Cuatro Centros de Costo: `ASOCIACION`, `CENA ANUAL`, `FEDERACION` e `ISI MUNDO COMISION`.
   * **Respaldo Digital Obligatorio:** ningún egreso se registra sin comprobante (PDF, JPG, PNG o WEBP), con su metadata guardada en MySQL.
+  * **Monto leído del comprobante:** al adjuntar un PDF de transferencia, un pantallazo o la foto de una boleta, el monto se lee en el mismo navegador (texto del PDF u OCR en español) y se propone en el campo Monto para que la tesorera lo revise; nunca se guarda solo y lo escrito a mano no se pisa. En el celular, **Tomar foto** abre la cámara directo y **Subir** elige de la galería; las fotos se achican antes de subirlas.
   * Saldos calculados desde los asientos oficiales de apertura (`SALDO_APERTURA`) y correlativos atómicos.
   * Exportación del libro contable a CSV protegido contra fórmulas de Excel.
   * **Corrección de movimientos** (Tesorera y Admin): **Editar** fecha, monto, descripción, método, categoría o comprobante, y **Anular** con motivo. El anulado queda en el libro, tachado, y deja de sumar en saldos, Inicio e informe mensual; la auditoría guarda el antes y el después.
