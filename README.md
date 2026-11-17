@@ -7,7 +7,7 @@
 [![Backend](https://img.shields.io/badge/Backend-Express%20%7C%20REST%20API-000000?style=flat-square&logo=express&logoColor=white)](#4-arquitectura-del-sistema)
 [![Base de Datos](https://img.shields.io/badge/Persistencia-MySQL%20%2F%20MariaDB-4479A1?style=flat-square&logo=mysql&logoColor=white)](#53-persistencia-de-datos)
 [![Versión](https://img.shields.io/badge/Versión-V4%20Créditos%20y%20Convenios-725682?style=flat-square)](#3-estado-del-proyecto-versiones-y-hoja-de-ruta)
-[![Estado de Pruebas](https://img.shields.io/badge/Validación-146%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
+[![Estado de Pruebas](https://img.shields.io/badge/Validación-157%20Tests%20Pasados-success?style=flat-square)](#54-verificación-automatizada-del-sistema)
 
 Plataforma web institucional concebida para la gobernanza corporativa, fiscalización contable, administración del padrón gremial, custodia documental y rendición periódica de cuentas de los establecimientos de Educación Parvularia Vía Transferencia de Fondos (VTF) de la comuna de Temuco.
 
@@ -71,7 +71,7 @@ graph TD
 | **V2** | Tesorería Robusta y Respaldo Digital Obligatorio | Terminado ✓ |
 | **V3** | Padrón Centralizado 100% Persistente en MySQL | Terminado ✓ — con ajustes de la directiva y cierre de la auditoría de seguridad (17/11/2026) |
 | **V4** | Módulo Independiente de Créditos y Convenios | Terminado ✓ (18/11/2026) |
-| **V5** | Portal de Afiliadas, Primer Ingreso y Buzón Gremial | En avance: comunicaciones de la directiva y recuperación de clave hechas; faltan las solicitudes S.O.S |
+| **V5** | Portal de Afiliadas, Primer Ingreso y Buzón Gremial | En avance: comunicaciones de la directiva, recuperación de clave y solicitudes S.O.S hechas; falta la revisión final del portal |
 | **V6** | Custodia Documental y Carpeta por Proveedor | Pendiente |
 | **V7** | Rendición Formal de Cuentas (PDF) y Portal Delegadas | En avance: informe mensual con Excel hecho; falta el Balance Anual en PDF |
 | **V8** | Validación Integral E2E y Despliegue Oficial en cPanel | Pendiente |
@@ -113,6 +113,7 @@ graph TD
   * Estados por color: Vigente, **Quedan 2 cuotas** (naranjo), **Última cuota** (rojo suave) y Pagado (verde).
   * Ven la sección Admin, Presidenta (solo lectura) y Tesorera; cargan, verifican e ingresan créditos Admin y Tesorera.
 * **Comunicaciones (adelanto de V5):** la directiva publica y elimina noticias, lee el buzón de las socias, marca los mensajes como leídos o respondidos y descarga los adjuntos.
+* **S.O.S en línea (V5):** la socia pide su crédito de emergencia desde el portal (monto, 1 a 4 cuotas y motivo) y ve la respuesta. Admin y Tesorera lo aprueban desde Créditos, lo que crea su crédito S.O.S, o lo rechazan con motivo.
 * **Informe mensual (adelanto de V7):** pago a la Federación, total de egresos, total disponible y cantidad de movimientos, con exportación a Excel. Las delegadas lo ven en modo solo lectura.
 * **Seguridad (auditoría de 27 hallazgos, 17/11/2026):**
   * Validación con zod en todos los endpoints y login sin enumeración de cuentas.
@@ -125,7 +126,7 @@ graph TD
 
 ### 3.2. Hoja de Ruta (Próximas Versiones)
 
-* **V5 — Portal de Afiliadas:** solicitudes S.O.S en línea y revisión final del portal. La gestión del buzón, la descarga de adjuntos, el límite de intentos y la recuperación de clave ya están hechos.
+* **V5 — Portal de Afiliadas:** revisión final del portal. Las solicitudes S.O.S en línea, la gestión del buzón, la descarga de adjuntos, el límite de intentos y la recuperación de clave ya están hechos.
 * **V6 — Custodia Documental:** repositorio de instrumentos legales y pagarés, ordenado por empresa proveedora (`año / mes / día`).
 * **V7 — Rendición Formal de Cuentas:** Balance Anual en PDF para la asamblea y cifras por jardín para las delegadas. El informe mensual ya está hecho.
 * **V8 — Validación E2E y Despliegue Oficial:**
@@ -208,7 +209,7 @@ npm run dev:frontend
 
 ### 5.4. Verificación Automatizada del Sistema
 
-Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 9 suites (146 pruebas) contra ella; nunca toca `jardines_vtf`:
+Requiere MySQL encendido. El ejecutor crea desde cero la base `jardines_vtf_test` con los scripts de `database/` y corre las 10 suites (157 pruebas) contra ella; nunca toca `jardines_vtf`:
 
 ```powershell
 npm run test:backend

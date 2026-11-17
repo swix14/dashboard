@@ -77,7 +77,7 @@ dashboard/
 | **V2** | **Tesorería Robusta y Respaldo Digital Obligatorio** | **Sebastian Olguín** | **Terminado ✓** | Commit `c3608ed` (46 tests OK) |
 | **V3** | **Padrón Centralizado 100% Persistente en MySQL** | **Sebastian Victoriano** | **Terminado ✓** | 75 tests OK; con ajustes de la directiva y auditoría: 110 tests OK (`e8abdb7`) |
 | **V4** | **Módulo Independiente de Créditos y Convenios** | Sebastian Victoriano | **Terminado ✓** | Commit `4c1c5dc` (124 tests OK) |
-| **V5** | **Portal de Afiliadas, Primer Ingreso y Buzón Gremial** | Sebastian A. y Braulio P. | **En avance** | Comunicaciones de la directiva y recuperación de clave (`e8abdb7`, `68ede07`) |
+| **V5** | **Portal de Afiliadas, Primer Ingreso y Buzón Gremial** | Sebastian A. y Braulio P. | **En avance** | Comunicaciones de la directiva, recuperación de clave (`e8abdb7`, `68ede07`) y S.O.S en línea (`ab12830`) |
 | **V6** | **Custodia Documental y Carpeta por Proveedor** | Equipo Técnico | **Pendiente (Equipo)** | Asignado para resolución del equipo |
 | **V7** | **Rendición Formal de Cuentas (PDF) y Portal Delegadas** | Equipo Técnico | **En avance** | Informe mensual con Excel para delegadas (`e8abdb7`); falta el Balance Anual en PDF |
 | **V8** | **Validación Integral E2E y Despliegue Oficial en cPanel** | Equipo Completo | **Pendiente (Equipo)** | Asignado para resolución del equipo |
@@ -377,7 +377,13 @@ Pedido de la reunión: exportar en Excel lo que se descuenta por planilla, desgl
 > [!NOTE]
 > **Estado:** **En avance** (Sebastian A., Braulio P.)  
 > **Objetivo:** Conectar el acceso de socias al padrón real de MySQL, aplicar el bloqueo obligatorio de primer ingreso hasta cambiar la clave inicial y estructurar el buzón con soporte de adjuntos.  
-> **Avance:** el portal ya usa solo MySQL (V3). Ya están hechos el límite de intentos de ingreso, la gestión del buzón y las noticias por la directiva, la descarga de adjuntos, la recuperación de clave desde la ficha y el cierre de sesiones al cambiar la clave. **Falta:** las solicitudes S.O.S en línea y la revisión final del portal.
+> **Avance:** el portal ya usa solo MySQL (V3). Ya están hechos el límite de intentos de ingreso, la gestión del buzón y las noticias por la directiva, la descarga de adjuntos, la recuperación de clave desde la ficha, el cierre de sesiones al cambiar la clave y las solicitudes S.O.S en línea. **Falta:** la revisión final del portal.
+
+#### Solicitudes S.O.S en línea (17-11-2026)
+- **Socia:** sección "Pide tu S.O.S" en el portal con el botón grande pedido por la directiva. El formulario muestra su RUT, nombres, apellidos y jardín (del padrón, no editables) y pide monto, cuotas (1 a 4) y motivo, todo obligatorio. Al enviar aparece la confirmación y vuelve al inicio. Ve sus solicitudes con estado y respuesta. Solo una pendiente a la vez y hasta $1.000.000 (tope técnico, ajustable si la directiva define otro).
+- **Directiva:** tarjeta "Solicitudes S.O.S" en Créditos con el número de pendientes. Admin y Tesorera **aprueban** (valor de cuota y mes de la primera cuota; se crea el crédito S.O.S en la misma transacción y entra a la liquidación) o **rechazan** con motivo. La Presidenta solo ve. El egreso en Tesorería (Cena Anual) se registra aparte con su comprobante.
+- Cada envío, aprobación y rechazo queda en la auditoría. El ingreso como "invitada" solo con RUT quedó fuera: permitiría pedir un S.O.S a nombre de otra socia.
+- Migración `database/migraciones/2026-11-22_solicitudes_sos.sql`. Suite nueva `test/sosTest.js` con 11 pruebas (157 en total, 10 suites).
 
 #### 1. Archivos Involucrados
 - `backend/src/services/sociaAuthService.js`: Sincronización 100% con la tabla `socias` de MySQL.
