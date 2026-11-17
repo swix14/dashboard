@@ -36,6 +36,28 @@ export const TreasuryApiService = {
   },
 
   /**
+   * Corrige un movimiento. El archivo es opcional y reemplaza al comprobante anterior.
+   */
+  async updateMovement(id, { archivoComprobante, ...movementData }) {
+    const form = new FormData();
+    Object.entries(movementData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) form.append(key, value);
+    });
+    if (archivoComprobante) form.append('comprobante', archivoComprobante);
+    const res = await api.put(`/tesoreria/movimientos/${id}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000
+    });
+    return res.data;
+  },
+
+  /** Anula un movimiento con su motivo (queda en el libro, sin sumar en los saldos) */
+  async annulMovement(id, motivo) {
+    const res = await api.post(`/tesoreria/movimientos/${id}/anular`, { motivo });
+    return res.data;
+  },
+
+  /**
    * Descarga el archivo del comprobante de un movimiento como Blob
    */
   async getComprobante(movementId) {

@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import { TreasuryService } from '../services/treasuryService.js';
 import { discardUploadedFile, resolveUploadPath } from '../middlewares/uploadMiddleware.js';
 import { AuditService } from '../services/auditService.js';
-import { movementSchema, listMovementsSchema } from '../validators/treasuryValidator.js';
+import { movementSchema, listMovementsSchema, updateMovementSchema, annulMovementSchema } from '../validators/treasuryValidator.js';
+
+const responsableDe = (req) => `${req.user.firstName} ${req.user.lastName || ''}`.trim();
 
 export const TreasuryController = {
   /**
@@ -115,6 +117,77 @@ export const TreasuryController = {
       if (error.statusCode) {
         return res.status(error.statusCode).json({ success: false, message: error.message });
       }
+      next(error);
+    }
+  },
+
+  /**
+   * PUT /api/tesoreria/movimientos/:id (multipart; el archivo "comprobante" es opcional y reemplaza al anterior)
+   */
+  async updateMovement(req, res, next) {
+    try {
+      const parsed = updateMovementSchema.safeParse(req.body || {});
+      if (!parsed.success) {
+        discardUploadedFile(req.file);
+        return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message || 'Datos de movimiento inválidos' });
+      }
+      const comprobanteArchivo = req.file
+        ? {
+            storedName: req.file.filename,
+            originalName: decodeFileName(req.file.originalname),
+            mimeType: req.file.mimetype,
+            size: req.file.size
+          }
+        : null;
+
+      let result;
+      try {
+        result = await TreasuryService.updateMovement(Number(req.params.id), parsed.data, comprobanteArchivo, responsableDe(req));
+      } catch (error) {
+        discardUploadedFile(req.file);
+        throw error;
+      }
+
+      // La auditoría guarda el antes y el después para la comisión revisadora
+      await AuditService.log({
+        userId: req.user.id,
+        action: 'TREASURY_MOVEMENT_UPDATED',
+        details: result,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
+      return res.json({
+        success: true,
+        message: `Movimiento ${result.correlativo} actualizado.`,
+        data: await TreasuryService.getMovementById(Number(req.params.id))
+      });
+    } catch (error) {
+      if (error.statusCode) return res.status(error.statusCode).json({ success: false, message: error.message });
+      next(error);
+    }
+  },
+
+  /**
+   * POST /api/tesoreria/movimientos/:id/anular — { motivo }
+   */
+  async annulMovement(req, res, next) {
+    try {
+      const parsed = annulMovementSchema.safeParse(req.body || {});
+      if (!parsed.success) {
+        return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message || 'Indique el motivo de la anulación' });
+      }
+      const result = await TreasuryService.annulMovement(Number(req.params.id), parsed.data.motivo, responsableDe(req));
+      await AuditService.log({
+        userId: req.user.id,
+        action: 'TREASURY_MOVEMENT_ANULADO',
+        details: { ...result, motivo: parsed.data.motivo },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      return res.json({ success: true, message: `Movimiento ${result.correlativo} anulado.`, data: result });
+    } catch (error) {
+      if (error.statusCode) return res.status(error.statusCode).json({ success: false, message: error.message });
       next(error);
     }
   },

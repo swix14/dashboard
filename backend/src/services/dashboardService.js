@@ -79,7 +79,7 @@ export const DashboardService = {
         const fedRows = await query(
           `SELECT correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, monto, descripcion, comprobante
            FROM movimientos_tesoreria
-           WHERE centro_costo = 'FEDERACION'
+           WHERE centro_costo = 'FEDERACION' AND anulado = 0
            ORDER BY fecha DESC
            LIMIT 5`
         );
@@ -123,7 +123,7 @@ export const DashboardService = {
                   SUM(CASE WHEN tipo = 'INGRESO' THEN monto ELSE 0 END) AS ingresos,
                   SUM(CASE WHEN tipo = 'EGRESO' THEN monto ELSE 0 END) AS egresos
            FROM movimientos_tesoreria
-           WHERE tipo IN ('INGRESO', 'EGRESO')
+           WHERE tipo IN ('INGRESO', 'EGRESO') AND anulado = 0
            GROUP BY YEAR(fecha), MONTH(fecha)
            ORDER BY anio, mes`
         );

@@ -50,6 +50,14 @@ export const movementSchema = z.object({
   comprobante: z.string().nullable().optional()
 });
 
+// Corrección de un movimiento: los mismos datos del alta, salvo el tipo (no se cambia)
+export const updateMovementSchema = movementSchema.omit({ tipo: true, comprobante: true });
+
+export const annulMovementSchema = z.object({
+  motivo: z.string({ error: 'Indique el motivo de la anulación' }).trim()
+    .min(3, 'Indique el motivo de la anulación').max(255, 'El motivo es demasiado largo')
+});
+
 const fechaFiltro = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (AAAA-MM-DD)')

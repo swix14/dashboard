@@ -111,6 +111,77 @@ async function runPersistenceSuite() {
     assert.strictEqual(Number(cena.monto), 8856000);
   });
 
+  // 5. Corrección de movimientos: editar y anular
+  const presidentaToken = await login('13.963.291-5');
+  const auth = (token) => ({ Authorization: `Bearer ${token}` });
+  const resumen = async () => (await (await fetch(`${baseUrl}/tesoreria/resumen`, { headers: auth(tesoreraToken) })).json()).data;
+  const formEdicion = (campos, archivo) => {
+    const form = new FormData();
+    const base = { fecha: '2026-10-28', descripcion: 'Pago de suministros (monto corregido)', centroCosto: 'ASOCIACION', categoria: 'OTROS', monto: '95000', metodo: 'Transferencia Bancaria' };
+    for (const [k, v] of Object.entries({ ...base, ...campos })) form.append(k, v);
+    if (archivo) form.append('comprobante', new Blob([PDF_MAGIC], { type: 'application/pdf' }), archivo);
+    return form;
+  };
+  const editar = (id, token, form) => fetch(`${baseUrl}/tesoreria/movimientos/${id}`, { method: 'PUT', headers: auth(token), body: form });
+  const anular = (id, token, motivo) =>
+    fetch(`${baseUrl}/tesoreria/movimientos/${id}/anular`, {
+      method: 'POST',
+      headers: { ...auth(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ motivo })
+    });
+
+  await test('La Presidenta no puede editar ni anular movimientos (solo lectura)', async () => {
+    assert.strictEqual((await editar(savedId, presidentaToken, formEdicion())).status, 403);
+    assert.strictEqual((await anular(savedId, presidentaToken, 'prueba')).status, 403);
+  });
+
+  await test('Editar corrige monto y descripción, conserva el comprobante y ajusta los saldos', async () => {
+    const antes = await resumen();
+    const res = await editar(savedId, tesoreraToken, formEdicion());
+    const body = await res.json();
+    assert.strictEqual(res.status, 200, body.message);
+    assert.strictEqual(body.data.monto, 95000);
+    assert.strictEqual(body.data.comprobante, 'factura_suministros.pdf', 'sin archivo nuevo se mantiene el comprobante');
+    assert.ok(body.data.editadoPor, 'queda registrado quién editó');
+    const despues = await resumen();
+    assert.strictEqual(despues.totalEgresos - antes.totalEgresos, 6000);
+    assert.strictEqual(antes.saldoAsociacion - despues.saldoAsociacion, 6000);
+  });
+
+  await test('Editar con un archivo nuevo reemplaza el comprobante', async () => {
+    const res = await editar(savedId, tesoreraToken, formEdicion({}, 'factura_corregida.pdf'));
+    const body = await res.json();
+    assert.strictEqual(res.status, 200, body.message);
+    assert.strictEqual(body.data.comprobante, 'factura_corregida.pdf');
+    assert.strictEqual(body.data.comprobanteArchivo.originalName, 'factura_corregida.pdf');
+  });
+
+  await test('Los saldos de apertura no se pueden editar ni anular', async () => {
+    const [apertura] = await TreasuryService.getMovements({ tipo: 'SALDO_APERTURA' });
+    assert.strictEqual((await editar(apertura.id, tesoreraToken, formEdicion())).status, 409);
+    assert.strictEqual((await anular(apertura.id, tesoreraToken, 'no corresponde')).status, 409);
+  });
+
+  await test('Anular exige motivo, saca el monto de los saldos y deja el movimiento en el libro', async () => {
+    assert.strictEqual((await anular(savedId, tesoreraToken, '')).status, 400);
+    const antes = await resumen();
+    const res = await anular(savedId, tesoreraToken, 'Registrado dos veces');
+    assert.strictEqual(res.status, 200, (await res.json()).message);
+    const despues = await resumen();
+    assert.strictEqual(antes.totalEgresos - despues.totalEgresos, 95000);
+    assert.strictEqual(antes.totalMovimientos - despues.totalMovimientos, 1);
+    const enLibro = (await TreasuryService.getMovements({})).find((m) => m.id === savedId);
+    assert.ok(enLibro, 'el movimiento anulado sigue en el libro');
+    assert.deepStrictEqual([enLibro.anulado, enLibro.motivoAnulacion], [true, 'Registrado dos veces']);
+    // Un anulado ya no se modifica
+    assert.strictEqual((await anular(savedId, tesoreraToken, 'otra vez')).status, 409);
+    assert.strictEqual((await editar(savedId, tesoreraToken, formEdicion())).status, 409);
+  });
+
+  await test('Un movimiento inexistente responde 404', async () => {
+    assert.strictEqual((await anular(99999999, tesoreraToken, 'no existe')).status, 404);
+  });
+
   console.log(`\n[RESULTADOS PERSISTENCIA] ${passed} pasados, ${failed} fallidos`);
   server.closeAllConnections?.();
   server.close();

@@ -40,4 +40,21 @@ router.post(
   TreasuryController.createMovement
 );
 
+// Corrección de movimientos (editar y anular): EXCLUSIVO para Tesorera y Admin.
+// El comprobante nuevo es opcional al editar y reemplaza al anterior (que se conserva en el servidor)
+router.put(
+  '/movimientos/:id',
+  requireRole('ADMIN', 'TESORERA'),
+  validateIdParam,
+  uploadComprobante('comprobante'),
+  TreasuryController.updateMovement
+);
+
+router.post(
+  '/movimientos/:id/anular',
+  requireRole('ADMIN', 'TESORERA'),
+  validateIdParam,
+  TreasuryController.annulMovement
+);
+
 export default router;

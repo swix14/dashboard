@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle, FileText, Upload, X } from 'lucide-react';
 import { Modal } from '../common/Modal.jsx';
 import { Button } from '../common/Button.jsx';
@@ -18,14 +18,41 @@ const INITIAL_FORM = {
   archivoComprobante: null
 };
 
+/** Pestaña que corresponde a un movimiento existente */
+const tabDe = (mov) => (mov.centroCosto === 'FEDERACION' ? 'FEDERACION' : mov.tipo);
+
 /**
- * Modal modular para el registro de nuevos movimientos de tesorería
+ * Modal modular para registrar un movimiento nuevo o corregir uno existente.
+ * movement = null → alta; movement = fila del libro → edición (el tipo no cambia;
+ * el comprobante nuevo es opcional y reemplaza al anterior).
  */
-export function NewMovementModal({ isOpen, onClose, onSuccess, user }) {
+export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = null }) {
+  const editing = Boolean(movement);
   const [modalTab, setModalTab] = useState('INGRESO'); // INGRESO | EGRESO | FEDERACION
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [formError, setFormError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Al abrir en modo edición se cargan los datos del movimiento
+  useEffect(() => {
+    if (!isOpen) return;
+    setFormError(null);
+    if (movement) {
+      setModalTab(tabDe(movement));
+      setFormData({
+        fecha: movement.fecha,
+        monto: String(movement.monto),
+        metodo: movement.metodo,
+        descripcion: movement.descripcion,
+        centroCosto: movement.centroCosto,
+        categoria: movement.categoria,
+        archivoComprobante: null
+      });
+    } else {
+      setModalTab('INGRESO');
+      setFormData(INITIAL_FORM);
+    }
+  }, [isOpen, movement]);
 
   if (!isOpen) return null;
 
@@ -88,7 +115,9 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user }) {
     }
 
     const isEgresoType = modalTab === 'EGRESO' || modalTab === 'FEDERACION';
-    if (isEgresoType && !formData.archivoComprobante) {
+    // Al editar, el egreso conserva su comprobante si no se adjunta uno nuevo
+    const tieneRespaldo = formData.archivoComprobante || (editing && movement.comprobante);
+    if (isEgresoType && !tieneRespaldo) {
       setFormError('El comprobante de egreso es estrictamente OBLIGATORIO: adjunte el archivo (PDF o imagen).');
       return;
     }
@@ -109,8 +138,7 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user }) {
         }
       }
 
-      await TreasuryApiService.createMovement({
-        tipo: modalTab === 'INGRESO' ? 'INGRESO' : 'EGRESO',
+      const datos = {
         fecha: formData.fecha,
         descripcion: formData.descripcion,
         centroCosto: payloadCentroCosto,
@@ -118,10 +146,16 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user }) {
         monto: numMonto,
         metodo: formData.metodo,
         archivoComprobante: formData.archivoComprobante
-      });
+      };
+      let mensaje = 'Movimiento registrado.';
+      if (editing) {
+        mensaje = (await TreasuryApiService.updateMovement(movement.id, datos)).message;
+      } else {
+        await TreasuryApiService.createMovement({ ...datos, tipo: modalTab === 'INGRESO' ? 'INGRESO' : 'EGRESO' });
+      }
 
       setFormData(INITIAL_FORM);
-      onSuccess();
+      onSuccess(mensaje);
       onClose();
     } catch (err) {
       setFormError(err.response?.data?.message || err.message || 'Error al registrar movimiento');
@@ -132,15 +166,19 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user }) {
 
   return (
     <Modal
-      title="Registrar Nuevo Movimiento"
-      subtitle={`Operador: ${user?.firstName || ''} ${user?.lastName || ''} (${user?.cargo || 'Tesorera'})`}
+      title={editing ? `Editar movimiento ${movement.correlativo}` : 'Registrar Nuevo Movimiento'}
+      subtitle={
+        editing
+          ? `${movement.tipo === 'INGRESO' ? 'Ingreso' : 'Egreso'} · el tipo no se cambia: si está mal, anúlelo y regístrelo de nuevo`
+          : `Operador: ${user?.firstName || ''} ${user?.lastName || ''} (${user?.cargo || 'Tesorera'})`
+      }
       onClose={onClose}
       maxWidth="560px"
     >
-      {/* Pestañas de Tipo de Movimiento */}
+      {/* Pestañas de Tipo de Movimiento (al editar, el tipo queda fijo) */}
       <div
         style={{
-          display: 'flex',
+          display: editing ? 'none' : 'flex',
           borderBottom: '1px solid var(--border-light)',
           backgroundColor: 'var(--bg-page)'
         }}
@@ -382,6 +420,10 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user }) {
                     <X size={15} />
                   </button>
                 </>
+              ) : editing && movement.comprobante ? (
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Se mantiene: {movement.comprobante} (adjunte otro para reemplazarlo)
+                </span>
               ) : (
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
                   {modalTab === 'INGRESO'
@@ -436,7 +478,7 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user }) {
             variant="primary"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Registrando...' : 'Confirmar y Guardar'}
+            {isSubmitting ? 'Guardando...' : editing ? 'Guardar cambios' : 'Confirmar y Guardar'}
           </Button>
         </div>
       </form>

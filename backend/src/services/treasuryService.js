@@ -280,7 +280,90 @@ export function resumirMovimientos(list) {
   };
 }
 
+// Datos de anulación y edición que se muestran en el libro de movimientos
+// (fechas como texto AAAA-MM-DD en hora del servidor, para no correr el día al pasar a UTC)
+const COLUMNAS_CORRECCION = `anulado, motivo_anulacion as motivoAnulacion, anulado_por as anuladoPor,
+                 DATE_FORMAT(anulado_at, '%Y-%m-%d') as anuladoAt, editado_por as editadoPor,
+                 DATE_FORMAT(editado_at, '%Y-%m-%d') as editadoAt`;
+
+/**
+ * Centro de costo y categoría según las reglas de la Asociación (alta y edición usan la misma regla):
+ * egresos S.O.S/CENA → Cena Anual, Federación → FEDERACION, resto → Asociación;
+ * ingresos solo a Asociación, Cena Anual o Isi Mundo Comisión.
+ */
+function resolverCentroCosto(tipo, centroCosto, categoria) {
+  if (tipo === 'EGRESO') {
+    if (categoria === 'PAGO FEDERACION' || centroCosto === 'FEDERACION') return { centroCosto: 'FEDERACION', categoria: 'PAGO FEDERACION' };
+    if (categoria === 'S.O.S' || categoria === 'CENA') return { centroCosto: 'CENA ANUAL', categoria };
+    return { centroCosto: 'ASOCIACION', categoria };
+  }
+  const cc = ['ASOCIACION', 'CENA ANUAL', 'ISI MUNDO COMISION'].includes(centroCosto) ? centroCosto : 'ASOCIACION';
+  return { centroCosto: cc, categoria };
+}
+
+/** Movimiento corregible: existe, no es asiento de apertura y no está anulado */
+async function movimientoCorregible(id) {
+  if (!isDatabaseReady()) throw new TreasuryError('La corrección de movimientos requiere la base de datos.', 503);
+  const [row] = await query(
+    `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo, centro_costo as centroCosto, categoria,
+            descripcion, metodo, monto, comprobante, comprobante_stored as comprobanteStored, anulado
+     FROM movimientos_tesoreria WHERE id = ?`,
+    [id]
+  );
+  if (!row) throw new TreasuryError('Movimiento no encontrado.', 404);
+  if (row.tipo === 'SALDO_APERTURA') throw new TreasuryError('Los saldos de apertura no se modifican desde el sistema.', 409);
+  if (row.anulado) throw new TreasuryError(`El movimiento ${row.correlativo} está anulado: no se puede modificar.`, 409);
+  return row;
+}
+
 export const TreasuryService = {
+  /**
+   * Corrige un movimiento (fecha, monto, descripción, método, categoría y, si se adjunta, el comprobante).
+   * El tipo no cambia: un ingreso mal ingresado como egreso se anula y se registra de nuevo.
+   * El comprobante anterior se conserva en el servidor; la auditoría guarda el antes y el después.
+   * @returns {{ antes: object, despues: object }}
+   */
+  async updateMovement(id, datos, comprobanteArchivo, editadoPor) {
+    const antes = await movimientoCorregible(id);
+    const { centroCosto, categoria } = resolverCentroCosto(antes.tipo, datos.centroCosto, datos.categoria);
+    if (antes.tipo === 'EGRESO' && !comprobanteArchivo && !antes.comprobante) {
+      throw new TreasuryError('Un egreso debe quedar con su comprobante: adjunte el archivo.');
+    }
+    const despues = {
+      fecha: datos.fecha,
+      centroCosto,
+      categoria: categoria || centroCosto,
+      descripcion: datos.descripcion.trim(),
+      metodo: datos.metodo,
+      monto: datos.monto,
+      comprobante: comprobanteArchivo ? comprobanteArchivo.originalName : antes.comprobante
+    };
+    await query(
+      `UPDATE movimientos_tesoreria
+       SET fecha = ?, centro_costo = ?, categoria = ?, descripcion = ?, metodo = ?, monto = ?, comprobante = ?,
+           comprobante_stored = COALESCE(?, comprobante_stored), comprobante_mime = COALESCE(?, comprobante_mime),
+           comprobante_size = COALESCE(?, comprobante_size), editado_por = ?, editado_at = NOW()
+       WHERE id = ? AND anulado = 0`,
+      [
+        despues.fecha, despues.centroCosto, despues.categoria, despues.descripcion, despues.metodo, despues.monto, despues.comprobante,
+        comprobanteArchivo?.storedName ?? null, comprobanteArchivo?.mimeType ?? null, comprobanteArchivo?.size ?? null,
+        editadoPor, id
+      ]
+    );
+    const { anulado, comprobanteStored, ...antesVisible } = antes;
+    return { correlativo: antes.correlativo, antes: antesVisible, despues: { ...despues, comprobanteReemplazado: Boolean(comprobanteArchivo) } };
+  },
+
+  /** Anula un movimiento: queda en el libro, marcado y con su motivo, pero no suma en ningún saldo */
+  async annulMovement(id, motivo, anuladoPor) {
+    const mov = await movimientoCorregible(id);
+    await query(
+      `UPDATE movimientos_tesoreria SET anulado = 1, motivo_anulacion = ?, anulado_por = ?, anulado_at = NOW() WHERE id = ? AND anulado = 0`,
+      [motivo, anuladoPor, id]
+    );
+    return { correlativo: mov.correlativo, tipo: mov.tipo, monto: mov.monto, centroCosto: mov.centroCosto };
+  },
+
   /**
    * Obtiene el resumen financiero calculado en tiempo real
    */
@@ -292,7 +375,8 @@ export const TreasuryService = {
         `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
                 centro_costo as centroCosto, categoria, descripcion, metodo,
                 monto, responsable, comprobante, created_at as createdAt
-         FROM movimientos_tesoreria`
+         FROM movimientos_tesoreria
+         WHERE anulado = 0`
       );
     }
 
@@ -308,7 +392,7 @@ export const TreasuryService = {
         `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, tipo,
                 centro_costo as centroCosto, categoria, descripcion, monto
          FROM movimientos_tesoreria
-         WHERE fecha <= ?
+         WHERE fecha <= ? AND anulado = 0
          ORDER BY fecha ASC, id ASC`,
         [fechaFin]
       );
@@ -329,6 +413,7 @@ export const TreasuryService = {
                  comprobante_stored as comprobanteStored,
                  comprobante_mime as comprobanteMime,
                  comprobante_size as comprobanteSize,
+                 ${COLUMNAS_CORRECCION},
                  created_at as createdAt
           FROM movimientos_tesoreria
           WHERE 1=1
@@ -369,7 +454,7 @@ export const TreasuryService = {
 
         const rows = await query(sql, params);
         return rows.map((row) => {
-          const mov = { ...row };
+          const mov = { ...row, anulado: Boolean(row.anulado) };
           if (row.comprobanteStored) {
             mov.comprobanteArchivo = {
               storedName: row.comprobanteStored,
@@ -427,13 +512,14 @@ export const TreasuryService = {
                 comprobante_stored as comprobanteStored,
                 comprobante_mime as comprobanteMime,
                 comprobante_size as comprobanteSize,
+                ${COLUMNAS_CORRECCION},
                 created_at as createdAt
          FROM movimientos_tesoreria
          WHERE id = ? OR correlativo = ?`,
         [id, id]
       );
       if (rows.length === 0) return null;
-      const row = { ...rows[0] };
+      const row = { ...rows[0], anulado: Boolean(rows[0].anulado) };
       if (row.comprobanteStored) {
         row.comprobanteArchivo = {
           storedName: row.comprobanteStored,
@@ -479,24 +565,7 @@ export const TreasuryService = {
       throw new TreasuryError('No es posible registrar un egreso sin comprobante de respaldo obligatorio.');
     }
 
-    // Determinación del centro de costo y categoría según especificaciones de la Asociación
-    let resolvedCentroCosto = centroCosto;
-    let resolvedCategoria = categoria;
-
-    if (cleanTipo === 'EGRESO') {
-      if (categoria === 'PAGO FEDERACION' || centroCosto === 'FEDERACION') {
-        resolvedCentroCosto = 'FEDERACION';
-        resolvedCategoria = 'PAGO FEDERACION';
-      } else if (categoria === 'S.O.S' || categoria === 'CENA') {
-        resolvedCentroCosto = 'CENA ANUAL';
-      } else {
-        resolvedCentroCosto = 'ASOCIACION';
-      }
-    } else if (cleanTipo === 'INGRESO') {
-      if (!['ASOCIACION', 'CENA ANUAL', 'ISI MUNDO COMISION'].includes(resolvedCentroCosto)) {
-        resolvedCentroCosto = 'ASOCIACION';
-      }
-    }
+    const { centroCosto: resolvedCentroCosto, categoria: resolvedCategoria } = resolverCentroCosto(cleanTipo, centroCosto, categoria);
 
     let nextCorrelativo = '';
     const cleanFecha = fecha || hoyChile();

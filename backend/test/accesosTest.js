@@ -187,7 +187,8 @@ await test('Informe mensual cuadra con los movimientos del mes en MySQL', async 
             COALESCE(SUM(CASE WHEN tipo = 'EGRESO' THEN monto END), 0) AS egresos,
             COALESCE(SUM(CASE WHEN tipo = 'EGRESO' AND centro_costo = 'FEDERACION' THEN monto END), 0) AS federacion
      FROM movimientos_tesoreria
-     WHERE tipo <> 'SALDO_APERTURA' AND YEAR(fecha) = ? AND MONTH(fecha) = ?`,
+     -- Los movimientos anulados quedan en el libro pero no cuentan en el informe
+     WHERE tipo <> 'SALDO_APERTURA' AND anulado = 0 AND YEAR(fecha) = ? AND MONTH(fecha) = ?`,
     [anio, mes]
   );
 

@@ -15,7 +15,9 @@ import {
   Upload,
   Lock,
   Calendar,
-  Layers
+  Layers,
+  Pencil,
+  Ban
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { TreasuryApiService } from '../services/treasuryService.js';
@@ -23,6 +25,7 @@ import { Card } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { NewMovementModal } from '../components/treasury/NewMovementModal.jsx';
+import { AnularMovimientoModal } from '../components/treasury/AnularMovimientoModal.jsx';
 import { formatCurrencyCLP, formatDateCLP, formatFileSize, csvCell } from '../utils/formatters.js';
 
 // Con responseType 'blob' el mensaje de error del backend también llega como Blob
@@ -58,6 +61,15 @@ export function TreasuryPage() {
   // Modal Nuevo Movimiento
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [openingReceiptId, setOpeningReceiptId] = useState(null);
+  // Corrección de movimientos: el que se edita (mismo modal del alta) y el que se anula
+  const [editMovement, setEditMovement] = useState(null);
+  const [annulMovement, setAnnulMovement] = useState(null);
+  const [aviso, setAviso] = useState(null);
+  const corregible = (mov) => canModify && mov.tipo !== 'SALDO_APERTURA' && !mov.anulado;
+  const onCorregido = (mensaje) => {
+    setAviso(mensaje);
+    loadTreasuryData();
+  };
 
   // Carga inicial y por filtros
   const loadTreasuryData = async () => {
@@ -116,7 +128,7 @@ export function TreasuryPage() {
       return;
     }
 
-    const headers = ['Correlativo', 'Fecha', 'Tipo', 'Centro de Costo', 'Categoria', 'Descripcion', 'Metodo', 'Monto (CLP)', 'Responsable', 'Comprobante'];
+    const headers = ['Correlativo', 'Fecha', 'Tipo', 'Centro de Costo', 'Categoria', 'Descripcion', 'Metodo', 'Monto (CLP)', 'Responsable', 'Comprobante', 'Estado'];
     const rows = movements.map((m) => [
       m.correlativo,
       m.fecha,
@@ -127,7 +139,8 @@ export function TreasuryPage() {
       m.metodo,
       m.monto,
       m.responsable,
-      m.comprobante || 'Sin Comprobante'
+      m.comprobante || 'Sin Comprobante',
+      m.anulado ? `ANULADO: ${m.motivoAnulacion || ''}` : m.editadoAt ? 'Vigente (editado)' : 'Vigente'
     ]);
 
     // Todas las celdas pasan por csvCell: antes un ";" en categor\u00EDa o comprobante corr\u00EDa las columnas
@@ -518,6 +531,12 @@ export function TreasuryPage() {
         title="Libro de Movimientos de Tesorería"
         subtitle="Registro oficial de transacciones con número correlativo y respaldo documental"
       >
+        {aviso && (
+          <div className="com-alert com-alert-ok" role="status">
+            <CheckCircle2 size={18} aria-hidden="true" />
+            <span>{aviso}</span>
+          </div>
+        )}
         <div className="vtf-table-container">
           <table className="vtf-table">
             <thead>
@@ -530,12 +549,13 @@ export function TreasuryPage() {
                 <th style={{ width: '150px', whiteSpace: 'nowrap' }}>Método</th>
                 <th style={{ width: '130px', textAlign: 'right', whiteSpace: 'nowrap' }}>Monto</th>
                 <th style={{ width: '160px', textAlign: 'center', whiteSpace: 'nowrap' }}>Comprobante</th>
+                {canModify && <th style={{ width: '92px', textAlign: 'center', whiteSpace: 'nowrap' }}>Acciones</th>}
               </tr>
             </thead>
             <tbody>
               {movements.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={canModify ? 9 : 8} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     No se encontraron movimientos registrados para los filtros seleccionados.
                   </td>
                 </tr>
@@ -543,7 +563,7 @@ export function TreasuryPage() {
                 movements.map((mov) => {
                   const isIngreso = mov.tipo === 'INGRESO';
                   return (
-                    <tr key={mov.id}>
+                    <tr key={mov.id} className={mov.anulado ? 'tes-row-anulado' : undefined}>
                       <td style={{ fontWeight: 700, color: 'var(--primary-700)', fontVariantNumeric: 'tabular-nums' }}>
                         {mov.correlativo}
                       </td>
@@ -600,6 +620,14 @@ export function TreasuryPage() {
                         <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                           Cat: {mov.categoria} • Resp: {mov.responsable}
                         </div>
+                        {mov.anulado ? (
+                          <div className="tes-nota tes-nota-anulado">
+                            <Badge variant="error">Anulado</Badge>
+                            <span>{mov.motivoAnulacion} · {mov.anuladoPor}, {formatDateCLP(mov.anuladoAt)}</span>
+                          </div>
+                        ) : mov.editadoAt ? (
+                          <div className="tes-nota">Editado por {mov.editadoPor} el {formatDateCLP(mov.editadoAt)}</div>
+                        ) : null}
                       </td>
                       <td style={{ fontSize: '0.8125rem', color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
                         {mov.metodo}
@@ -655,6 +683,20 @@ export function TreasuryPage() {
                           </span>
                         )}
                       </td>
+                      {canModify && (
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          {corregible(mov) && (
+                            <div className="tes-acciones">
+                              <button type="button" className="tes-accion" title={`Editar ${mov.correlativo}`} aria-label={`Editar ${mov.correlativo}`} onClick={() => { setAviso(null); setEditMovement(mov); }}>
+                                <Pencil size={15} />
+                              </button>
+                              <button type="button" className="tes-accion tes-accion-danger" title={`Anular ${mov.correlativo}`} aria-label={`Anular ${mov.correlativo}`} onClick={() => { setAviso(null); setAnnulMovement(mov); }}>
+                                <Ban size={15} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   );
                 })
@@ -671,6 +713,15 @@ export function TreasuryPage() {
         onSuccess={loadTreasuryData}
         user={user}
       />
+      {/* Edición: el mismo modal del alta, con los datos del movimiento */}
+      <NewMovementModal
+        isOpen={Boolean(editMovement)}
+        movement={editMovement}
+        onClose={() => setEditMovement(null)}
+        onSuccess={onCorregido}
+        user={user}
+      />
+      <AnularMovimientoModal movement={annulMovement} onClose={() => setAnnulMovement(null)} onSuccess={onCorregido} />
     </div>
   );
 }

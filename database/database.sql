@@ -236,6 +236,13 @@ CREATE TABLE IF NOT EXISTS `movimientos_tesoreria` (
     `comprobante_stored` VARCHAR(255) NULL,
     `comprobante_mime` VARCHAR(100) NULL,
     `comprobante_size` INT NULL,
+    -- Anulado: queda en el libro pero no suma en saldos ni informes
+    `anulado` TINYINT(1) NOT NULL DEFAULT 0,
+    `motivo_anulacion` VARCHAR(255) NULL,
+    `anulado_por` VARCHAR(150) NULL,
+    `anulado_at` DATETIME NULL,
+    `editado_por` VARCHAR(150) NULL,
+    `editado_at` DATETIME NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_mov_fecha` (`fecha`),
     INDEX `idx_mov_centro` (`centro_costo`),
