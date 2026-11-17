@@ -718,7 +718,32 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .rep-detail dd { margin: 0; font-weight: 700; color: var(--text-main); font-variant-numeric: tabular-nums; }
 .rep-detail-total dt, .rep-detail-total dd { color: var(--text-main); font-weight: 800; }
 .rep-note { margin: 1rem 0 0; font-size: .75rem; color: var(--text-muted); line-height: 1.5; }
+/* Balance Anual: banda con ícono, contenido y controles */
+.rep-balance {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1.25rem;
+  background: linear-gradient(135deg, var(--bg-surface) 60%, var(--bg-surface-subtle));
+}
+.rep-balance-icon {
+  width: 3rem; height: 3rem; border-radius: var(--radius-lg); display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; background: var(--primary-500);
+  box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 6px 16px -6px var(--primary-500);
+}
+.rep-balance-body { min-width: 0; display: flex; flex-direction: column; gap: .375rem; }
+.rep-balance-title { margin: 0; font-size: 1.0625rem; font-weight: 800; color: var(--text-main); }
+.rep-balance-text { margin: 0; font-size: .8125rem; color: var(--text-muted); line-height: 1.5; }
+.rep-balance-chips { list-style: none; margin: .25rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .375rem; }
+.rep-balance-chips li {
+  font-size: .6875rem; font-weight: 700; letter-spacing: .02em; color: var(--text-muted);
+  padding: .1875rem .5rem; border-radius: var(--radius-full); border: 1px solid var(--border-light); background: var(--bg-surface);
+}
+.rep-balance-error { margin: .25rem 0 0; display: flex; align-items: center; gap: .375rem; font-size: .8125rem; font-weight: 600; color: var(--error-text); }
+/* Con el menú lateral, el área útil es angosta hasta ~1200px: los controles bajan a su propia fila */
+@media (max-width: 1200px) {
+  .rep-balance { grid-template-columns: auto 1fr; align-items: start; }
+  .rep-balance-controls { grid-column: 1 / -1; }
+}
 @media (max-width: 640px) {
+  .rep-balance { grid-template-columns: 1fr; }
   .rep-controls { width: 100%; }
   .rep-controls > div { flex: 1 1 120px; }
   .rep-controls .vtf-btn { width: 100%; }

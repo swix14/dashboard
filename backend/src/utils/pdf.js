@@ -82,6 +82,8 @@ export function datos(doc, pares, columnas = 2) {
 
 /** Título de sección */
 export function seccion(doc, texto) {
+  // Un título no queda solo al final de la página: si no caben al menos unas filas, pasa a la siguiente
+  if (doc.y > doc.page.height - doc.page.margins.bottom - 90) doc.addPage();
   doc.x = MARGEN;
   doc.fillColor(COLOR.primario).font('Helvetica-Bold').fontSize(11).text(texto);
   doc.moveDown(0.4);
@@ -100,11 +102,14 @@ export function tabla(doc, columnas, filas, { totales } = {}) {
   const PAD = 6;
 
   const dibujarFila = (celdas, { encabezado = false, destacada = false, par = false } = {}) => {
-    doc.font(encabezado || destacada ? 'Helvetica-Bold' : 'Helvetica').fontSize(encabezado ? 8 : 9.5);
+    const fuente = () => doc.font(encabezado || destacada ? 'Helvetica-Bold' : 'Helvetica').fontSize(encabezado ? 8 : 9.5);
+    fuente();
     const alto = Math.max(...celdas.map((v, i) => doc.heightOfString(String(v ?? ''), { width: cols[i].w - PAD * 2 }))) + PAD * 2;
     if (doc.y + alto > doc.page.height - doc.page.margins.bottom) {
       doc.addPage();
       if (!encabezado) dibujarFila(cols.map((c) => c.titulo.toUpperCase()), { encabezado: true });
+      // El encabezado repetido cambia la fuente: se restaura la de esta fila
+      fuente();
     }
     const y = doc.y;
     if (encabezado) doc.rect(MARGEN, y, ancho, alto).fill(COLOR.primario);

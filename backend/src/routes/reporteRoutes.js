@@ -10,5 +10,7 @@ router.use(authMiddleware, requireRole('ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRE
 
 router.get('/mensual', ReporteController.getInformeMensual);
 router.get('/mensual/excel', ReporteController.exportarInformeMensual);
+// Balance Anual en PDF: solo cifras consolidadas, sin socias ni deudas individuales
+router.get('/anual/pdf', ReporteController.exportarBalanceAnualPdf);
 
 export default router;

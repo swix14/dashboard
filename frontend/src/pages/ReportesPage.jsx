@@ -6,6 +6,7 @@ import { Card } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { formatCurrencyCLP, formatDateCLP } from '../utils/formatters.js';
+import { BalanceAnualCard } from '../components/reportes/BalanceAnualCard.jsx';
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -123,7 +124,7 @@ export function ReportesPage() {
           )}
           <h1 style={{ fontSize: '1.625rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.2 }}>Reportes y Delegadas</h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Informe mensual de cuentas de la Asociación. La rendición anual se prepara aparte.
+            Informe mensual de cuentas de la Asociación y Balance Anual en PDF para la asamblea.
           </p>
         </div>
 
@@ -204,6 +205,8 @@ export function ReportesPage() {
           Federación se registran aparte y no descuentan esos fondos.
         </p>
       </Card>
+
+      <BalanceAnualCard anios={anios} anioActual={actual.anio} />
     </div>
   );
 }

@@ -86,7 +86,8 @@ const MATRIZ = [
   ['Auditoría reciente', 'GET', '/dashboard/audit-recent', ['ADMIN', 'PRESIDENTA', 'TESORERA']],
   ['Padrón de socias', 'GET', '/socias?limit=1', ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA']],
   ['Buzón de la directiva', 'GET', '/socia/buzon/admin', ['ADMIN', 'PRESIDENTA', 'SECRETARIA', 'DIRECTORA']],
-  ['Informe mensual', 'GET', '/reportes/mensual?anio=2026&mes=10', ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA', 'DELEGADA']]
+  ['Informe mensual', 'GET', '/reportes/mensual?anio=2026&mes=10', ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA', 'DELEGADA']],
+  ['Balance Anual en PDF', 'GET', '/reportes/anual/pdf?anio=2026', ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA', 'DELEGADA']]
 ];
 
 for (const [descripcion, method, url, permitidos] of MATRIZ) {
@@ -210,6 +211,70 @@ await test('Informe mensual rechaza meses inválidos y exporta Excel', async () 
 });
 
 // ---------------------------------------------------------------------------
+// Balance Anual (V7)
+// ---------------------------------------------------------------------------
+const { ReporteService } = await import('../src/services/reporteService.js');
+
+await test('Balance Anual cuadra con MySQL, excluye anulados y los fondos cierran', async () => {
+  // Un movimiento anulado grande no debe aparecer en ninguna cifra
+  await query(
+    `INSERT INTO movimientos_tesoreria (correlativo, fecha, tipo, centro_costo, categoria, descripcion, metodo, monto, responsable, anulado, motivo_anulacion)
+     VALUES ('MOV-TEST-ANULADO', '2026-06-15', 'INGRESO', 'ASOCIACION', 'ASOCIACION', 'Ingreso anulado de prueba', 'Efectivo', 9999999, 'Prueba', 1, 'Prueba')`
+  );
+  try {
+    const [esperado] = await query(
+      `SELECT COUNT(*) AS cantidad,
+              COALESCE(SUM(CASE WHEN tipo = 'INGRESO' THEN monto END), 0) AS ingresos,
+              COALESCE(SUM(CASE WHEN tipo = 'EGRESO' THEN monto END), 0) AS egresos,
+              COALESCE(SUM(CASE WHEN tipo = 'EGRESO' AND centro_costo = 'FEDERACION' THEN monto END), 0) AS federacion
+       FROM movimientos_tesoreria WHERE tipo <> 'SALDO_APERTURA' AND anulado = 0 AND YEAR(fecha) = 2026`
+    );
+    // Corte al 31-12: el año completo
+    const b = await ReporteService.getBalanceAnual(2026, '2026-12-31');
+    assert.strictEqual(b.enCurso, false);
+    assert.strictEqual(b.meses.length, 12);
+    assert.strictEqual(b.cantidadMovimientos, Number(esperado.cantidad));
+    assert.strictEqual(b.totalIngresos, Number(esperado.ingresos));
+    assert.strictEqual(b.totalEgresos, Number(esperado.egresos));
+    assert.strictEqual(b.pagoFederacion, Number(esperado.federacion));
+
+    // Cada fondo: inicial + ingresos − egresos = final; el total disponible es la suma de ambos
+    for (const f of Object.values(b.fondos)) assert.strictEqual(f.saldoInicial + f.ingresos - f.egresos, f.saldoFinal);
+    assert.strictEqual(b.fondos.asociacion.saldoFinal + b.fondos.cenaAnual.saldoFinal, b.saldoFinal);
+    assert.strictEqual(b.meses[11].saldoAcumulado, b.saldoFinal);
+    // Meses y categorías suman lo mismo que el año
+    assert.strictEqual(b.meses.reduce((s, m) => s + m.ingresos, 0), b.totalIngresos);
+    assert.strictEqual(b.egresosPorCategoria.reduce((s, c) => s + c.monto, 0), b.totalEgresos);
+
+    // Año en curso: corte a la fecha indicada y solo los meses transcurridos
+    const enCurso = await ReporteService.getBalanceAnual(2026, '2026-03-10');
+    assert.strictEqual(enCurso.enCurso, true);
+    assert.strictEqual(enCurso.hasta, '2026-03-10');
+    assert.strictEqual(enCurso.meses.length, 3);
+  } finally {
+    await query("DELETE FROM movimientos_tesoreria WHERE correlativo = 'MOV-TEST-ANULADO'");
+  }
+});
+
+await test('Balance Anual en PDF: archivo válido, auditoría y años inválidos', async () => {
+  const [antes] = await query("SELECT COUNT(*) AS n FROM auditoria WHERE accion = 'BALANCE_ANUAL_PDF'");
+  const pdf = await call('GET', '/reportes/anual/pdf?anio=2026', tokens.DELEGADA);
+  assert.strictEqual(pdf.status, 200);
+  assert.match(pdf.headers.get('content-type'), /application\/pdf/);
+  assert.match(pdf.headers.get('content-disposition'), /balance-anual-2026\.pdf/);
+  assert.strictEqual(Buffer.from(pdf.body).subarray(0, 5).toString(), '%PDF-');
+  const [despues] = await query("SELECT COUNT(*) AS n FROM auditoria WHERE accion = 'BALANCE_ANUAL_PDF'");
+  assert.strictEqual(Number(despues.n), Number(antes.n) + 1);
+
+  for (const anio of ['2019', '2999', 'abc']) {
+    assert.strictEqual((await call('GET', `/reportes/anual/pdf?anio=${anio}`, tokens.TESORERA)).status, 400, anio);
+  }
+  // Sin movimientos registrados hasta ese año
+  assert.strictEqual((await call('GET', '/reportes/anual/pdf?anio=2020', tokens.TESORERA)).status, 404);
+  assert.strictEqual((await call('GET', '/reportes/anual/pdf?anio=2026')).status, 401);
+});
+
+// ---------------------------------------------------------------------------
 // H-017: aislamiento entre socias (A no ve lo de B) y socias fuera de la directiva
 // ---------------------------------------------------------------------------
 const { default: bcrypt } = await import('bcryptjs');
@@ -254,6 +319,7 @@ await test('Una socia no accede a datos de la directiva ni de otras socias', asy
     ['PATCH', `/socia/buzon/${msg.id}/estado`],
     ['GET', '/tesoreria/resumen'],
     ['GET', '/reportes/mensual'],
+    ['GET', '/reportes/anual/pdf'],
     ['GET', '/dashboard/audit-recent']
   ]) {
     const { status } = await call(method, url, sociaA, method === 'PATCH' ? { estado: 'LEIDO' } : undefined);

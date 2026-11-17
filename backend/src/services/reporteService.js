@@ -46,6 +46,85 @@ export const ReporteService = {
   },
 
   /**
+   * Balance anual para la asamblea: resumen del año, por fondo, mes a mes y por categoría.
+   * Usa la misma regla contable que Tesorería (resumirMovimientos) y excluye anulados.
+   * Si el año está en curso, el corte es hoy.
+   * @param {number} anio
+   * @param {string} hoy - YYYY-MM-DD (hora de Chile)
+   */
+  async getBalanceAnual(anio, hoy) {
+    const desde = `${anio}-01-01`;
+    const finAnio = `${anio}-12-31`;
+    const hasta = hoy < finAnio ? hoy : finAnio;
+    const enCurso = hoy < finAnio;
+
+    const hastaCorte = await TreasuryService.listarHasta(hasta);
+    // Saldo inicial: todo lo anterior al año más los asientos de apertura del propio año
+    const inicio = resumirMovimientos(hastaCorte.filter((m) => m.fecha < desde || m.tipo === 'SALDO_APERTURA'));
+    const delAnio = hastaCorte.filter((m) => m.fecha >= desde && m.tipo !== 'SALDO_APERTURA');
+    const anual = resumirMovimientos(delAnio);
+    const cierre = resumirMovimientos(hastaCorte);
+
+    const fondo = (code) => {
+      const ingresos = delAnio.filter((m) => m.tipo === 'INGRESO' && (code === 'ASOCIACION'
+        ? ['ASOCIACION', 'ISI MUNDO COMISION'].includes(m.centroCosto)
+        : m.centroCosto === code));
+      const egresos = delAnio.filter((m) => m.tipo === 'EGRESO' && m.centroCosto === code);
+      const sumar = (l) => l.reduce((s, m) => s + Number(m.monto), 0);
+      const clave = code === 'ASOCIACION' ? 'saldoAsociacion' : 'saldoCenaAnual';
+      return { saldoInicial: inicio[clave], ingresos: sumar(ingresos), egresos: sumar(egresos), saldoFinal: cierre[clave] };
+    };
+
+    const ultimoMes = enCurso ? Number(hoy.slice(5, 7)) : 12;
+    const meses = [];
+    for (let mes = 1; mes <= ultimoMes; mes++) {
+      const fin = `${anio}-${pad(mes)}-${pad(ultimoDiaDelMes(anio, mes))}`;
+      const delMes = resumirMovimientos(delAnio.filter((m) => m.fecha.slice(0, 7) === `${anio}-${pad(mes)}`));
+      meses.push({
+        mes,
+        nombreMes: MESES[mes - 1],
+        ingresos: delMes.totalIngresos,
+        egresos: delMes.totalEgresos,
+        pagoFederacion: delMes.totalPagadoFederacion,
+        saldoAcumulado: resumirMovimientos(hastaCorte.filter((m) => m.fecha <= fin)).saldoTotal
+      });
+    }
+
+    const porCategoria = (tipo) => {
+      const total = tipo === 'INGRESO' ? anual.totalIngresos : anual.totalEgresos;
+      const grupos = new Map();
+      delAnio.filter((m) => m.tipo === tipo).forEach((m) => {
+        const g = grupos.get(m.categoria) || { categoria: m.categoria, monto: 0, cantidad: 0 };
+        g.monto += Number(m.monto);
+        g.cantidad += 1;
+        grupos.set(m.categoria, g);
+      });
+      return [...grupos.values()]
+        .map((g) => ({ ...g, porcentaje: total ? Math.round((g.monto / total) * 1000) / 10 : 0 }))
+        .sort((a, b) => b.monto - a.monto);
+    };
+
+    return {
+      anio,
+      desde,
+      hasta,
+      enCurso,
+      saldoInicial: inicio.saldoTotal,
+      totalIngresos: anual.totalIngresos,
+      totalEgresos: anual.totalEgresos,
+      pagoFederacion: anual.totalPagadoFederacion,
+      comisionIsiMundo: anual.centrosCosto.find((c) => c.code === 'ISI MUNDO COMISION').totalIngresado,
+      saldoFinal: cierre.saldoTotal,
+      fondos: { asociacion: fondo('ASOCIACION'), cenaAnual: fondo('CENA ANUAL') },
+      meses,
+      ingresosPorCategoria: porCategoria('INGRESO'),
+      egresosPorCategoria: porCategoria('EGRESO'),
+      cantidadMovimientos: delAnio.length,
+      hayDatos: hastaCorte.length > 0
+    };
+  },
+
+  /**
    * Planilla Excel del informe mensual
    * @returns {Promise<Buffer>}
    */
