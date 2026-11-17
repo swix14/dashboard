@@ -79,7 +79,7 @@ dashboard/
 | **V4** | **Módulo Independiente de Créditos y Convenios** | Sebastian Victoriano | **Terminado ✓** | Commit `4c1c5dc` (124 tests OK) |
 | **V5** | **Portal de Afiliadas, Primer Ingreso y Buzón Gremial** | Sebastian A. y Braulio P. | **En avance** | Comunicaciones de la directiva, recuperación de clave (`e8abdb7`, `68ede07`) y S.O.S en línea (`ab12830`) |
 | **V6** | **Custodia Documental y Carpeta por Proveedor** | Equipo Técnico | **Pendiente (Equipo)** | Asignado para resolución del equipo |
-| **V7** | **Rendición Formal de Cuentas (PDF) y Portal Delegadas** | Equipo Técnico | **En avance** | Informe mensual con Excel para delegadas (`e8abdb7`); falta el Balance Anual en PDF |
+| **V7** | **Rendición Formal de Cuentas (PDF) y Portal Delegadas** | Equipo Técnico | **En avance** | Informe mensual con Excel para delegadas (`e8abdb7`) y Balance Anual en PDF hechos; faltan las cifras por jardín |
 | **V8** | **Validación Integral E2E y Despliegue Oficial en cPanel** | Equipo Completo | **Pendiente (Equipo)** | Asignado para resolución del equipo |
 
 ```mermaid
@@ -411,10 +411,13 @@ Pedido de la reunión: exportar en Excel lo que se descuenta por planilla, desgl
 > [!NOTE]
 > **Estado:** Pendiente — **Asignado para resolución del equipo**  
 > **Objetivo:** Habilitar la consola exclusiva para las 23 delegadas con cifras consolidadas y generación automática del Balance Anual en PDF para asambleas.  
-> **Avance (17-11-2026):** el informe mensual con exportación a Excel ya existe (`reporteService.js`, `ReportesPage.jsx`) y las delegadas lo ven en modo solo lectura. Ya existe el módulo de PDF institucional (`backend/src/utils/pdf.js`, usado en el resumen de créditos de la socia). **Falta:** el Balance Anual en PDF y las cifras por jardín.
+> **Avance (17-11-2026):** el informe mensual con exportación a Excel ya existe (`reporteService.js`, `ReportesPage.jsx`) y las delegadas lo ven en modo solo lectura. Ya existe el módulo de PDF institucional (`backend/src/utils/pdf.js`, usado en el resumen de créditos de la socia). **Balance Anual en PDF hecho (17-11-2026).** **Falta:** las cifras por jardín.
 
 #### 1. Archivos Involucrados
-- `backend/src/services/reporteService.js`: Informe mensual (hecho) y, pendiente, el Balance Anual en PDF.
+- `backend/src/services/reporteService.js`: Informe mensual y `getBalanceAnual(anio, hoy)` (hechos). El balance usa la misma regla contable de Tesorería (`resumirMovimientos`) y excluye los anulados.
+- `backend/src/services/balancePdfService.js`: PDF del Balance Anual. Incluye el resumen del año (saldo inicial y final, ingresos, egresos, pago a Federación y comisión Isi Mundo), los fondos Asociación y Cena Anual, el movimiento mes a mes con saldo acumulado y los ingresos y egresos por categoría. El año en curso se emite con corte al día de hoy.
+- `GET /api/reportes/anual/pdf?anio=AAAA`: lo descargan la directiva y las delegadas; responde 400 si el año es inválido y 404 si no hay movimientos. Cada descarga queda en la auditoría como `BALANCE_ANUAL_PDF`.
+- `frontend/src/components/reportes/BalanceAnualCard.jsx`: tarjeta en Reportes con selector de año y descarga.
 - `frontend/src/pages/ReportesPage.jsx`: Consola de fiscalización para Delegadas (sin acceso a deudas individuales).
 
 ---
