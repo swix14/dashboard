@@ -797,3 +797,108 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .vtf-profile-trigger { padding: .25rem; }
   .vtf-profile-trigger .vtf-profile-text, .vtf-profile-chevron { display: none; }
 }
+
+/* V4 — Créditos y Convenios */
+/* Series del gráfico: colores validados (daltonismo y contraste) en claro y oscuro */
+:root { --cred-serie-1: #7a4ea3; --cred-serie-2: #b9741c; }
+[data-theme="dark"] { --cred-serie-1: #a678d0; --cred-serie-2: #c07f2a; }
+.cred-page { display: flex; flex-direction: column; gap: 1.5rem; }
+.cred-title { font-size: 1.625rem; font-weight: 800; color: var(--text-main); line-height: 1.2; }
+.cred-subtitle { font-size: .875rem; color: var(--text-muted); margin-top: .25rem; }
+.cred-muted { font-size: .75rem; color: var(--text-muted); }
+.cred-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 1rem; }
+.cred-card { display: flex; flex-direction: column; gap: .375rem; border-top: 3px solid var(--primary-500); min-height: 168px; }
+.cred-card.is-loading { background: var(--bg-surface-subtle); border-top-color: var(--border-light); }
+.cred-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+.cred-card-name { font-size: 1rem; font-weight: 800; color: var(--text-main); letter-spacing: .02em; }
+.cred-card-count { font-size: .6875rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.cred-card-label { font-size: .6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-top: .25rem; }
+.cred-card-amount { font-size: 1.5rem; font-weight: 800; color: var(--text-main); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.cred-card-status { display: inline-flex; align-items: center; gap: .3rem; font-size: .6875rem; font-weight: 600; }
+.cred-card-status.is-ok { color: var(--success-text); }
+.cred-card-status.is-pending { color: var(--warning-text); }
+.cred-card-foot { margin-top: auto; padding-top: .625rem; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: .125rem; font-size: .6875rem; color: var(--text-muted); }
+.cred-card-foot strong { font-size: .8125rem; color: var(--text-main); font-variant-numeric: tabular-nums; }
+.cred-form-row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-end; }
+.cred-form-row .vtf-input { min-width: 130px; }
+.cred-file { position: relative; display: inline-flex; align-items: center; gap: .5rem; min-height: 42px; padding: .5rem .875rem; border: 1px dashed var(--border-light); border-radius: var(--radius-md); color: var(--primary-700); font-size: .8125rem; font-weight: 600; cursor: pointer; background: var(--bg-surface); max-width: 100%; transition: border-color var(--transition-fast), background var(--transition-fast); }
+.cred-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cred-file:hover, .cred-file:focus-within { border-color: var(--primary-500); background: var(--primary-50); }
+.cred-file.has-file { border-style: solid; border-color: var(--success-border); color: var(--success-text); background: var(--success-bg); }
+.cred-file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.cred-file-sm { min-height: 36px; padding: .375rem .75rem; }
+.cred-modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.cred-actions { display: flex; justify-content: flex-end; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+.cred-preview { display: flex; flex-direction: column; gap: 1rem; }
+.cred-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: .625rem; }
+.cred-stat { border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: .625rem .75rem; }
+.cred-stat-value { font-size: 1.375rem; font-weight: 800; color: var(--text-main); font-variant-numeric: tabular-nums; }
+.cred-stat-label { font-size: .6875rem; font-weight: 600; color: var(--text-muted); }
+.cred-warnings { border: 1px solid var(--warning-border); background: var(--warning-bg); color: var(--warning-text); border-radius: var(--radius-md); padding: .625rem .875rem; font-size: .75rem; display: flex; flex-direction: column; gap: .25rem; }
+.cred-warnings p { display: flex; gap: .375rem; align-items: flex-start; margin: 0; }
+.cred-warnings svg { flex-shrink: 0; margin-top: 1px; }
+.cred-details { border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: .625rem .875rem; font-size: .8125rem; }
+.cred-details summary { cursor: pointer; font-weight: 700; color: var(--text-main); }
+.cred-details ul { margin: .5rem 0 0; padding: 0 0 0 1rem; max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: .25rem; color: var(--text-main); }
+.vtf-table th.num, .vtf-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cred-table-compact th, .cred-table-compact td { padding: .5rem .75rem; }
+.cred-verif-head { margin-bottom: 1rem; }
+.cred-verif-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.cred-verif-item { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; padding: .75rem 1rem; border: 1px solid var(--border-light); border-radius: var(--radius-md); }
+.cred-verif-item.is-done { border-left: 3px solid var(--success-text); }
+.cred-verif-main { display: flex; flex-direction: column; gap: .125rem; min-width: 0; }
+.cred-verif-main strong { font-size: .9375rem; color: var(--text-main); }
+.cred-verif-side { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.cred-filters { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, minmax(140px, 200px)); gap: 1rem; align-items: end; margin-bottom: 1.25rem; }
+.cred-search-box { position: relative; }
+.cred-search-box svg { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+.cred-search-box .vtf-input { padding-left: 2.25rem; width: 100%; }
+.cred-row { cursor: pointer; }
+.cred-row:focus-visible td { outline: 2px solid var(--primary-500); outline-offset: -2px; }
+.cred-row-name { font-weight: 600; }
+.cred-empty { text-align: center; color: var(--text-muted); padding: 2rem 1rem !important; }
+.cred-progress { display: inline-block; width: 48px; height: 6px; margin-right: .5rem; vertical-align: middle; border-radius: var(--radius-full); background: var(--border-light); overflow: hidden; }
+.cred-progress span { display: block; height: 100%; border-radius: var(--radius-full); background: var(--cred-serie-1); }
+.cred-pagination { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+.cred-pagination > div { display: flex; align-items: center; gap: .625rem; }
+.cred-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .875rem 1rem; margin: 0; }
+.cred-dato dt { font-size: .6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.cred-dato dd { margin: .2rem 0 0; font-size: .9375rem; font-weight: 600; color: var(--text-main); font-variant-numeric: tabular-nums; }
+.cred-cuotas { max-height: 300px; overflow-y: auto; }
+.cred-view-toggle { display: inline-flex; border: 1px solid var(--border-light); border-radius: var(--radius-md); overflow: hidden; }
+.cred-view-toggle button { display: inline-flex; align-items: center; gap: .3rem; padding: .375rem .625rem; border: 0; background: transparent; color: var(--text-muted); font: inherit; font-size: .75rem; font-weight: 600; cursor: pointer; }
+.cred-view-toggle button[aria-pressed="true"] { background: var(--primary-50); color: var(--primary-700); }
+.cred-view-toggle button:focus-visible { outline: 2px solid var(--primary-500); outline-offset: -2px; }
+.cred-chart { position: relative; }
+.cred-legend { list-style: none; display: flex; gap: 1.25rem; flex-wrap: wrap; margin: 0 0 1rem; padding: 0; font-size: .75rem; color: var(--text-muted); font-weight: 600; }
+.cred-legend li { display: inline-flex; align-items: center; gap: .375rem; }
+.cred-legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+.cred-bars { display: flex; flex-direction: column; gap: .875rem; }
+.cred-bar-row { display: grid; grid-template-columns: 90px 1fr; gap: .75rem; align-items: center; }
+.cred-bar-label { font-size: .8125rem; font-weight: 600; color: var(--text-main); }
+.cred-bar-track { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.cred-bar { display: flex; gap: 2px; height: 20px; min-width: 4px; }
+.cred-bar-seg { height: 100%; min-width: 4px; flex-basis: 0; }
+.cred-bar-seg:last-child { border-radius: 0 4px 4px 0; }
+.cred-bar-seg:hover { filter: brightness(1.12); }
+.cred-bar-value { font-size: .8125rem; font-weight: 700; color: var(--text-main); font-variant-numeric: tabular-nums; }
+.cred-tooltip { position: absolute; transform: translate(-50%, calc(-100% - 8px)); display: flex; align-items: center; gap: .375rem; padding: .375rem .625rem; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); font-size: .75rem; color: var(--text-main); white-space: nowrap; pointer-events: none; z-index: 5; }
+@media (max-width: 760px) {
+  .cred-filters { grid-template-columns: 1fr 1fr; }
+  .cred-search { grid-column: 1 / -1; }
+  .cred-bar-row { grid-template-columns: 70px 1fr; }
+  .cred-pagination { justify-content: center; }
+}
+/* Historial de créditos en móvil: cada crédito como tarjeta (sin scroll horizontal) */
+@media (max-width: 640px) {
+  .cred-hist-table thead { display: none; }
+  .cred-hist-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .25rem .75rem; padding: .875rem 1rem; border-bottom: 1px solid var(--border-subtle); }
+  .cred-hist-table tbody tr:last-child { border-bottom: 0; }
+  .cred-hist-table tbody td { padding: 0; border: 0; }
+  .cred-hist-table tbody td:nth-child(1) { grid-column: 1; grid-row: 1; }
+  .cred-hist-table tbody td:nth-child(3) { grid-column: 2; grid-row: 1; justify-self: end; align-self: start; }
+  .cred-hist-table tbody td:nth-child(2) { grid-column: 1; grid-row: 2; font-size: .75rem; color: var(--text-muted); }
+  .cred-hist-table tbody td:nth-child(4) { grid-column: 2; grid-row: 2; }
+  .cred-hist-table tbody td:nth-child(5) { grid-column: 1 / -1; grid-row: 3; text-align: left; }
+  .cred-hist-table tbody td.cred-empty { grid-column: 1 / -1; }
+}

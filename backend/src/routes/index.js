@@ -5,6 +5,7 @@ import treasuryRoutes from './treasuryRoutes.js';
 import sociaRoutes from './sociaRoutes.js';
 import sociaPortalRoutes from './sociaPortalRoutes.js';
 import reporteRoutes from './reporteRoutes.js';
+import creditRoutes from './creditRoutes.js';
 import { requireDatabase } from '../middlewares/databaseMiddleware.js';
 import { getDatabaseStatus, waitForDatabase } from '../config/db.js';
 
@@ -28,5 +29,6 @@ router.use('/tesoreria', treasuryRoutes);
 router.use('/socias', sociaRoutes);
 router.use('/socia', sociaPortalRoutes);
 router.use('/reportes', reporteRoutes);
+router.use('/creditos', creditRoutes);
 
 export default router;

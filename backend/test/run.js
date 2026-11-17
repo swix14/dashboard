@@ -32,6 +32,7 @@ const SUITES = [
   'authTest.js',
   'sociasTest.js',
   'padronImportTest.js',
+  'creditosTest.js',
   'comprobantesTest.js',
   'treasuryPersistenceTest.js',
   'sociaPortalTest.js',

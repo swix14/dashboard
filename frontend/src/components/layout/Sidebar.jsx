@@ -8,6 +8,7 @@ import {
   FileSpreadsheet,
   ShieldAlert,
   Megaphone,
+  CreditCard,
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -21,7 +22,8 @@ export function Sidebar({ isOpen, onClose }) {
   const navItems = [
     { to: '/dashboard', label: 'Inicio Institucional', icon: LayoutDashboard, allowed: true },
     { to: '/tesoreria', label: 'Tesorería y Fondos', icon: DollarSign, allowed: puedeAcceder(roleCode, 'TESORERIA') },
-    { to: '/socias', label: 'Socias y Créditos', icon: Users, allowed: puedeAcceder(roleCode, 'SOCIAS') },
+    { to: '/socias', label: 'Padrón de Socias', icon: Users, allowed: puedeAcceder(roleCode, 'SOCIAS') },
+    { to: '/creditos', label: 'Créditos y Convenios', icon: CreditCard, allowed: puedeAcceder(roleCode, 'CREDITOS') },
     { to: '/comunicaciones', label: 'Noticias y Buzón', icon: Megaphone, allowed: puedeAcceder(roleCode, 'COMUNICACIONES') },
     { to: '/documentos', label: 'Gestión Documental', icon: FolderOpen, allowed: puedeAcceder(roleCode, 'DOCUMENTOS') },
     { to: '/reportes', label: 'Reportes y Delegadas', icon: FileSpreadsheet, allowed: puedeAcceder(roleCode, 'REPORTES') },

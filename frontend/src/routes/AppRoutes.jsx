@@ -14,6 +14,7 @@ import { TreasuryPage } from '../pages/TreasuryPage.jsx';
 import { SociasPage } from '../pages/SociasPage.jsx';
 import { ComunicacionesPage } from '../pages/ComunicacionesPage.jsx';
 import { ReportesPage } from '../pages/ReportesPage.jsx';
+import { CreditosPage } from '../pages/CreditosPage.jsx';
 import { ROLES_ACCESO } from '../utils/permissions.js';
 
 export function AppRoutes() {
@@ -80,7 +81,15 @@ export function AppRoutes() {
           }
         />
         <Route path="jardines" element={<Navigate to="/socias" replace />} />
-        <Route path="creditos" element={<Navigate to="/socias" replace />} />
+        {/* V4 — Créditos y Convenios (Admin, Presidenta y Tesorera) */}
+        <Route
+          path="creditos"
+          element={
+            <ProtectedRoute allowedRoles={ROLES_ACCESO.CREDITOS}>
+              <CreditosPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* V4 — Gestión Documental y Convenios */}
         <Route

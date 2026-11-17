@@ -6,6 +6,9 @@
  *  - Secretaria: Inicio (sin finanzas), Socias (solo ficha personal), Comunicaciones y Reportes.
  *  - Directora: los mismos permisos que la Secretaria.
  *  - Delegadas: solo vista de Reportes (informe mensual).
+ *
+ * V4 (18-11-2026): Créditos y Convenios lo ven Admin, Presidenta (solo lectura) y Tesorera;
+ * solo Admin y Tesorera cargan la planilla del día 18 y verifican los pagos.
  */
 export const ROLES_ACCESO = {
   TESORERIA: ['ADMIN', 'PRESIDENTA', 'TESORERA'],
@@ -13,6 +16,8 @@ export const ROLES_ACCESO = {
   SOCIAS: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA'],
   SOCIAS_MODIFICAR: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA'],
   FICHA_CREDITO: ['ADMIN', 'PRESIDENTA', 'TESORERA'],
+  CREDITOS: ['ADMIN', 'PRESIDENTA', 'TESORERA'],
+  CREDITOS_GESTIONAR: ['ADMIN', 'TESORERA'],
   COMUNICACIONES: ['ADMIN', 'PRESIDENTA', 'SECRETARIA', 'DIRECTORA'],
   DOCUMENTOS: ['ADMIN', 'PRESIDENTA', 'TESORERA'],
   REPORTES: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA', 'DELEGADA'],

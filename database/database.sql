@@ -93,9 +93,12 @@ CREATE TABLE IF NOT EXISTS `cargas_padron` (
 -- 2. Tabla de Convenios / Proveedores
 CREATE TABLE IF NOT EXISTS `convenios` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
+    -- Código fijo = nombre de la hoja en la planilla Maestra Créditos (SOS, ISIMUNDO, OPTICA, DENTAL, ABOGADA)
+    `codigo` VARCHAR(20) NULL UNIQUE,
     `nombre` VARCHAR(100) NOT NULL UNIQUE, -- 'SOS', 'ISIMUNDO', 'Óptica', etc.
     `descripcion` TEXT NULL,
-    `activo` TINYINT(1) DEFAULT 1
+    `activo` TINYINT(1) DEFAULT 1,
+    `orden` INT NOT NULL DEFAULT 0
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 3. Tabla de Créditos / Préstamos otorgados
@@ -115,7 +118,12 @@ CREATE TABLE IF NOT EXISTS `creditos` (
         'finalizado',
         'anulado'
     ) DEFAULT 'vigente',
+    -- Identificador dentro de la planilla (ISIMUNDO: N° de crédito; resto: mes de la primera cuota AAAA-MM)
+    `clave_carga` VARCHAR(40) NULL,
+    -- Un crédito pagado deja de mostrarse un mes después de esta fecha (decisión D4)
+    `fecha_finalizacion` DATE NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_creditos_carga` (`socia_id`, `convenio_id`, `clave_carga`),
     -- RESTRICT: una socia con créditos no se puede borrar físicamente (se usa la baja RETIRADA)
     CONSTRAINT `fk_creditos_socias` FOREIGN KEY (`socia_id`) REFERENCES `socias` (`id`) ON DELETE RESTRICT,
     CONSTRAINT `fk_creditos_convenios` FOREIGN KEY (`convenio_id`) REFERENCES `convenios` (`id`)
@@ -135,7 +143,46 @@ CREATE TABLE IF NOT EXISTS `cuotas_credito` (
         'condonada'
     ) DEFAULT 'pendiente',
     `fecha_pago` DATE NULL,
+    INDEX `idx_cuotas_periodo` (`anio_cobro`, `mes_cobro`, `estado`),
     CONSTRAINT `fk_cuotas_credito` FOREIGN KEY (`credito_id`) REFERENCES `creditos` (`id`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 4b. Cargas de la planilla Maestra Créditos (día 18). Cada archivo se conserva, nunca se sobrescribe.
+CREATE TABLE IF NOT EXISTS `cargas_creditos` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `mes` INT NOT NULL,
+    `anio` INT NOT NULL,
+    `archivo_original` VARCHAR(255) NOT NULL,
+    `archivo_guardado` VARCHAR(255) NOT NULL,
+    `subido_por` VARCHAR(150) NOT NULL,
+    `creditos_nuevos` INT NOT NULL DEFAULT 0,
+    `creditos_actualizados` INT NOT NULL DEFAULT 0,
+    `sin_cambios` INT NOT NULL DEFAULT 0,
+    `con_error` INT NOT NULL DEFAULT 0,
+    `detalle` LONGTEXT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_cargas_creditos_periodo` (`anio`, `mes`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- 4c. Pago mensual a cada empresa: monto a pagar (planilla del 18) y pago verificado con comprobante (días 1 al 5)
+CREATE TABLE IF NOT EXISTS `pagos_convenio` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `convenio_id` INT NOT NULL,
+    `mes` INT NOT NULL,
+    `anio` INT NOT NULL,
+    `monto_a_pagar` INT NOT NULL DEFAULT 0,
+    `carga_id` INT NULL,
+    `monto_pagado` INT NULL,
+    `cuotas_descontadas` INT NULL,
+    `comprobante_original` VARCHAR(255) NULL,
+    `comprobante_guardado` VARCHAR(255) NULL,
+    `comprobante_mime` VARCHAR(100) NULL,
+    `verificado_por` VARCHAR(150) NULL,
+    `verificado_at` DATETIME NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_pago_convenio_periodo` (`convenio_id`, `anio`, `mes`),
+    CONSTRAINT `fk_pagos_convenio` FOREIGN KEY (`convenio_id`) REFERENCES `convenios` (`id`),
+    CONSTRAINT `fk_pagos_carga` FOREIGN KEY (`carga_id`) REFERENCES `cargas_creditos` (`id`) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 5. Cabecera de Rendición / Descuento Mensual por Socia

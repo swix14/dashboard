@@ -13,15 +13,14 @@
  *  - Una socia RETIRADA que reaparece se lista para revisión; su estado no cambia solo.
  */
 import fs from 'node:fs';
-import path from 'node:path';
 import ExcelJS from 'exceljs';
 import { revisarContenedorXlsx } from '../utils/xlsxGuard.js';
 import { query, withTransaction } from '../config/db.js';
-import { env } from '../config/env.js';
 import { validateRut, formatRutWithDots } from '../utils/rutValidator.js';
 import { cleanRut, normalizeCargo, normalizeCelular, normalizeName, normalizeText } from '../utils/sociaFormat.js';
 import { SociaError } from './sociaService.js';
 import { hoyChile } from '../utils/fecha.js';
+import { guardarArchivoHistorico } from '../utils/archivoHistorico.js';
 
 // Topes de la planilla mensual (auditoría H-016)
 const PLANILLA_MAX_FILAS = 5000;
@@ -309,25 +308,9 @@ function toPreview(resultado, archivo) {
 }
 
 function guardarArchivo(buffer, originalName) {
-  const now = new Date();
-  const [yyyy, mm, dd] = hoyChile(now).split('-');
-  const hora = now.toLocaleTimeString('en-GB', { timeZone: 'America/Santiago', hour12: false }).replace(/:/g, '');
-  const stamp = `${yyyy}-${mm}-${dd}_${hora}`;
-  const base = path.basename(originalName || 'planilla.xlsx').replace(/[^\w.\-]+/g, '_').slice(-80);
-  const dir = path.join(env.UPLOADS_DIR, 'padron', yyyy, mm);
-  fs.mkdirSync(dir, { recursive: true });
-  // 'wx' nunca sobrescribe: si ya hay una planilla con ese nombre en el mismo segundo, se numera
-  for (let n = 1; n < 1000; n++) {
-    const name = n === 1 ? `${stamp}_${base}` : `${stamp}_${n}_${base}`;
-    const absolute = path.join(dir, name);
-    try {
-      fs.writeFileSync(absolute, buffer, { flag: 'wx' });
-      return { relative: ['padron', yyyy, mm, name].join('/'), absolute };
-    } catch (err) {
-      if (err.code !== 'EEXIST') throw err;
-    }
-  }
-  throw new Error('No se pudo guardar la planilla: demasiadas cargas en el mismo segundo.');
+  // Carpeta del mes en curso (hora de Chile); nunca sobrescribe una planilla anterior
+  const [yyyy, mm] = hoyChile().split('-');
+  return guardarArchivoHistorico(buffer, ['padron', yyyy, mm], originalName || 'planilla.xlsx');
 }
 
 export const PadronImportService = {

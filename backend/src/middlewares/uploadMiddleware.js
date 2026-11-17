@@ -138,6 +138,51 @@ export function uploadPlanilla(fieldName = 'planilla') {
 }
 
 /**
+ * Comprobantes de pago de varias empresas en un solo envío (un campo por empresa: comprobante_SOS, ...).
+ * Se leen en memoria y se validan por su firma; el servicio los guarda en su carpeta histórica.
+ * @param {string[]} codigos - códigos de empresa aceptados
+ */
+export function uploadComprobantesEmpresas(codigos) {
+  const handler = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: MAX_FILE_SIZE_MB * 1024 * 1024, files: codigos.length },
+    fileFilter: (req, file, cb) => {
+      if (!ALLOWED_TYPES[file.mimetype]) {
+        return cb(new Error('Formato de comprobante no permitido. Use PDF, JPG, PNG o WEBP.'));
+      }
+      cb(null, true);
+    }
+  }).fields(codigos.map((c) => ({ name: `comprobante_${c}`, maxCount: 1 })));
+
+  return (req, res, next) => {
+    handler(req, res, (err) => {
+      if (err) {
+        const message =
+          err.code === 'LIMIT_FILE_SIZE'
+            ? `Cada comprobante puede pesar como máximo ${MAX_FILE_SIZE_MB} MB.`
+            : err.code === 'LIMIT_UNEXPECTED_FILE'
+              ? 'Comprobante de una empresa desconocida.'
+              : err.message;
+        return res.status(400).json({ success: false, message });
+      }
+      const porEmpresa = {};
+      for (const [campo, files] of Object.entries(req.files || {})) {
+        const file = files[0];
+        if (!contenidoCoincide(file.buffer.subarray(0, 16), file.mimetype)) {
+          return res.status(400).json({
+            success: false,
+            message: `El comprobante de ${campo.replace('comprobante_', '')} no es un PDF, JPG, PNG o WEBP válido.`
+          });
+        }
+        porEmpresa[campo.replace('comprobante_', '')] = file;
+      }
+      req.comprobantes = porEmpresa;
+      return next();
+    });
+  };
+}
+
+/**
  * Elimina un archivo subido cuando la operación asociada no se completa.
  */
 export function discardUploadedFile(file) {

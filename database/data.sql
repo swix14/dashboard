@@ -12,12 +12,12 @@ SET CHARACTER SET utf8mb4;
 -- ============================================================================
 -- 1. CARGA DE CONVENIOS (5 REGISTROS)
 -- ============================================================================
-INSERT INTO `convenios` (`id`, `nombre`, `descripcion`, `activo`) VALUES
-(1, 'SOS', 'Convenio préstamo / descuento SOS', 1),
-(2, 'ISIMUNDO', 'Convenio créditos ISIMUNDO', 1),
-(3, 'Óptica', 'Convenio Óptica', 1),
-(4, 'Dental', 'Convenio Dental', 1),
-(5, 'Abogada', 'Convenio asesoría legal / Abogada', 1);
+INSERT INTO `convenios` (`id`, `codigo`, `nombre`, `descripcion`, `activo`, `orden`) VALUES
+(1, 'SOS', 'SOS', 'Convenio préstamo / descuento SOS', 1, 1),
+(2, 'ISIMUNDO', 'ISIMUNDO', 'Convenio créditos ISIMUNDO', 1, 2),
+(3, 'OPTICA', 'Óptica', 'Convenio Óptica', 1, 3),
+(4, 'DENTAL', 'Dental', 'Convenio Dental', 1, 4),
+(5, 'ABOGADA', 'Abogada', 'Convenio asesoría legal / Abogada', 1, 5);
 
 -- ============================================================================
 -- 1b. CATÁLOGO DE JARDINES VTF (23 ESTABLECIMIENTOS)
@@ -488,6 +488,10 @@ INSERT INTO `creditos` (`id`, `socia_id`, `convenio_id`, `numero_credito`, `mont
 -- ============================================================================
 -- 4. CARGA DE CUOTAS PROGRAMADAS (313 REGISTROS)
 -- ============================================================================
+-- Identificador de cada crédito en la planilla Maestra Créditos (V4) y fecha de pago de los finalizados
+UPDATE `creditos` SET `clave_carga` = COALESCE(`numero_credito`, DATE_FORMAT(`fecha_otorgamiento`, '%Y-%m'));
+UPDATE `creditos` SET `fecha_finalizacion` = `fecha_termino` WHERE `estado` = 'finalizado';
+
 INSERT INTO `cuotas_credito` (`credito_id`, `numero_cuota`, `monto`, `mes_cobro`, `anio_cobro`, `estado`, `fecha_pago`) VALUES
 (1, 1, 25000, 9, 2026, 'descontada', NULL),
 (1, 2, 58333, 10, 2026, 'descontada', NULL),
