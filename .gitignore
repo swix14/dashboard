@@ -46,3 +46,5 @@ backend/uploads/*
 *.sw?
 .DS_Store
 Thumbs.db
+# Archivos temporales de Office (se crean mientras un documento está abierto)
+~$*
