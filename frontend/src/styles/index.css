@@ -1324,3 +1324,51 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (max-width: 380px) {
   .sp-brand-tag { display: none; }
 }
+/* ============================================================
+   Tesorería: comprobante con cámara en celular y lectura del monto
+   ============================================================ */
+.mov-fila-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.cmp { display: flex; flex-direction: column; gap: .375rem; }
+.cmp-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+.cmp-label { font-size: .75rem; font-weight: 700; color: var(--text-muted); }
+.cmp-obligatorio { font-size: .6875rem; font-weight: 700; color: var(--error-text); text-transform: uppercase; }
+.cmp-fila { display: flex; gap: .5rem; align-items: stretch; }
+.cmp-archivo { flex: 1; min-width: 0; display: flex; align-items: center; gap: .5rem; background: var(--bg-surface-subtle); }
+.cmp-archivo > svg { flex-shrink: 0; color: var(--primary-600); }
+.cmp-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.cmp-peso { flex-shrink: 0; font-size: .6875rem; color: var(--text-muted); }
+.cmp-vacio { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .8125rem; color: var(--text-muted); }
+.cmp-quitar { display: grid; place-items: center; flex-shrink: 0; width: 26px; height: 26px; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; }
+.cmp-quitar:hover { background: var(--error-bg); color: var(--error-text); }
+.cmp-botones { display: flex; gap: .5rem; flex-shrink: 0; }
+.cmp-btn { display: inline-flex; align-items: center; justify-content: center; gap: .375rem; padding: .5rem .875rem; border: 1px solid var(--sand-300); border-radius: var(--radius-md); background: var(--sand-100); color: var(--sand-700); font: inherit; font-size: .75rem; font-weight: 700; white-space: nowrap; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.cmp-btn:hover { border-color: var(--sand-700); }
+.cmp-btn:focus-visible, .cmp-quitar:focus-visible { outline: 2px solid var(--primary-500); outline-offset: 2px; }
+.cmp-btn-camara { display: none; background: var(--primary-500); border-color: var(--primary-500); color: var(--on-primary, #fff); }
+.cmp-btn-camara:hover { border-color: var(--primary-700); }
+.cmp-txt-movil { display: none; }
+/* Pantalla táctil (celular o tablet): cámara directa + subir desde galería o archivos */
+@media (pointer: coarse) {
+  .cmp-btn-camara { display: inline-flex; }
+  .cmp-txt-pc { display: none; }
+  .cmp-txt-movil { display: inline; }
+  .cmp-btn { padding: .625rem .875rem; font-size: .8125rem; }
+}
+@media (max-width: 520px) {
+  .cmp-fila { flex-direction: column; }
+  .cmp-botones > .cmp-btn { flex: 1; }
+  .mov-fila-2 { grid-template-columns: minmax(0, 1fr); gap: .875rem; }
+}
+
+.mov-lectura { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: -.25rem 0 0; padding: .625rem .875rem; border-radius: var(--radius-md); font-size: .8125rem; line-height: 1.4; animation: fadeIn .2s ease; }
+.mov-lectura > svg { flex-shrink: 0; }
+.mov-lectura > span { flex: 1; min-width: 12rem; }
+.mov-lectura.is-leyendo { background: var(--bg-surface-subtle); border: 1px solid var(--border-light); color: var(--text-muted); }
+.mov-lectura.is-leido { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-text); }
+.mov-lectura.is-sugerencia { background: var(--info-bg); border: 1px solid var(--info-border); color: var(--info-text); }
+.mov-lectura.is-sinMonto, .mov-lectura.is-error { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning-text); }
+.mov-lectura-usar { padding: .3rem .75rem; border: 1px solid currentColor; border-radius: var(--radius-full); background: var(--bg-surface); color: inherit; font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer; }
+.mov-lectura-usar:focus-visible { outline: 2px solid var(--primary-500); outline-offset: 2px; }
+.mov-lectura-spin { animation: mov-giro 1s linear infinite; }
+@keyframes mov-giro { to { transform: rotate(360deg); } }
+.vtf-input.mov-monto-leido { border-color: var(--success-border); box-shadow: 0 0 0 3px var(--success-bg); }

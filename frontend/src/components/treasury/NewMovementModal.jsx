@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { AlertCircle, FileText, Upload, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { AlertCircle, Loader2, ScanText, Sparkles } from 'lucide-react';
 import { Modal } from '../common/Modal.jsx';
 import { Button } from '../common/Button.jsx';
+import { ComprobanteInput, COMPROBANTE_MAX_MB, COMPROBANTE_TIPOS } from './ComprobanteInput.jsx';
 import { TreasuryApiService } from '../../services/treasuryService.js';
-import { formatFileSize } from '../../utils/formatters.js';
+import { leerMontoComprobante } from '../../services/lectorComprobante.js';
+import { comprimirImagen } from '../../utils/comprimirImagen.js';
+import { formatCurrencyCLP } from '../../utils/formatters.js';
 
-const COMPROBANTE_MAX_MB = 5;
-const COMPROBANTE_TIPOS = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+// Estado de la lectura del monto del comprobante: idle | leyendo | leido (se llenó el campo) |
+// sugerencia (ya había un monto escrito) | sinMonto | error
+const LECTURA_INICIAL = { estado: 'idle', monto: null };
 
 // Fecha de hoy en Chile al abrir el modal (toISOString usa UTC: desde las 21:00 daba el día siguiente)
 const hoyChile = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
@@ -23,6 +27,60 @@ const initialForm = () => ({
 
 const DESCRIPCION_FEDERACION = 'Cuota Federación Nacional VTF';
 
+/** Aviso bajo el monto con el resultado de la lectura del comprobante */
+function LecturaMonto({ lectura, montoActual, onUsar }) {
+  if (lectura.estado === 'idle') return null;
+  const valor = lectura.monto ? formatCurrencyCLP(lectura.monto) : '';
+  // Si la tesorera cambió el monto leído, se le ofrece volver a usarlo
+  const estado = lectura.estado === 'leido' && String(lectura.monto) !== String(montoActual) ? 'sugerencia' : lectura.estado;
+
+  const contenido = {
+    leyendo: (
+      <>
+        <Loader2 size={15} className="mov-lectura-spin" aria-hidden="true" />
+        <span>Leyendo el monto del comprobante… puede seguir completando el formulario.</span>
+      </>
+    ),
+    leido: (
+      <>
+        <Sparkles size={15} aria-hidden="true" />
+        <span>
+          Monto leído del comprobante: <strong>{valor}</strong>. Revíselo antes de guardar.
+        </span>
+      </>
+    ),
+    sugerencia: (
+      <>
+        <ScanText size={15} aria-hidden="true" />
+        <span>
+          El comprobante dice <strong>{valor}</strong>.
+        </span>
+        <button type="button" className="mov-lectura-usar" onClick={onUsar}>
+          Usar {valor}
+        </button>
+      </>
+    ),
+    sinMonto: (
+      <>
+        <AlertCircle size={15} aria-hidden="true" />
+        <span>No se encontró el monto en el comprobante. Ingréselo a mano.</span>
+      </>
+    ),
+    error: (
+      <>
+        <AlertCircle size={15} aria-hidden="true" />
+        <span>No se pudo leer el comprobante. Ingrese el monto a mano.</span>
+      </>
+    )
+  }[estado];
+
+  return (
+    <p id="mov-monto-lectura" className={`mov-lectura is-${estado}`} role="status" aria-live="polite">
+      {contenido}
+    </p>
+  );
+}
+
 /** Pestaña que corresponde a un movimiento existente */
 const tabDe = (mov) => (mov.centroCosto === 'FEDERACION' ? 'FEDERACION' : mov.tipo);
 
@@ -37,11 +95,19 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
   const [formData, setFormData] = useState(initialForm);
   const [formError, setFormError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lectura, setLectura] = useState(LECTURA_INICIAL);
+  // Cada archivo nuevo invalida la lectura anterior (si la tesorera cambia de archivo a mitad)
+  const lecturaId = useRef(0);
+  // Monto vigente al terminar la lectura (el closure de leerMonto quedaría desactualizado)
+  const montoActual = useRef('');
+  montoActual.current = formData.monto;
 
   // Al abrir en modo edición se cargan los datos del movimiento
   useEffect(() => {
     if (!isOpen) return;
     setFormError(null);
+    lecturaId.current += 1;
+    setLectura(LECTURA_INICIAL);
     if (movement) {
       setModalTab(tabDe(movement));
       setFormData({
@@ -92,15 +158,38 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
     }
   };
 
-  const handleFileSelected = (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  // Lee el monto en segundo plano: nunca bloquea el formulario ni guarda nada por sí sola
+  const leerMonto = async (file) => {
+    const id = ++lecturaId.current;
+    setLectura({ estado: 'leyendo', monto: null });
+    try {
+      const resultado = await leerMontoComprobante(file);
+      if (id !== lecturaId.current) return; // llegó otro archivo o se quitó este
+      if (!resultado) {
+        setLectura({ estado: 'sinMonto', monto: null });
+        return;
+      }
+      // Solo se llena si el campo está vacío: lo escrito a mano no se pisa
+      if (String(montoActual.current ?? '').trim()) {
+        setLectura({ estado: 'sugerencia', monto: resultado.monto });
+      } else {
+        setFormData((prev) => ({ ...prev, monto: String(resultado.monto) }));
+        setLectura({ estado: 'leido', monto: resultado.monto });
+      }
+    } catch (err) {
+      if (id !== lecturaId.current) return;
+      console.warn('No se pudo leer el comprobante:', err);
+      setLectura({ estado: 'error', monto: null });
+    }
+  };
 
-    if (!COMPROBANTE_TIPOS.includes(file.type)) {
+  const handleFileSelected = async (original) => {
+    if (!COMPROBANTE_TIPOS.includes(original.type)) {
       setFormError('Formato de comprobante no permitido. Use PDF, JPG, PNG o WEBP.');
       return;
     }
+    // Las fotos del celular se achican antes de validar el tamaño
+    const file = await comprimirImagen(original);
     if (file.size > COMPROBANTE_MAX_MB * 1024 * 1024) {
       setFormError(`El comprobante supera el tamaño máximo de ${COMPROBANTE_MAX_MB} MB.`);
       return;
@@ -108,6 +197,18 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
 
     setFormError(null);
     setFormData((prev) => ({ ...prev, archivoComprobante: file }));
+    leerMonto(file);
+  };
+
+  const quitarComprobante = () => {
+    lecturaId.current += 1;
+    setLectura(LECTURA_INICIAL);
+    setFormData((prev) => ({ ...prev, archivoComprobante: null }));
+  };
+
+  const usarMontoLeido = () => {
+    setFormData((prev) => ({ ...prev, monto: String(lectura.monto) }));
+    setLectura((l) => ({ ...l, estado: 'leido' }));
   };
 
   const handleSubmit = async (e) => {
@@ -270,8 +371,23 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
           </div>
         )}
 
+        {/* Comprobante primero: al adjuntarlo se lee el monto y se propone abajo */}
+        <ComprobanteInput
+          archivo={formData.archivoComprobante}
+          onSeleccion={handleFileSelected}
+          onQuitar={quitarComprobante}
+          obligatorio={modalTab !== 'INGRESO'}
+          vacio={
+            editing && movement.comprobante
+              ? `Se mantiene: ${movement.comprobante} (adjunte otro para reemplazarlo)`
+              : modalTab === 'INGRESO'
+                ? 'Sin archivo (opcional para ingresos)'
+                : `PDF, JPG, PNG o WEBP (máx. ${COMPROBANTE_MAX_MB} MB)`
+          }
+        />
+
         {/* Fila Fecha y Monto */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div className="mov-fila-2">
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
               Fecha del Movimiento
@@ -286,20 +402,24 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
+            <label htmlFor="mov-monto" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
               Monto (CLP)
             </label>
             <input
+              id="mov-monto"
               type="number"
+              inputMode="numeric"
               required
               min="1"
               placeholder="Ej: 280000"
               value={formData.monto}
               onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-              className="vtf-input"
+              className={`vtf-input${lectura.estado === 'leido' && String(lectura.monto) === formData.monto ? ' mov-monto-leido' : ''}`}
+              aria-describedby={lectura.estado !== 'idle' ? 'mov-monto-lectura' : undefined}
             />
           </div>
         </div>
+        <LecturaMonto lectura={lectura} montoActual={formData.monto} onUsar={usarMontoLeido} />
 
         {/* Categoría y Centro de Costo según Pestaña */}
         {modalTab === 'INGRESO' && (
@@ -386,88 +506,6 @@ export function NewMovementModal({ isOpen, onClose, onSuccess, user, movement = 
             className="vtf-input"
             style={{ resize: 'vertical' }}
           />
-        </div>
-
-        {/* Comprobante de Respaldo */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.375rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-              Comprobante de Respaldo
-            </label>
-            {modalTab !== 'INGRESO' && (
-              <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--error-text)' }}>
-                * OBLIGATORIO PARA EGRESOS
-              </span>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
-            <div
-              className="vtf-input"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'var(--bg-surface-subtle)'
-              }}
-            >
-              {formData.archivoComprobante ? (
-                <>
-                  <FileText size={15} style={{ flexShrink: 0, color: 'var(--primary-600)' }} />
-                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                    {formData.archivoComprobante.name}
-                  </span>
-                  <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                    {formatFileSize(formData.archivoComprobante.size)}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label="Quitar archivo"
-                    onClick={() => setFormData({ ...formData, archivoComprobante: null })}
-                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}
-                  >
-                    <X size={15} />
-                  </button>
-                </>
-              ) : editing && movement.comprobante ? (
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  Se mantiene: {movement.comprobante} (adjunte otro para reemplazarlo)
-                </span>
-              ) : (
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-                  {modalTab === 'INGRESO'
-                    ? 'Sin archivo (opcional para ingresos)'
-                    : `Adjunte PDF, JPG, PNG o WEBP (máx. ${COMPROBANTE_MAX_MB} MB)`}
-                </span>
-              )}
-            </div>
-            <label
-              style={{
-                padding: '0.5rem 0.875rem',
-                backgroundColor: 'var(--sand-100)',
-                border: '1px solid var(--sand-300)',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color: 'var(--sand-700)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <Upload size={14} /> Adjuntar
-              <input
-                type="file"
-                accept={COMPROBANTE_TIPOS.join(',')}
-                style={{ display: 'none' }}
-                onChange={handleFileSelected}
-              />
-            </label>
-          </div>
         </div>
 
         {/* Responsable según sesión */}

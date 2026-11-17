@@ -24,7 +24,19 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 // Middlewares de seguridad y observabilidad
-app.use(helmet());
+// CSP por defecto de helmet + 'wasm-unsafe-eval': el lector de comprobantes (OCR) usa
+// WebAssembly. Solo habilita compilar WebAssembly; eval de JavaScript sigue bloqueado y los
+// scripts y workers siguen limitados al propio sitio (/ocr/ y /assets/).
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        'script-src': ["'self'", "'wasm-unsafe-eval'"],
+        'worker-src': ["'self'"]
+      }
+    }
+  })
+);
 app.use(
   // Variante con acceso a la petición para aceptar el mismo dominio que sirve la página
   // (en despliegue, frontend y API viven juntos en la misma app Node).
