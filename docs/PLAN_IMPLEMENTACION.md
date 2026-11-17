@@ -362,7 +362,13 @@ Pedido de la reunión: exportar en Excel lo que se descuenta por planilla, desgl
 - **Registro en Tesorería:** botón "Registrar en Tesorería" en la fila de ISIMUNDO, con el monto calculado (ajustable a lo que realmente transfirió la empresa) y la fecha. Crea un ingreso en el centro de costo ISI MUNDO COMISION. No se registra solo porque la comisión llega después del pago y el saldo no debe contar dinero que aún no ingresa. Un mes no se registra dos veces, salvo que su ingreso se anule en Tesorería.
 - Migración `database/migraciones/2026-11-21_comision_isimundo.sql` (los pagos ya verificados quedan con 2 %). 3 pruebas nuevas en `creditosTest.js` (143 en total).
 
-#### 9. Pendiente
+#### 9. Monto "A pagar" ingresado a mano (ajuste posterior a V4)
+- En "Verificación de pagos mensuales", las empresas sin planilla del mes muestran **Definir monto** y las ya cargadas un lápiz para **corregir** el monto. El panel sugiere la suma de las cuotas pendientes de esa empresa en el mes.
+- Con el monto definido se adjunta el comprobante y se verifica como siempre (descuenta las cuotas y, en ISIMUNDO, calcula la comisión). La fila muestra "Ingresado a mano".
+- No se puede cambiar un pago ya verificado. Si después se carga la planilla del mes y el pago sigue sin verificar, su monto reemplaza al ingresado a mano.
+- `PUT /api/creditos/periodo/a-pagar` (Admin y Tesorera), con auditoría del monto anterior y el nuevo. No requiere migración. 3 pruebas nuevas en `creditosTest.js` (146 en total).
+
+#### 10. Pendiente
 - Acceso de la Directora a los convenios: a definir por la directiva.
 
 ---
