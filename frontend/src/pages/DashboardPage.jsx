@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   UserCheck,
   UserX,
@@ -18,6 +19,7 @@ import { formatCurrencyCLP, formatDateCLP } from '../utils/formatters.js';
 
 export function DashboardPage() {
   const { user, isDirectiva } = useAuth();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -464,14 +466,15 @@ export function DashboardPage() {
                     Socias con 1 Cuota Restante
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--warning-text)', opacity: 0.9 }}>
-                    {inicioData.alertas?.sociasUltimaCuotaIsimundo ?? 6} en Isi Mundo • {inicioData.alertas?.sociasUltimaCuotaSos ?? 3} en S.O.S
+                    {/* Cifras reales de Créditos (antes caían a 6 y 3 de ejemplo si no llegaban datos) */}
+                    {inicioData.alertas?.sociasUltimaCuotaIsimundo ?? 0} en Isi Mundo • {inicioData.alertas?.sociasUltimaCuotaSos ?? 0} en S.O.S
                   </div>
                 </div>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => alert(`Socias por culminar crédito:\n• Isi Mundo: 6 socias prontas a finalizar su descuento.\n• S.O.S: 3 socias en última cuota.\n(La última cuota estimada en diciembre pasará a descuento por planilla de diciembre).`)}
+                onClick={() => navigate('/creditos?estado=ULTIMA_CUOTA')}
               >
                 Revisar
               </Button>
