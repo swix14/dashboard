@@ -246,6 +246,20 @@ await test('PUT traslado con motivo registra el historial', async () => {
   assert.strictEqual(body.data.historialJardin[0].motivo, 'Reubicación por cierre de sala');
 });
 
+// La pantalla reenvía esDelegada: true sin tocar; aun así la marca no viaja al jardín nuevo
+await test('PUT traslado de una delegada le quita la marca aunque el formulario la envíe', async () => {
+  const marcada = await api('PUT', `/socias/${nuevaId}`, secretaria, { esDelegada: true });
+  assert.strictEqual(marcada.body.data.esDelegada, true);
+  const antes = marcada.body.data.jardin.id;
+  const { status, body } = await api('PUT', `/socias/${nuevaId}`, secretaria, {
+    jardinId: antes === 1 ? 2 : 1,
+    esDelegada: true,
+    motivoTraslado: 'Traslado de prueba de delegada'
+  });
+  assert.strictEqual(status, 200);
+  assert.strictEqual(body.data.esDelegada, false);
+});
+
 await test('PUT suspender deja la cuota en 0 y la socia sale de las activas', async () => {
   const { body } = await api('PUT', `/socias/${nuevaId}`, secretaria, { estado: 'SUSPENDIDA' });
   assert.strictEqual(body.data.cuotaMensual, 0);

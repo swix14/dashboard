@@ -381,13 +381,16 @@ export const SociaService = {
         sets.push('fecha_retiro = NULL', 'motivo_retiro = NULL');
       }
 
-      if (changes.esDelegada !== undefined && Boolean(actual.es_delegada) !== changes.esDelegada) {
-        diff.esDelegada = { anterior: Boolean(actual.es_delegada), nuevo: changes.esDelegada };
+      const cambiaJardin = changes.jardinId !== undefined && changes.jardinId !== actual.jardin_id;
+      // Al cambiar de jardín la marca de delegada siempre se quita: representa al jardín anterior
+      const delegadaNueva = cambiaJardin ? false : changes.esDelegada;
+      if (delegadaNueva !== undefined && Boolean(actual.es_delegada) !== delegadaNueva) {
+        diff.esDelegada = { anterior: Boolean(actual.es_delegada), nuevo: delegadaNueva };
         sets.push('es_delegada = ?');
-        params.push(changes.esDelegada ? 1 : 0);
+        params.push(delegadaNueva ? 1 : 0);
       }
 
-      if (changes.jardinId !== undefined && changes.jardinId !== actual.jardin_id) {
+      if (cambiaJardin) {
         await assertJardinExists(changes.jardinId, tx);
         const motivo = (changes.motivoTraslado || '').trim();
         // Asignar jardín a quien no tenía no es un traslado: no exige motivo
@@ -404,12 +407,6 @@ export const SociaService = {
         diff.jardinId = { anterior: actual.jardin_id, nuevo: changes.jardinId };
         sets.push('jardin_id = ?');
         params.push(changes.jardinId);
-
-        // La delegada trasladada deja de representar a su jardín anterior
-        if (actual.es_delegada && changes.esDelegada !== true) {
-          diff.esDelegada = { anterior: true, nuevo: false };
-          sets.push('es_delegada = 0');
-        }
       }
 
       if (sets.length > 0) {

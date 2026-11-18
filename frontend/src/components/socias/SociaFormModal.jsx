@@ -104,7 +104,8 @@ export function SociaFormModal({ formMode, editing, jardines, onClose, onSuccess
       } else {
         await SociaApiService.updateSocia(editing.id, {
           ...payload,
-          esDelegada: formData.esDelegada,
+          // Trasladada no puede seguir de delegada: la marca era del jardín anterior
+          esDelegada: isTransfer ? false : formData.esDelegada,
           ...(isTransfer && { motivoTraslado: formData.motivoTraslado })
         });
       }
@@ -228,8 +229,8 @@ export function SociaFormModal({ formMode, editing, jardines, onClose, onSuccess
         </div>
 
         {formMode === 'edit' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-main)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={formData.esDelegada} onChange={set('esDelegada')} />
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-main)', cursor: isTransfer ? 'not-allowed' : 'pointer', opacity: isTransfer ? 0.6 : 1 }}>
+            <input type="checkbox" checked={isTransfer ? false : formData.esDelegada} onChange={set('esDelegada')} disabled={isTransfer} />
             Delegada de su jardín ante la asamblea
           </label>
         )}
