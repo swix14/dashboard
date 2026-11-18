@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Users,
   UserCheck,
@@ -33,6 +33,7 @@ import { RetirarSociaModal } from '../components/socias/RetirarSociaModal.jsx';
 import { ImportPadronModal } from '../components/socias/ImportPadronModal.jsx';
 import { CARGOS, CARGO_LABELS, ESTADO_BADGE, labelStyle, nombreCompleto } from '../components/socias/sociaLabels.js';
 import { formatCurrencyCLP, csvCell } from '../utils/formatters.js';
+import { guardarTexto } from '../utils/descargas.js';
 
 const PAGE_SIZE = 20;
 
@@ -103,17 +104,23 @@ export function SociasPage() {
     setJardines(jardinesRes);
   }, []);
 
+  // Solo la última consulta pinta la tabla: al escribir rápido, una respuesta lenta de una
+  // búsqueda anterior ya no reemplaza el resultado de la búsqueda actual
+  const ultimaConsulta = useRef(0);
   const loadSocias = async (targetPage = page) => {
+    const consulta = ++ultimaConsulta.current;
+    const vigente = () => consulta === ultimaConsulta.current;
     try {
       setIsLoading(true);
       setError(null);
       const res = await SociaApiService.getSocias({ ...filters, page: targetPage, limit: PAGE_SIZE });
+      if (!vigente()) return;
       setSocias(res.items);
       setTotal(res.total);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al cargar el padrón de socias');
+      if (vigente()) setError(err.response?.data?.message || 'Error al cargar el padrón de socias');
     } finally {
-      setIsLoading(false);
+      if (vigente()) setIsLoading(false);
     }
   };
 
@@ -163,7 +170,8 @@ export function SociasPage() {
       setPdfLoadingId(socia.id);
       await SociaApiService.descargarCreditosPdf(socia.id, socia.rut);
     } catch (err) {
-      setError('No fue posible generar el PDF de créditos.');
+      // El servicio ya trae el mensaje del backend (p. ej. socia sin créditos)
+      setError(err.message || 'No fue posible generar el PDF de créditos.');
     } finally {
       setPdfLoadingId(null);
     }
@@ -218,15 +226,7 @@ export function SociasPage() {
         s.fechaIngreso || ''
       ]);
       const csvContent = '﻿' + [headers, ...rows].map((r) => r.map(csvCell).join(';')).join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Padron_Socias_VTF_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      guardarTexto(csvContent, `Padron_Socias_VTF_${new Date().toISOString().split('T')[0]}.csv`);
     } catch (err) {
       setError(err.response?.data?.message || 'No fue posible exportar el padrón.');
     } finally {
