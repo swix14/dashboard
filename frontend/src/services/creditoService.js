@@ -1,4 +1,5 @@
 import { api } from './api.js';
+import { guardarBlob, mensajeDeBlob } from '../utils/descargas.js';
 
 /** Créditos y Convenios (V4): tarjetas, historial, carga de planilla y verificación de pagos */
 export const CreditoApiService = {
@@ -50,13 +51,12 @@ export const CreditoApiService = {
 
   /** Descarga el Excel de la liquidación (una fila por socia) */
   async descargarLiquidacion(mes, anio) {
-    const res = await api.get('/creditos/liquidacion/excel', { params: { mes, anio }, responseType: 'blob', timeout: 60000 });
-    const url = URL.createObjectURL(res.data);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `liquidacion-descuentos-${anio}-${String(mes).padStart(2, '0')}.xlsx`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try {
+      const res = await api.get('/creditos/liquidacion/excel', { params: { mes, anio }, responseType: 'blob', timeout: 60000 });
+      guardarBlob(res.data, `liquidacion-descuentos-${anio}-${String(mes).padStart(2, '0')}.xlsx`);
+    } catch (err) {
+      throw new Error(await mensajeDeBlob(err, 'No fue posible descargar el Excel.'));
+    }
   },
 
   /** Créditos a mano (sin planilla) */
@@ -121,17 +121,16 @@ export const CreditoApiService = {
 
   /** Descarga el comprobante de un pago verificado */
   async descargarComprobante(pagoId, nombreSugerido) {
-    const res = await api.get(`/creditos/pagos/${pagoId}/comprobante`, { responseType: 'blob' });
-    // En desarrollo (otro puerto) el navegador no expone Content-Disposition: se usa el nombre sugerido
-    const disposition = res.headers['content-disposition'] || '';
-    const ext = { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' }[res.data.type] || '';
-    const nombre = disposition.match(/filename="?([^";]+)"?/)?.[1] || `${nombreSugerido || `comprobante-${pagoId}`}${ext}`;
-    const url = URL.createObjectURL(res.data);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombre;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try {
+      const res = await api.get(`/creditos/pagos/${pagoId}/comprobante`, { responseType: 'blob' });
+      // En desarrollo (otro puerto) el navegador no expone Content-Disposition: se usa el nombre sugerido
+      const disposition = res.headers['content-disposition'] || '';
+      const ext = { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' }[res.data.type] || '';
+      const nombre = disposition.match(/filename="?([^";]+)"?/)?.[1] || `${nombreSugerido || `comprobante-${pagoId}`}${ext}`;
+      guardarBlob(res.data, nombre);
+    } catch (err) {
+      throw new Error(await mensajeDeBlob(err, 'No fue posible descargar el comprobante.'));
+    }
   }
 };
 

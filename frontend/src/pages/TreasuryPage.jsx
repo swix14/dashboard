@@ -22,6 +22,7 @@ import { NewMovementModal } from '../components/treasury/NewMovementModal.jsx';
 import { AnularMovimientoModal } from '../components/treasury/AnularMovimientoModal.jsx';
 import { KpiCard } from '../components/treasury/KpiCard.jsx';
 import { formatCurrencyCLP, formatDateCLP, formatFileSize, csvCell } from '../utils/formatters.js';
+import { abrirBlobEnPestana, guardarTexto } from '../utils/descargas.js';
 
 // Colores de la etiqueta de centro de costo en el libro de movimientos
 const CENTRO_COLORES = {
@@ -30,19 +31,6 @@ const CENTRO_COLORES = {
   FEDERACION: { fondo: 'var(--info-bg)', texto: 'var(--info-text)' }
 };
 const CENTRO_OTRO = { fondo: 'var(--sand-50)', texto: 'var(--sand-800)' };
-
-// Con responseType 'blob' el mensaje de error del backend también llega como Blob
-const readBlobErrorMessage = async (err) => {
-  const data = err.response?.data;
-  if (data instanceof Blob) {
-    try {
-      return JSON.parse(await data.text()).message;
-    } catch {
-      return null;
-    }
-  }
-  return data?.message;
-};
 
 export function TreasuryPage() {
   const { user, isTesorera, isAdmin } = useAuth();
@@ -104,21 +92,11 @@ export function TreasuryPage() {
 
   // Abre el comprobante en una pestaña nueva (PDF e imágenes se visualizan en el navegador)
   const handleOpenComprobante = async (mov) => {
-    // La pestaña se abre antes de la descarga para que el navegador no la bloquee como popup
-    const previewWindow = window.open('', '_blank');
     try {
       setOpeningReceiptId(mov.id);
-      const blob = await TreasuryApiService.getComprobante(mov.id);
-      const url = URL.createObjectURL(blob);
-      if (previewWindow) {
-        previewWindow.location.href = url;
-      } else {
-        window.location.assign(url);
-      }
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      await abrirBlobEnPestana(() => TreasuryApiService.getComprobante(mov.id), 'No fue posible abrir el comprobante.');
     } catch (err) {
-      previewWindow?.close();
-      alert((await readBlobErrorMessage(err)) || 'No fue posible abrir el comprobante.');
+      alert(err.message);
     } finally {
       setOpeningReceiptId(null);
     }
@@ -148,14 +126,7 @@ export function TreasuryPage() {
 
     // Todas las celdas pasan por csvCell: antes un ";" en categor\u00EDa o comprobante corr\u00EDa las columnas
     const csvContent = '\uFEFF' + [headers, ...rows].map((r) => r.map(csvCell).join(';')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Tesoreria_VTF_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    guardarTexto(csvContent, `Tesoreria_VTF_${new Date().toISOString().split('T')[0]}.csv`);
   };
 
   if (isLoading && !summary) {

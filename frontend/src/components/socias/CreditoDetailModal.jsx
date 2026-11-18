@@ -22,8 +22,8 @@ export function CreditoDetailModal({ detail, onClose }) {
       setDescargando(true);
       setError(null);
       await SociaApiService.descargarCreditosPdf(detail.id, detail.rut);
-    } catch {
-      setError('No fue posible generar el PDF.');
+    } catch (err) {
+      setError(err.message);
     } finally {
       setDescargando(false);
     }

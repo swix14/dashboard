@@ -19,6 +19,7 @@ import { Button } from '../components/common/Button.jsx';
 import { Input } from '../components/common/Input.jsx';
 import { Modal } from '../components/common/Modal.jsx';
 import { formatDateCLP } from '../utils/formatters.js';
+import { guardarBlob, mensajeDeBlob } from '../utils/descargas.js';
 
 const TIPO_MENSAJE = {
   CONSULTA: { label: 'Consulta', variant: 'info' },
@@ -169,22 +170,9 @@ function BuzonPanel({ mensajes, setMensajes, loading }) {
       setBusyId(`${mensaje.id}-adjunto`);
       setActionError(null);
       const { blob, fileName } = await ComunicacionesApiService.descargarAdjunto(mensaje.id);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      guardarBlob(blob, fileName);
     } catch (err) {
-      let message = 'No fue posible descargar el adjunto.';
-      if (err.response?.data instanceof Blob) {
-        try {
-          message = JSON.parse(await err.response.data.text()).message || message;
-        } catch {
-          // Respuesta no JSON: se mantiene el mensaje genérico
-        }
-      }
-      setActionError(message);
+      setActionError(await mensajeDeBlob(err, 'No fue posible descargar el adjunto.'));
     } finally {
       setBusyId(null);
     }

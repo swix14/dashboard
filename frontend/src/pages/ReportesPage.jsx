@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertCircle, ArrowDownRight, ArrowUpRight, Building, Download, Eye, Layers, Wallet } from 'lucide-react';
 import { api } from '../services/api.js';
+import { ReporteApiService } from '../services/reporteService.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Card } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
@@ -22,18 +23,6 @@ function periodoActual() {
     .map(Number);
   return { anio, mes };
 }
-
-const leerErrorBlob = async (err, fallback) => {
-  const data = err.response?.data;
-  if (data instanceof Blob) {
-    try {
-      return JSON.parse(await data.text()).message || fallback;
-    } catch {
-      return fallback;
-    }
-  }
-  return data?.message || fallback;
-};
 
 function Metric({ label, value, hint, icon: Icon, accent }) {
   return (
@@ -98,15 +87,9 @@ export function ReportesPage() {
     try {
       setExporting(true);
       setError(null);
-      const res = await api.get('/reportes/mensual/excel', { params: { anio, mes }, responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `informe-mensual-${anio}-${String(mes).padStart(2, '0')}.xlsx`;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      await ReporteApiService.descargarInformeMensual(anio, mes);
     } catch (err) {
-      setError(await leerErrorBlob(err, 'No fue posible exportar el informe.'));
+      setError(err.message);
     } finally {
       setExporting(false);
     }

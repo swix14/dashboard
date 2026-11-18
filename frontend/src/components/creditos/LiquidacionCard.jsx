@@ -34,8 +34,8 @@ export function LiquidacionCard({ refreshKey }) {
       setDescargando(true);
       setError(null);
       await CreditoApiService.descargarLiquidacion(mes, anio);
-    } catch {
-      setError('No fue posible descargar el Excel.');
+    } catch (err) {
+      setError(err.message);
     } finally {
       setDescargando(false);
     }

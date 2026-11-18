@@ -70,8 +70,8 @@ export function VerificacionPagos({ puedeGestionar, onVerified, refreshKey }) {
   };
 
   const descargar = (fila) =>
-    CreditoApiService.descargarComprobante(fila.pago.id, `comprobante-${fila.codigo}-${anio}-${String(mes).padStart(2, '0')}`).catch(() =>
-      setError('No fue posible descargar el comprobante.')
+    CreditoApiService.descargarComprobante(fila.pago.id, `comprobante-${fila.codigo}-${anio}-${String(mes).padStart(2, '0')}`).catch((err) =>
+      setError(err.message)
     );
 
   return (
