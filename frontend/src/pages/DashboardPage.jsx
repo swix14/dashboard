@@ -16,6 +16,8 @@ import { Card } from '../components/common/Card.jsx';
 import { Badge } from '../components/common/Badge.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { formatCurrencyCLP, formatDateCLP } from '../utils/formatters.js';
+import { abrirBlobEnPestana } from '../utils/descargas.js';
+import { TreasuryApiService } from '../services/treasuryService.js';
 
 export function DashboardPage() {
   const { user, isDirectiva } = useAuth();
@@ -25,6 +27,19 @@ export function DashboardPage() {
   const [error, setError] = useState(null);
   const [selectedYear, setSelectedYear] = useState('2026');
   const [activeAlertModal, setActiveAlertModal] = useState(null);
+  const [abriendoRespaldo, setAbriendoRespaldo] = useState(null);
+
+  // Abre el comprobante real del pago (antes el botón solo mostraba un aviso con el nombre)
+  const verRespaldo = async (pago) => {
+    try {
+      setAbriendoRespaldo(pago.id);
+      await abrirBlobEnPestana(() => TreasuryApiService.getComprobante(pago.id), 'No fue posible abrir el comprobante.');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setAbriendoRespaldo(null);
+    }
+  };
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -376,20 +391,21 @@ export function DashboardPage() {
                   <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
                     {formatCurrencyCLP(pago.monto)}
                   </div>
-                  <span
-                    style={{
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      color: 'var(--primary-600)',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.2rem'
-                    }}
-                    onClick={() => alert(`Comprobante respaldado: ${pago.comprobante} verificado para ${pago.correlativo}.`)}
-                  >
-                    <FileText size={12} /> Ver Respaldo
-                  </span>
+                  {pago.tieneArchivo ? (
+                    <button
+                      type="button"
+                      className="dash-respaldo"
+                      onClick={() => verRespaldo(pago)}
+                      disabled={abriendoRespaldo === pago.id}
+                      aria-label={`Ver comprobante de ${pago.correlativo}`}
+                    >
+                      <FileText size={12} aria-hidden="true" /> {abriendoRespaldo === pago.id ? 'Abriendo…' : 'Ver respaldo'}
+                    </button>
+                  ) : (
+                    <span className="dash-respaldo-fisico" title={pago.comprobante ? `Respaldo físico: ${pago.comprobante}` : undefined}>
+                      {pago.comprobante ? 'Respaldo físico' : 'Sin respaldo'}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -399,9 +415,14 @@ export function DashboardPage() {
         {/* RECUADRO PRÓXIMAS TAREAS */}
         <Card
           title="Próximas Tareas"
-          subtitle="Hitos contables y operativos de la tesorería"
+          subtitle="Pendientes reales de Tesorería, convenios y buzón"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {(inicioData.proximasTareas || []).length === 0 && (
+              <p className="dash-sin-tareas">
+                <CheckCircle2 size={16} aria-hidden="true" /> Todo al día: no hay tareas pendientes.
+              </p>
+            )}
             {(inicioData.proximasTareas || []).map((task) => (
               <div
                 key={task.id}
@@ -415,7 +436,7 @@ export function DashboardPage() {
                   gap: '0.25rem'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.375rem 0.75rem' }}>
                   <span style={{ fontSize: '0.875rem', fontWeight: 700, color: task.urgencia === 'alerta' ? 'var(--error-text)' : 'var(--text-main)' }}>
                     {task.titulo}
                   </span>

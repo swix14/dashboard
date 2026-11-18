@@ -350,6 +350,18 @@ await test('pagoFederacionAlDia: al día solo con pago de este mes o del anterio
   assert.strictEqual(pagoFederacionAlDia(null, '2026-11-20'), false);
 });
 
+await test('tareaFederacion: pendiente sin pago del mes, alerta si además está atrasado', async () => {
+  const { tareaFederacion } = await import('../src/services/tareasInicio.js');
+  assert.strictEqual(tareaFederacion('2026-11-02', true, '2026-11-20'), null);
+  const pendiente = tareaFederacion('2026-10-02', true, '2026-11-20');
+  assert.strictEqual(pendiente.urgencia, 'media');
+  assert.strictEqual(pendiente.fechaLimite, 'Hasta el 30/11/2026');
+  const atrasada = tareaFederacion('2026-09-02', false, '2026-11-20');
+  assert.strictEqual(atrasada.urgencia, 'alerta');
+  assert.match(atrasada.descripcion, /02\/09\/2026/);
+  assert.strictEqual(tareaFederacion(null, false, '2026-02-10').fechaLimite, 'Atrasado');
+});
+
 console.log(`\n[RESULTADOS BLOQUEANTES] ${passed} pasados, ${failed} fallidos`);
 server.closeAllConnections?.();
 server.close();

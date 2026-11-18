@@ -1393,3 +1393,41 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .dash-alerta-titulo { font-size: .875rem; font-weight: 700; line-height: 1.3; }
 .dash-alerta-detalle { font-size: .75rem; opacity: .9; margin-top: .125rem; overflow-wrap: anywhere; }
 .dash-alerta-accion { flex-shrink: 0; margin-left: auto; white-space: nowrap; }
+
+/* Inicio: respaldo de pagos a Federación y recuadro de tareas sin pendientes */
+.dash-respaldo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--primary-600);
+  cursor: pointer;
+  border-radius: var(--radius-sm, 4px);
+  transition: color 0.15s ease;
+}
+.dash-respaldo:hover:not(:disabled) { color: var(--primary-700); text-decoration: underline; }
+.dash-respaldo:focus-visible { outline: 2px solid var(--primary-500); outline-offset: 2px; }
+.dash-respaldo:disabled { cursor: progress; opacity: 0.7; }
+.dash-respaldo-fisico {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.dash-sin-tareas {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background-color: var(--success-bg);
+  border: 1px solid var(--success-border, var(--border-light));
+  color: var(--success-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}

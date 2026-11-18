@@ -133,6 +133,17 @@ await test('Inicio de Tesorera y Presidenta con secciones financieras', async ()
   }
 });
 
+// Antes había tres tareas fijas (con una "deuda morosa" inventada) y el gráfico contaba suspendidas
+await test('Inicio: tareas calculadas desde la base y gráfico de créditos solo con socias activas', async () => {
+  const { body } = await call('GET', '/dashboard/metrics', tokens.TESORERA);
+  const { proximasTareas, graficos, sociasActivas, ultimosPagosFederacion } = body.data.inicio;
+  assert.ok(Array.isArray(proximasTareas));
+  assert.ok(proximasTareas.every((t) => !String(t.id).startsWith('task-')));
+  assert.ok(proximasTareas.every((t) => t.id !== 'buzon'), 'la Tesorera no atiende el buzón');
+  assert.strictEqual(graficos.estadoSociasCreditos.totalActivas, sociasActivas);
+  assert.ok(ultimosPagosFederacion.every((p) => Number.isInteger(p.id) && typeof p.tieneArchivo === 'boolean'));
+});
+
 // ---------------------------------------------------------------------------
 // Noticias y buzón
 // ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { isDatabaseReady, query } from '../config/db.js';
 import { TreasuryService } from './treasuryService.js';
 import { hoyChile } from '../utils/fecha.js';
+import { calcularProximasTareas, tareaFederacion } from './tareasInicio.js';
 
 /** El aporte a Federación está al día si se pagó este mes o el mes anterior */
 export function pagoFederacionAlDia(fechaUltimoPago, hoy = hoyChile()) {
@@ -26,11 +27,11 @@ export const DashboardService = {
     let totalDelegadas = 23;
 
     let ultimosPagosFederacion = [
-      { correlativo: 'FED-2026-005', fecha: '2026-10-02', monto: 280000, descripcion: 'Cuota Federación Octubre 2026', comprobante: 'comprobante_fed_oct_2026.pdf' },
-      { correlativo: 'FED-2026-004', fecha: '2026-09-02', monto: 280000, descripcion: 'Cuota Federación Septiembre 2026', comprobante: 'comprobante_fed_sep_2026.pdf' },
-      { correlativo: 'FED-2026-003', fecha: '2026-08-03', monto: 280000, descripcion: 'Cuota Federación Agosto 2026', comprobante: 'comprobante_fed_ago_2026.pdf' },
-      { correlativo: 'FED-2026-002', fecha: '2026-07-02', monto: 280000, descripcion: 'Cuota Federación Julio 2026', comprobante: 'comprobante_fed_jul_2026.pdf' },
-      { correlativo: 'FED-2026-001', fecha: '2026-06-02', monto: 280000, descripcion: 'Cuota Federación Junio 2026', comprobante: 'comprobante_fed_jun_2026.pdf' }
+      { id: null, tieneArchivo: false, correlativo: 'FED-2026-005', fecha: '2026-10-02', monto: 280000, descripcion: 'Cuota Federación Octubre 2026', comprobante: 'comprobante_fed_oct_2026.pdf' },
+      { id: null, tieneArchivo: false, correlativo: 'FED-2026-004', fecha: '2026-09-02', monto: 280000, descripcion: 'Cuota Federación Septiembre 2026', comprobante: 'comprobante_fed_sep_2026.pdf' },
+      { id: null, tieneArchivo: false, correlativo: 'FED-2026-003', fecha: '2026-08-03', monto: 280000, descripcion: 'Cuota Federación Agosto 2026', comprobante: 'comprobante_fed_ago_2026.pdf' },
+      { id: null, tieneArchivo: false, correlativo: 'FED-2026-002', fecha: '2026-07-02', monto: 280000, descripcion: 'Cuota Federación Julio 2026', comprobante: 'comprobante_fed_jul_2026.pdf' },
+      { id: null, tieneArchivo: false, correlativo: 'FED-2026-001', fecha: '2026-06-02', monto: 280000, descripcion: 'Cuota Federación Junio 2026', comprobante: 'comprobante_fed_jun_2026.pdf' }
     ];
 
     // Ejemplo solo para el modo memoria (desarrollo sin MySQL)
@@ -75,42 +76,52 @@ export const DashboardService = {
         sociasSuspendidasCount = Number(sociaCount?.suspendidas || 0);
         totalJardines = Number(sociaCount?.jardines || 0);
 
+        // id y archivo permiten abrir el comprobante real desde el Inicio
         const fedRows = await query(
-          `SELECT correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, monto, descripcion, comprobante
+          `SELECT id, correlativo, DATE_FORMAT(fecha, '%Y-%m-%d') as fecha, monto, descripcion, comprobante,
+                  comprobante_stored IS NOT NULL AS tiene_archivo
            FROM movimientos_tesoreria
            WHERE centro_costo = 'FEDERACION' AND anulado = 0
            ORDER BY fecha DESC
            LIMIT 5`
         );
         // Con base de datos se muestran solo los pagos reales (aunque no haya ninguno todavía)
-        ultimosPagosFederacion = fedRows;
+        ultimosPagosFederacion = fedRows.map(({ tiene_archivo, ...pago }) => ({
+          ...pago,
+          monto: Number(pago.monto),
+          tieneArchivo: Boolean(tiene_archivo)
+        }));
 
-        // Socias distintas (no créditos) del padrón vigente. Antes un 0 real se reemplazaba por
-        // números fijos (38/24/19) y una socia con dos créditos se restaba dos veces.
+        // Socias ACTIVAS distintas (no créditos), igual que el subtítulo del gráfico. Antes se
+        // contaban también las suspendidas y los convenios iban por id fijo en vez de código.
         const [cred] = await query(
           `SELECT
-             COUNT(DISTINCT CASE WHEN c.convenio_id = 2 THEN c.socia_id END) AS isi,
-             COUNT(DISTINCT CASE WHEN c.convenio_id = 1 THEN c.socia_id END) AS sos,
-             COUNT(DISTINCT CASE WHEN c.convenio_id IN (3, 4, 5) THEN c.socia_id END) AS otros,
+             COUNT(DISTINCT CASE WHEN cv.codigo = 'ISIMUNDO' THEN c.socia_id END) AS isi,
+             COUNT(DISTINCT CASE WHEN cv.codigo = 'SOS' THEN c.socia_id END) AS sos,
+             COUNT(DISTINCT CASE WHEN cv.codigo IN ('OPTICA', 'DENTAL', 'ABOGADA') THEN c.socia_id END) AS otros,
              COUNT(DISTINCT c.socia_id) AS con_credito
-           FROM creditos c JOIN socias s ON s.id = c.socia_id
-           WHERE c.estado = 'vigente' AND s.estado <> 'RETIRADA'`
+           FROM creditos c
+           JOIN socias s ON s.id = c.socia_id
+           JOIN convenios cv ON cv.id = c.convenio_id
+           WHERE c.estado = 'vigente' AND s.estado = 'ACTIVA'`
         );
 
         creditosStats = {
           activasConIsimundo: Number(cred?.isi || 0),
           activasConSos: Number(cred?.sos || 0),
           activasConDentalOptica: Number(cred?.otros || 0),
-          activasSinCredito: Math.max(0, totalSocias - Number(cred?.con_credito || 0)),
-          totalActivas: totalSocias
+          activasSinCredito: Math.max(0, sociasActivasCount - Number(cred?.con_credito || 0)),
+          totalActivas: sociasActivasCount
         };
 
         // Socias a las que les queda una sola cuota (alerta del Inicio)
         const [ultima] = await query(
           `SELECT
-             COUNT(DISTINCT CASE WHEN c.convenio_id = 2 THEN c.socia_id END) AS isi,
-             COUNT(DISTINCT CASE WHEN c.convenio_id = 1 THEN c.socia_id END) AS sos
-           FROM creditos c JOIN socias s ON s.id = c.socia_id
+             COUNT(DISTINCT CASE WHEN cv.codigo = 'ISIMUNDO' THEN c.socia_id END) AS isi,
+             COUNT(DISTINCT CASE WHEN cv.codigo = 'SOS' THEN c.socia_id END) AS sos
+           FROM creditos c
+           JOIN socias s ON s.id = c.socia_id
+           JOIN convenios cv ON cv.id = c.convenio_id
            WHERE c.estado = 'vigente' AND s.estado <> 'RETIRADA' AND c.total_cuotas - c.cuotas_pagadas = 1`
         );
         alertasCuotas = { isi: Number(ultima?.isi || 0), sos: Number(ultima?.sos || 0) };
@@ -172,6 +183,17 @@ export const DashboardService = {
 
     if (hasFinancialAccess) {
       const treasurySummary = await TreasuryService.getSummary();
+      const ultimoPagoFederacion = ultimosPagosFederacion[0]?.fecha || null;
+      // Al día si el último pago a Federación es de este mes o del anterior (hora de Chile)
+      const federacionAlDia = pagoFederacionAlDia(ultimoPagoFederacion);
+      // Sin MySQL (modo memoria) solo se puede calcular la tarea de Federación
+      const proximasTareas = isDatabaseReady()
+        ? await calcularProximasTareas({
+            ultimoPagoFederacion,
+            federacionAlDia,
+            puedeVerBuzon: roleCode === 'ADMIN' || roleCode === 'PRESIDENTA'
+          })
+        : [tareaFederacion(ultimoPagoFederacion, federacionAlDia)].filter(Boolean);
 
       return {
         ...institutionalBase,
@@ -192,17 +214,12 @@ export const DashboardService = {
 
           // Fila 2: Recuadros Medianos
           ultimosPagosFederacion,
-          proximasTareas: [
-            { id: 'task-1', titulo: 'Cierre Tesorería Mensual', fechaLimite: '31/10/2026', estado: 'Pendiente', urgencia: 'alta', descripcion: 'Consolidación de ingresos y egresos mes de Octubre' },
-            { id: 'task-2', titulo: 'Exportar Informe Mensual', fechaLimite: '02/11/2026', estado: 'Programada', urgencia: 'media', descripcion: 'Generación de informe contable mensual en Excel' },
-            { id: 'task-3', titulo: 'Deudas Morosas / No Realizados', fechaLimite: 'Vencida', estado: 'Atención', urgencia: 'alerta', descripcion: '3 socias con cuotas de convenio atrasadas' }
-          ],
+          proximasTareas,
           alertas: {
             sociasUltimaCuotaIsimundo: alertasCuotas.isi,
             sociasUltimaCuotaSos: alertasCuotas.sos,
-            // Al día si el último pago a Federación es de este mes o del anterior (hora de Chile)
-            pagoFederacionAlDia: pagoFederacionAlDia(ultimosPagosFederacion[0]?.fecha),
-            pagoFederacionFecha: ultimosPagosFederacion[0]?.fecha || null
+            pagoFederacionAlDia: federacionAlDia,
+            pagoFederacionFecha: ultimoPagoFederacion
           },
 
           // Fila 3: Gráficos Analíticos
