@@ -76,7 +76,7 @@ const [anioHoy, mesHoy] = [Number(hoy.slice(0, 4)), Number(hoy.slice(5, 7))];
 const mesSiguiente = mesHoy === 12 ? `${anioHoy + 1}-01` : `${anioHoy}-${String(mesHoy + 1).padStart(2, '0')}`;
 const mesPasado = mesHoy === 1 ? `${anioHoy - 1}-12` : `${anioHoy}-${String(mesHoy - 1).padStart(2, '0')}`;
 
-const SOLICITUD = { monto: 120000, cuotas: 3, motivo: 'Gastos médicos urgentes de mi hijo' };
+const SOLICITUD = { monto: 90000, cuotas: 3, motivo: 'Gastos médicos urgentes de mi hijo' };
 
 // ---------------------------------------------------------------------------
 await test('Solo una socia puede pedir S.O.S; la directiva no usa ese endpoint', async () => {
@@ -89,7 +89,7 @@ await test('Todo es obligatorio: monto, cuotas de 1 a 4 y motivo', async () => {
   assert.strictEqual((await call('POST', '/socia/sos', SOCIA_X, { ...SOLICITUD, cuotas: 5 })).status, 400);
   assert.strictEqual((await call('POST', '/socia/sos', SOCIA_X, { ...SOLICITUD, cuotas: 0 })).status, 400);
   assert.strictEqual((await call('POST', '/socia/sos', SOCIA_X, { ...SOLICITUD, motivo: '   ' })).status, 400);
-  assert.strictEqual((await call('POST', '/socia/sos', SOCIA_X, { ...SOLICITUD, monto: 5000000 })).status, 400);
+  assert.strictEqual((await call('POST', '/socia/sos', SOCIA_X, { ...SOLICITUD, monto: 100001 })).status, 400);
 });
 
 let solicitudX;
@@ -97,7 +97,7 @@ await test('La socia envía su S.O.S con sus datos del padrón y queda pendiente
   const res = await call('POST', '/socia/sos', SOCIA_X, SOLICITUD);
   assert.strictEqual(res.status, 201, res.body.message);
   solicitudX = res.body.data;
-  assert.deepStrictEqual([solicitudX.sociaRut, solicitudX.estado, solicitudX.monto, solicitudX.cuotas], [X.rut, 'PENDIENTE', 120000, 3]);
+  assert.deepStrictEqual([solicitudX.sociaRut, solicitudX.estado, solicitudX.monto, solicitudX.cuotas], [X.rut, 'PENDIENTE', 90000, 3]);
   assert.ok(solicitudX.sociaNombre.includes(X.nombres.split(' ')[0]));
 });
 
@@ -120,17 +120,23 @@ await test('La bandeja la ven Tesorera y Presidenta (con el conteo de pendientes
 });
 
 await test('La Presidenta no puede aprobar ni rechazar (solo lectura)', async () => {
-  assert.strictEqual((await call('POST', `/creditos/sos/${solicitudX.id}/aprobar`, PRESIDENTA, { valorCuota: 40000, primeraCuota: mesSiguiente })).status, 403);
+  assert.strictEqual((await call('POST', `/creditos/sos/${solicitudX.id}/aprobar`, PRESIDENTA, { valorCuota: 30000, primeraCuota: mesSiguiente })).status, 403);
   assert.strictEqual((await call('POST', `/creditos/sos/${solicitudX.id}/rechazar`, PRESIDENTA, { motivo: 'No' })).status, 403);
 });
 
 await test('Aprobar valida el mes de la primera cuota', async () => {
-  const res = await call('POST', `/creditos/sos/${solicitudX.id}/aprobar`, TESORERA, { valorCuota: 40000, primeraCuota: mesPasado });
+  const res = await call('POST', `/creditos/sos/${solicitudX.id}/aprobar`, TESORERA, { valorCuota: 30000, primeraCuota: mesPasado });
   assert.strictEqual(res.status, 400);
 });
 
+await test('Aprobar rechaza cuotas que suman más del tope de $100.000', async () => {
+  const res = await call('POST', `/creditos/sos/${solicitudX.id}/aprobar`, TESORERA, { valorCuota: 40000, primeraCuota: mesSiguiente });
+  assert.strictEqual(res.status, 400);
+  assert.match(res.body.message, /no puede pasar de \$100\.000/);
+});
+
 await test('Aprobar crea el crédito S.O.S con sus cuotas y la socia ve la respuesta', async () => {
-  const res = await call('POST', `/creditos/sos/${solicitudX.id}/aprobar`, TESORERA, { valorCuota: 40000, primeraCuota: mesSiguiente, respuesta: 'Transferencia el viernes' });
+  const res = await call('POST', `/creditos/sos/${solicitudX.id}/aprobar`, TESORERA, { valorCuota: 30000, primeraCuota: mesSiguiente, respuesta: 'Transferencia el viernes' });
   assert.strictEqual(res.status, 200, res.body.message);
   const [credito] = await query(
     `SELECT c.monto_total, c.monto_cuota, c.total_cuotas, c.estado, c.origen, cv.codigo FROM creditos c
@@ -139,7 +145,7 @@ await test('Aprobar crea el crédito S.O.S con sus cuotas y la socia ve la respu
   );
   assert.deepStrictEqual(
     [credito.codigo, credito.monto_total, credito.monto_cuota, credito.total_cuotas, credito.estado, credito.origen],
-    ['SOS', 120000, 40000, 3, 'vigente', 'MANUAL']
+    ['SOS', 90000, 30000, 3, 'vigente', 'MANUAL']
   );
   const cuotas = await query(`SELECT estado FROM cuotas_credito WHERE credito_id = ?`, [res.body.data.creditoId]);
   assert.deepStrictEqual(cuotas.map((q) => q.estado), ['pendiente', 'pendiente', 'pendiente']);

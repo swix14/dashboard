@@ -11,6 +11,7 @@
 import { query, withTransaction } from '../config/db.js';
 import { CreditoError } from './creditImportService.js';
 import { CreditManualService } from './creditManualService.js';
+import { SOS_MONTO_MAXIMO } from '../validators/creditValidator.js';
 
 const nombreCompleto = (s) => [s.nombres, s.apellido_paterno, s.apellido_materno].filter(Boolean).join(' ');
 
@@ -72,6 +73,11 @@ export const SosService = {
   async aprobar(id, { valorCuota, primeraCuota, respuesta }, revisadoPor, hoy) {
     return withTransaction(async (tx) => {
       const sol = await this.pendienteEnTx(tx, id);
+      // Las cuotas no pueden sumar más que el tope; se tolera solo el redondeo hacia arriba de la cuota
+      const totalCuotas = valorCuota * sol.cuotas;
+      if (totalCuotas > Math.ceil(SOS_MONTO_MAXIMO / sol.cuotas) * sol.cuotas) {
+        throw new CreditoError(`Las cuotas suman $${totalCuotas.toLocaleString('es-CL')}; el S.O.S no puede pasar de $${SOS_MONTO_MAXIMO.toLocaleString('es-CL')}.`, 400);
+      }
       const credito = await CreditManualService.crearEnTx(
         tx,
         {

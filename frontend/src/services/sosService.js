@@ -30,7 +30,8 @@ export const SosApiService = {
   }
 };
 
-export const SOS_MONTO_MAXIMO = 1000000;
+// Debe coincidir con el tope del backend (creditValidator.js)
+export const SOS_MONTO_MAXIMO = 100000;
 
 export const ESTADO_SOS = {
   PENDIENTE: { label: 'En revisión', variant: 'warning' },

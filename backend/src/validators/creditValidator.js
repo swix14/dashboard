@@ -77,7 +77,8 @@ export const aPagarSchema = periodoSchema.extend({
 });
 
 // --- Solicitudes S.O.S en línea ---
-export const SOS_MONTO_MAXIMO = 1000000;
+// Tope del S.O.S definido por la directiva (19-11-2026)
+export const SOS_MONTO_MAXIMO = 100000;
 const textoObligatorio = (label, min, max) =>
   z.string({ error: `Indique ${label}.` }).trim().min(min, `Indique ${label} (mínimo ${min} caracteres).`).max(max, `${label}: máximo ${max} caracteres.`);
 

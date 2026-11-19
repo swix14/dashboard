@@ -25,6 +25,8 @@ function SolicitudModal({ user, onClose, onSent }) {
   const monto = Number(form.monto);
   const cuotas = Number(form.cuotas);
   const valorCuota = monto > 0 && cuotas > 0 ? Math.ceil(monto / cuotas) : null;
+  // Solo se calculan cuotas para montos dentro del rango permitido
+  const montoValido = Number.isInteger(monto) && monto >= 1000 && monto <= SOS_MONTO_MAXIMO;
 
   const enviar = async (e) => {
     e.preventDefault();
@@ -79,21 +81,28 @@ function SolicitudModal({ user, onClose, onSent }) {
               max={SOS_MONTO_MAXIMO}
               step="1"
               required
-              placeholder="Ej. 150000"
+              placeholder="Ej. 80000"
               value={form.monto}
               onChange={set('monto')}
             />
-            <span className="cred-hint">{monto > 0 ? formatCurrencyCLP(monto) : 'Sin puntos ni signo $'}</span>
+            <span className="cred-hint">
+              {monto > 0 ? formatCurrencyCLP(monto) : 'Sin puntos ni signo $'} · Máximo {formatCurrencyCLP(SOS_MONTO_MAXIMO)}
+            </span>
           </div>
           <div className="cred-campo">
             <label className="vtf-label" htmlFor="sos-cuotas">Número de cuotas</label>
             <select id="sos-cuotas" className="vtf-input" required value={form.cuotas} onChange={set('cuotas')}>
               <option value="">Seleccione…</option>
+              {/* Con el monto escrito, cada opción muestra cuánto sería cada cuota */}
               {[1, 2, 3, 4].map((n) => (
-                <option key={n} value={n}>{n} {n === 1 ? 'cuota' : 'cuotas'}</option>
+                <option key={n} value={n}>
+                  {n} {n === 1 ? 'cuota' : 'cuotas'}{montoValido ? ` de ${formatCurrencyCLP(Math.ceil(monto / n))}` : ''}
+                </option>
               ))}
             </select>
-            <span className="cred-hint">{valorCuota ? `Aprox. ${formatCurrencyCLP(valorCuota)} por mes` : 'Se descuentan por planilla'}</span>
+            <span className="cred-hint">
+              {valorCuota && montoValido ? `${formatCurrencyCLP(valorCuota)} por mes, descontado por planilla` : 'Escriba el monto para ver el valor de cada cuota'}
+            </span>
           </div>
         </div>
 
