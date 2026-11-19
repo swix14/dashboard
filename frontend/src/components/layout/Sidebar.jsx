@@ -18,16 +18,18 @@ export function Sidebar({ isOpen, onClose }) {
   const { user } = useAuth();
 
   const roleCode = user?.role?.code;
+  const suplente = user?.suplenteTesoreria === true;
+  const ve = (seccion) => puedeAcceder(roleCode, seccion, suplente);
 
   const navItems = [
     { to: '/dashboard', label: 'Inicio Institucional', icon: LayoutDashboard, allowed: true },
-    { to: '/tesoreria', label: 'Tesorería y Fondos', icon: DollarSign, allowed: puedeAcceder(roleCode, 'TESORERIA') },
-    { to: '/socias', label: 'Padrón de Socias', icon: Users, allowed: puedeAcceder(roleCode, 'SOCIAS') },
-    { to: '/creditos', label: 'Créditos y Convenios', icon: CreditCard, allowed: puedeAcceder(roleCode, 'CREDITOS') },
-    { to: '/comunicaciones', label: 'Noticias y Buzón', icon: Megaphone, allowed: puedeAcceder(roleCode, 'COMUNICACIONES') },
-    { to: '/documentos', label: 'Gestión Documental', icon: FolderOpen, allowed: puedeAcceder(roleCode, 'DOCUMENTOS') },
-    { to: '/reportes', label: 'Reportes y Delegadas', icon: FileSpreadsheet, allowed: puedeAcceder(roleCode, 'REPORTES') },
-    { to: '/auditoria', label: 'Bitácora de Auditoría', icon: ShieldAlert, allowed: puedeAcceder(roleCode, 'AUDITORIA') }
+    { to: '/tesoreria', label: 'Tesorería y Fondos', icon: DollarSign, allowed: ve('TESORERIA') },
+    { to: '/socias', label: 'Padrón de Socias', icon: Users, allowed: ve('SOCIAS') },
+    { to: '/creditos', label: 'Créditos y Convenios', icon: CreditCard, allowed: ve('CREDITOS') },
+    { to: '/comunicaciones', label: 'Noticias y Buzón', icon: Megaphone, allowed: ve('COMUNICACIONES') },
+    { to: '/documentos', label: 'Gestión Documental', icon: FolderOpen, allowed: ve('DOCUMENTOS') },
+    { to: '/reportes', label: 'Reportes y Delegadas', icon: FileSpreadsheet, allowed: ve('REPORTES') },
+    { to: '/auditoria', label: 'Bitácora de Auditoría', icon: ShieldAlert, allowed: ve('AUDITORIA') }
   ];
 
   return (
@@ -124,6 +126,7 @@ export function Sidebar({ isOpen, onClose }) {
           <div style={{ fontSize: '0.75rem', color: 'var(--primary-700)', fontWeight: 600 }}>
             {user?.role?.name || user?.role?.code || 'Socia'}
           </div>
+          {suplente && <span className="sup-chip">Suplente de Tesorería</span>}
           <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '0.125rem' }}>
             {user?.firstName} {user?.lastName}
           </div>

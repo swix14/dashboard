@@ -1,6 +1,18 @@
 import { api } from './api.js';
 
 export const TreasuryApiService = {
+  /** Suplencia de Tesorería (solo Admin): estado y Directoras que pueden reemplazar */
+  async getSuplencia() {
+    const res = await api.get('/tesoreria/suplencia');
+    return res.data.data;
+  },
+
+  /** Activa o desactiva la suplencia; devuelve { message, data } */
+  async setSuplencia(activa, suplenteId) {
+    const res = await api.put('/tesoreria/suplencia', { activa, ...(suplenteId ? { suplenteId } : {}) });
+    return res.data;
+  },
+
   /**
    * Obtiene el resumen consolidado de la Tesorería (7 recuadros)
    */

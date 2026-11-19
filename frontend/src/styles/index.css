@@ -1434,3 +1434,32 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   font-size: 0.8125rem;
   font-weight: 600;
 }
+/* Suplencia de Tesorería (solo Admin): tarjeta con interruptor y confirmación */
+.sup-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1rem; align-items: center; padding: 1.125rem 1.5rem; background: var(--bg-surface); border: 1px solid var(--border-light); border-left: 4px solid var(--border-strong, var(--border-light)); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); transition: border-color var(--transition-normal), background var(--transition-normal); }
+.sup-card.is-on { border-left-color: var(--success-text); background: linear-gradient(90deg, var(--success-bg), var(--bg-surface) 55%); }
+.sup-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--primary-50); color: var(--primary-700); }
+.sup-card.is-on .sup-icon { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+.sup-body { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+.sup-title { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; font-size: .9375rem; font-weight: 800; color: var(--text-main); }
+.sup-solo-admin { font-size: .625rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: .1rem .45rem; border-radius: var(--radius-full); background: var(--sand-100); color: var(--sand-700); }
+.sup-text { margin: 0; font-size: .8125rem; color: var(--text-muted); line-height: 1.45; }
+.sup-text strong { color: var(--text-main); }
+.sup-meta { font-size: .6875rem; color: var(--text-subtle, var(--text-muted)); }
+.sup-select { max-width: 280px; margin-top: .375rem; }
+.sup-alert { margin: .5rem 0 0; }
+.sup-switch { position: relative; width: 52px; height: 30px; flex-shrink: 0; border: none; border-radius: var(--radius-full); background: var(--border-light); cursor: pointer; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .12); transition: background var(--transition-normal); }
+.sup-switch:hover:not(:disabled) { background: var(--primary-200, var(--border-light)); }
+.sup-switch[aria-checked="true"] { background: var(--success-text); }
+.sup-switch:focus-visible { outline: 2px solid var(--primary-500); outline-offset: 3px; }
+.sup-switch:disabled { opacity: .5; cursor: not-allowed; }
+.sup-switch-thumb { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .2), 0 2px 6px rgba(0, 0, 0, .12); transition: transform var(--transition-normal); }
+.sup-switch[aria-checked="true"] .sup-switch-thumb { transform: translateX(22px); }
+.sup-confirm { display: flex; flex-direction: column; gap: 1.25rem; }
+.sup-warning { display: flex; gap: .625rem; align-items: flex-start; padding: .875rem 1rem; border: 1px solid var(--warning-border); background: var(--warning-bg); color: var(--warning-text); border-radius: var(--radius-md); font-size: .8125rem; line-height: 1.5; }
+.sup-warning p { margin: 0; }
+.sup-warning svg { flex-shrink: 0; margin-top: 2px; }
+.sup-chip { display: inline-block; margin-top: .375rem; padding: .1rem .5rem; border-radius: var(--radius-full); font-size: .6875rem; font-weight: 700; background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+@media (max-width: 640px) {
+  .sup-card { grid-template-columns: minmax(0, 1fr) auto; padding: 1rem; }
+  .sup-icon { display: none; }
+}

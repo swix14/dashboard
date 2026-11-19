@@ -21,6 +21,7 @@ import { Button } from '../components/common/Button.jsx';
 import { NewMovementModal } from '../components/treasury/NewMovementModal.jsx';
 import { AnularMovimientoModal } from '../components/treasury/AnularMovimientoModal.jsx';
 import { KpiCard } from '../components/treasury/KpiCard.jsx';
+import { SuplenciaTesoreria } from '../components/treasury/SuplenciaTesoreria.jsx';
 import { formatCurrencyCLP, formatDateCLP, formatFileSize, csvCell } from '../utils/formatters.js';
 import { abrirBlobEnPestana, guardarTexto } from '../utils/descargas.js';
 
@@ -33,8 +34,8 @@ const CENTRO_COLORES = {
 const CENTRO_OTRO = { fondo: 'var(--sand-50)', texto: 'var(--sand-800)' };
 
 export function TreasuryPage() {
-  const { user, isTesorera, isAdmin } = useAuth();
-  const canModify = isTesorera || isAdmin;
+  const { user, isTesorera, isAdmin, isSuplenteTesoreria } = useAuth();
+  const canModify = isTesorera || isAdmin || isSuplenteTesoreria;
 
   // Estados de datos
   const [summary, setSummary] = useState(null);
@@ -232,6 +233,9 @@ export function TreasuryPage() {
           )}
         </div>
       </div>
+
+      {/* Suplencia de Tesorería: el interruptor existe solo para el Admin */}
+      {isAdmin && <SuplenciaTesoreria />}
 
       {/* Recuadros de resumen: ingresos, egresos, saldo total (Asociación + Cena Anual),
           movimientos, pagos a Federación y saldo de cada centro de costo */}

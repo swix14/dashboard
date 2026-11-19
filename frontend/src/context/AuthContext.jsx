@@ -46,6 +46,26 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []);
 
+  // Al volver a la pestaña se refresca el perfil: si el Admin activó o quitó la suplencia de
+  // Tesorería, el menú de la Directora cambia sin cerrar sesión
+  useEffect(() => {
+    if (!token) return undefined;
+    const refrescar = async () => {
+      try {
+        const res = await api.get('/auth/me');
+        const nuevo = res.data?.data?.user;
+        if (nuevo) {
+          setUser(nuevo);
+          localStorage.setItem('vtf_user', JSON.stringify(nuevo));
+        }
+      } catch {
+        // Sin conexión se mantiene el perfil guardado; un 401 lo maneja el interceptor de api.js
+      }
+    };
+    window.addEventListener('focus', refrescar);
+    return () => window.removeEventListener('focus', refrescar);
+  }, [token]);
+
   const setAuthenticatedSession = (receivedToken, receivedUser) => {
     localStorage.setItem('vtf_token', receivedToken);
     localStorage.setItem('vtf_user', JSON.stringify(receivedUser));
@@ -79,10 +99,13 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // La Directora suplente de Tesorería tiene también los permisos de la Tesorera
+  const suplenteTesoreria = user?.suplenteTesoreria === true;
+
   const hasRole = (...allowedRoles) => {
     if (!user || !user.role) return false;
     const currentCode = user.role.code || user.role;
-    return allowedRoles.includes(currentCode);
+    return allowedRoles.includes(currentCode) || (suplenteTesoreria && allowedRoles.includes('TESORERA'));
   };
 
   const currentRoleCode = user?.role?.code || user?.role;
@@ -106,6 +129,7 @@ export function AuthProvider({ children }) {
     isDirectiva,
     isAdmin: currentRoleCode === 'ADMIN',
     isTesorera: currentRoleCode === 'TESORERA',
+    isSuplenteTesoreria: suplenteTesoreria,
     isDirectora: currentRoleCode === 'DIRECTORA',
     isSecretaria: currentRoleCode === 'SECRETARIA',
     isDelegada: currentRoleCode === 'DELEGADA',

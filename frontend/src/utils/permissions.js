@@ -24,6 +24,11 @@ export const ROLES_ACCESO = {
   AUDITORIA: ['ADMIN', 'PRESIDENTA', 'TESORERA']
 };
 
-export function puedeAcceder(roleCode, seccion) {
-  return (ROLES_ACCESO[seccion] || []).includes(roleCode);
+/**
+ * true si el rol tiene la sección. La Directora suplente de Tesorería (la activa el Admin)
+ * cuenta además como Tesorera mientras dure la suplencia; el backend lo vuelve a revisar.
+ */
+export function puedeAcceder(roleCode, seccion, suplenteTesoreria = false) {
+  const roles = ROLES_ACCESO[seccion] || [];
+  return roles.includes(roleCode) || (suplenteTesoreria === true && roles.includes('TESORERA'));
 }
