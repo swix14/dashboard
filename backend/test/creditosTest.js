@@ -236,7 +236,7 @@ await test('Historial: filtros por empresa, estado y búsqueda; ficha con monto 
   assert.strictEqual((await call('GET', '/creditos/99999999', TESORERA)).status, 404);
 });
 
-await test('Verificación: exige planilla cargada del mes y un comprobante válido', async () => {
+await test('Verificación: exige planilla cargada, un comprobante válido y todos los del mes', async () => {
   const sinPlanilla = await call('POST', '/creditos/pagos/verificar', TESORERA, formPagos(['SOS'], { mes: 4, anio: 2027 }));
   assert.strictEqual(sinPlanilla.status, 400);
   assert.match(sinPlanilla.body.message, /primero cargue la planilla/i);
@@ -244,10 +244,18 @@ await test('Verificación: exige planilla cargada del mes y un comprobante váli
   assert.strictEqual(falso.status, 400);
   const vacio = await call('POST', '/creditos/pagos/verificar', TESORERA, formPagos([]));
   assert.strictEqual(vacio.status, 400);
+  // El mes se verifica completo: sin el comprobante de Óptica no se descuenta nada
+  const incompleto = await call('POST', '/creditos/pagos/verificar', TESORERA, formPagos(['SOS', 'ISIMUNDO']));
+  assert.strictEqual(incompleto.status, 400);
+  assert.match(incompleto.body.message, /Faltan comprobantes de Óptica/);
+  const [sosMarzo] = await query(
+    `SELECT verificado_at FROM pagos_convenio p JOIN convenios cv ON cv.id = p.convenio_id WHERE cv.codigo = 'SOS' AND p.mes = 3 AND p.anio = 2027`
+  );
+  assert.strictEqual(sosMarzo.verificado_at, null);
 });
 
 await test('Verificar el pago descuenta las cuotas del mes, cierra créditos pagados y guarda el comprobante', async () => {
-  const { status, body } = await call('POST', '/creditos/pagos/verificar', TESORERA, formPagos(['SOS', 'ISIMUNDO']));
+  const { status, body } = await call('POST', '/creditos/pagos/verificar', TESORERA, formPagos(['SOS', 'ISIMUNDO', 'OPTICA']));
   assert.strictEqual(status, 200, body.message);
   const sos = body.data.find((d) => d.empresa === 'SOS');
   assert.strictEqual(sos.montoPagado, 55000);

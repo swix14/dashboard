@@ -52,6 +52,10 @@ export function VerificacionPagos({ puedeGestionar, onVerified, refreshKey }) {
   }, [cargar, refreshKey]);
 
   const adjuntos = Object.keys(archivos);
+  // El mes se verifica completo: el botón se activa cuando cada empresa pendiente tiene su comprobante
+  const pendientes = filas.filter((f) => f.cargado && !f.verificado);
+  const faltantes = pendientes.filter((f) => !archivos[f.codigo]);
+  const listo = pendientes.length > 0 && faltantes.length === 0;
 
   const verificar = async () => {
     try {
@@ -201,10 +205,17 @@ export function VerificacionPagos({ puedeGestionar, onVerified, refreshKey }) {
         ))}
       </ul>
 
-      {puedeGestionar && (
-        <div className="cred-actions">
-          <Button variant="primary" icon={ShieldCheck} onClick={verificar} isLoading={saving} disabled={adjuntos.length === 0}>
-            {adjuntos.length > 1 ? `Verificar ${adjuntos.length} pagos` : 'Verificar pago'}
+      {puedeGestionar && pendientes.length > 0 && (
+        <div className="cred-actions cred-verif-actions">
+          {faltantes.length > 0 && (
+            <span className="cred-verif-faltan" role="status">
+              Faltan comprobantes de {faltantes.map((f) => f.nombre).join(', ')}
+            </span>
+          )}
+          <Button variant="primary" icon={ShieldCheck} onClick={verificar} isLoading={saving} disabled={!listo}>
+            {listo
+              ? pendientes.length > 1 ? `Verificar ${pendientes.length} pagos` : 'Verificar pago'
+              : `Adjuntados ${adjuntos.length} de ${pendientes.length}`}
           </Button>
         </div>
       )}

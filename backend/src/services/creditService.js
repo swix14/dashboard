@@ -335,6 +335,17 @@ export const CreditService = {
       if (!p) throw new CreditoError(`${cv.nombre}: primero cargue la planilla Maestra Créditos de ${mesTexto} o defina el monto a pagar.`);
       if (p.verificado_at) throw new CreditoError(`${cv.nombre}: el pago de ${mesTexto} ya fue verificado.`, 409);
     }
+    // El mes se verifica completo: todas las empresas con monto a pagar y sin verificar deben traer comprobante
+    const sinComprobante = await query(
+      `SELECT cv.nombre FROM pagos_convenio p JOIN convenios cv ON cv.id = p.convenio_id
+       WHERE p.mes = ? AND p.anio = ? AND p.verificado_at IS NULL AND cv.activo = 1
+         AND cv.codigo NOT IN (${codigos.map(() => '?').join(',')})
+       ORDER BY cv.orden, cv.id`,
+      [periodo.mes, periodo.anio, ...codigos]
+    );
+    if (sinComprobante.length > 0) {
+      throw new CreditoError(`Faltan comprobantes de ${sinComprobante.map((r) => r.nombre).join(', ')}. Adjunte todos para verificar el mes.`);
+    }
 
     // Comprobantes en carpetas separadas por mes y empresa; nunca se sobrescriben
     const guardados = [];
