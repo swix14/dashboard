@@ -106,19 +106,25 @@ export function SuplenciaTesoreria() {
           maxWidth="460px"
         >
           <div className="sup-confirm">
-            <div className={`sup-warning${confirmar ? '' : ' is-off'}`}>
-              <AlertTriangle size={18} aria-hidden="true" />
-              {confirmar ? (
-                <p>
-                  <strong>{nombre}</strong> podrá registrar, editar y anular ingresos y egresos, cargar la planilla de créditos y
-                  verificar pagos, con los mismos permisos de la Tesorera. Todo lo que haga quedará a su nombre en la bitácora.
+            {confirmar ? (
+              <>
+                <p className="sup-confirm-lead">
+                  <strong>{nombre}</strong> tendrá los mismos permisos de la Tesorera:
                 </p>
-              ) : (
-                <p>
-                  <strong>{nombre}</strong> dejará de tener acceso a Tesorería y Créditos de inmediato. Lo que ya registró se
-                  mantiene a su nombre.
-                </p>
-              )}
+                <ul className="sup-confirm-list">
+                  <li>Registrar, editar y anular movimientos</li>
+                  <li>Cargar la planilla de créditos</li>
+                  <li>Verificar pagos a convenios</li>
+                </ul>
+              </>
+            ) : (
+              <p className="sup-confirm-lead">
+                <strong>{nombre}</strong> perderá el acceso a Tesorería y Créditos de inmediato.
+              </p>
+            )}
+            <div className="sup-warning">
+              <AlertTriangle size={14} aria-hidden="true" />
+              <span>{confirmar ? 'Todo lo que haga quedará a su nombre en la bitácora.' : 'Lo que ya registró se mantiene a su nombre.'}</span>
             </div>
             <div className="cred-actions" style={{ marginTop: 0 }}>
               <Button type="button" variant="outline" onClick={() => setConfirmar(null)} disabled={saving}>Cancelar</Button>

@@ -1454,10 +1454,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sup-switch:disabled { opacity: .5; cursor: not-allowed; }
 .sup-switch-thumb { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .2), 0 2px 6px rgba(0, 0, 0, .12); transition: transform var(--transition-normal); }
 .sup-switch[aria-checked="true"] .sup-switch-thumb { transform: translateX(22px); }
-.sup-confirm { display: flex; flex-direction: column; gap: 1.25rem; }
-.sup-warning { display: flex; gap: .625rem; align-items: flex-start; padding: .875rem 1rem; border: 1px solid var(--warning-border); background: var(--warning-bg); color: var(--warning-text); border-radius: var(--radius-md); font-size: .8125rem; line-height: 1.5; }
-.sup-warning p { margin: 0; }
-.sup-warning svg { flex-shrink: 0; margin-top: 2px; }
+.sup-confirm { display: flex; flex-direction: column; gap: .875rem; }
+.sup-confirm-lead { margin: 0; font-size: .875rem; color: var(--text-main); line-height: 1.5; }
+.sup-confirm-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .375rem; }
+.sup-confirm-list li { position: relative; padding-left: 1.125rem; font-size: .8125rem; color: var(--text-muted); }
+.sup-confirm-list li::before { content: ""; position: absolute; left: .25rem; top: .5em; width: 6px; height: 6px; border-radius: 50%; background: var(--primary-400); }
+.sup-warning { display: inline-flex; align-self: flex-start; gap: .4rem; align-items: center; padding: .3rem .625rem; border: 1px solid var(--warning-border); background: var(--warning-bg); color: var(--warning-text); border-radius: var(--radius-full); font-size: .75rem; font-weight: 600; line-height: 1.3; }
+.sup-warning svg { flex-shrink: 0; }
 .sup-chip { display: inline-block; margin-top: .375rem; padding: .1rem .5rem; border-radius: var(--radius-full); font-size: .6875rem; font-weight: 700; background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
 @media (max-width: 640px) {
   .sup-card { grid-template-columns: minmax(0, 1fr) auto; padding: 1rem; }
