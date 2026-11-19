@@ -7,16 +7,19 @@
  *  - Directora: los mismos permisos que la Secretaria.
  *  - Delegadas: solo vista de Reportes (informe mensual).
  *
- * V4 (18-11-2026): Créditos y Convenios lo ven Admin, Presidenta (solo lectura) y Tesorera;
+ * V4 (18-11-2026): Créditos y Convenios lo ven Admin y Tesorera (desde el 19-11 la Presidenta ya no);
  * solo Admin y Tesorera cargan la planilla del día 18 y verifican los pagos.
  */
 export const ROLES_ACCESO = {
-  TESORERIA: ['ADMIN', 'PRESIDENTA', 'TESORERA'],
+  // 19-11-2026: cada cargo ve solo los menús donde puede hacer cambios. La Presidenta, que en
+  // Tesorería y Créditos solo leía, ya no tiene esos menús (sigue viendo el resumen en el Inicio
+  // y la ficha de crédito en el Padrón). Los menús en construcción y Reportes no cambian.
+  TESORERIA: ['ADMIN', 'TESORERA'],
   TESORERIA_REGISTRAR: ['ADMIN', 'TESORERA'],
   SOCIAS: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA'],
   SOCIAS_MODIFICAR: ['ADMIN', 'PRESIDENTA', 'TESORERA', 'SECRETARIA', 'DIRECTORA'],
   FICHA_CREDITO: ['ADMIN', 'PRESIDENTA', 'TESORERA'],
-  CREDITOS: ['ADMIN', 'PRESIDENTA', 'TESORERA'],
+  CREDITOS: ['ADMIN', 'TESORERA'],
   CREDITOS_GESTIONAR: ['ADMIN', 'TESORERA'],
   COMUNICACIONES: ['ADMIN', 'PRESIDENTA', 'SECRETARIA', 'DIRECTORA'],
   DOCUMENTOS: ['ADMIN', 'PRESIDENTA', 'TESORERA'],

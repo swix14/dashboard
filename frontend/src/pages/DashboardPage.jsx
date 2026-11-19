@@ -18,9 +18,12 @@ import { Button } from '../components/common/Button.jsx';
 import { formatCurrencyCLP, formatDateCLP } from '../utils/formatters.js';
 import { abrirBlobEnPestana } from '../utils/descargas.js';
 import { TreasuryApiService } from '../services/treasuryService.js';
+import { ROLES_ACCESO } from '../utils/permissions.js';
 
 export function DashboardPage() {
-  const { user, isDirectiva } = useAuth();
+  const { user, isDirectiva, hasRole } = useAuth();
+  // El botón "Revisar" lleva a Créditos: solo se muestra a quien tiene ese menú
+  const verCreditos = hasRole(...ROLES_ACCESO.CREDITOS);
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -479,11 +482,13 @@ export function DashboardPage() {
                   </div>
                 </div>
               </div>
-              <div className="dash-alerta-accion">
-                <Button variant="outline" size="sm" onClick={() => navigate('/creditos?estado=ULTIMA_CUOTA')}>
-                  Revisar
-                </Button>
-              </div>
+              {verCreditos && (
+                <div className="dash-alerta-accion">
+                  <Button variant="outline" size="sm" onClick={() => navigate('/creditos?estado=ULTIMA_CUOTA')}>
+                    Revisar
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Pago a Federación: calculado con el último pago real */}
