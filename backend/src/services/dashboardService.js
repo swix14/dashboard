@@ -17,7 +17,8 @@ export const DashboardService = {
    * Genera métricas adaptadas estrictamente al principio de mínimo privilegio (PoLP)
    */
   async getMetricsByRole(user) {
-    const roleCode = user.role?.code || user.role;
+    // La Directora suplente de Tesorería ve el Inicio de la Tesorera mientras dure la suplencia
+    const roleCode = user.suplenteTesoreria ? 'TESORERA' : user.role?.code || user.role;
 
     // Métricas base institucionales (no financieras privadas)
     let totalSocias = 277;

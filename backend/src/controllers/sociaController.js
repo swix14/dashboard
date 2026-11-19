@@ -3,6 +3,7 @@ import { PadronImportService } from '../services/padronImportService.js';
 import { SessionService } from '../services/sessionService.js';
 import { audit, responsable } from '../utils/controllerHelpers.js';
 import { SociaPdfService } from '../services/sociaPdfService.js';
+import { tieneRol } from '../middlewares/roleMiddleware.js';
 import {
   createSociaSchema,
   updateSociaSchema,
@@ -22,7 +23,7 @@ function validationError(res, parsed) {
 // Ficha de crédito: solo Admin, Presidenta y Tesorera. La Secretaria y la Directora ven
 // únicamente la ficha personal de la socia (pedido de la directiva, 16-11-2026).
 export const CREDITO_ROLES = ['ADMIN', 'PRESIDENTA', 'TESORERA'];
-const puedeVerCreditos = (req) => CREDITO_ROLES.includes(req.user?.role?.code);
+const puedeVerCreditos = (req) => tieneRol(req.user, CREDITO_ROLES);
 
 // Quita del padrón todo dato de créditos para los roles sin acceso a la ficha de crédito
 function sinCreditosEnListado(item) {

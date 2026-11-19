@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { TreasuryController } from '../controllers/treasuryController.js';
+import { SuplenciaController } from '../controllers/suplenciaController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/roleMiddleware.js';
 import { validateIdParam } from '../middlewares/validateIdParam.js';
@@ -56,5 +57,9 @@ router.post(
   validateIdParam,
   TreasuryController.annulMovement
 );
+
+// Suplencia de Tesorería: solo el Admin la ve y la activa (una Directora reemplaza a la Tesorera)
+router.get('/suplencia', requireRole('ADMIN'), SuplenciaController.getEstado);
+router.put('/suplencia', requireRole('ADMIN'), SuplenciaController.setEstado);
 
 export default router;

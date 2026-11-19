@@ -5,6 +5,7 @@ import { isDatabaseReady, query } from '../config/db.js';
 import { env } from '../config/env.js';
 import { INITIAL_USERS, INITIAL_ROLES, INITIAL_JARDINES } from './seedData.js';
 import { AuditService } from './auditService.js';
+import { SuplenciaService } from './suplenciaService.js';
 
 // Almacén en memoria sincronizado con seed para pruebas locales de desarrollo
 const memoryUsers = INITIAL_USERS.map((u) => ({ ...u }));
@@ -213,6 +214,7 @@ export const AuthService = {
         isActive: user.isActive,
         mustChangePassword: Boolean(user.mustChangePassword),
         role: user.role,
+        suplenteTesoreria: user.role?.code === 'DIRECTORA' && (await SuplenciaService.esSuplente(user.id)),
         socia: user.socia
       }
     };
@@ -380,6 +382,8 @@ export const AuthService = {
             isActive: true,
             mustChangePassword: Number(row.primer_ingreso) === 1,
             role: roleObj,
+            // Directora activada por el Admin para reemplazar a la Tesorera (se revisa en cada petición)
+            suplenteTesoreria: roleCode === 'DIRECTORA' && (await SuplenciaService.esSuplente(`admin-${row.id}`)),
             socia: {
               id: `socia-${row.id}`,
               rut: row.rut,
@@ -437,6 +441,7 @@ export const AuthService = {
       isActive: user.isActive !== false,
       mustChangePassword: Boolean(user.mustChangePassword),
       role: user.role,
+      suplenteTesoreria: user.suplenteTesoreria === true,
       socia: user.socia
     };
   }

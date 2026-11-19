@@ -516,6 +516,53 @@ await test('Cambio voluntario de clave de la socia exige la clave actual', async
 });
 
 // ---------------------------------------------------------------------------
+// Suplencia de Tesorería: el Admin activa a la Directora cuando la Tesorera no está
+// ---------------------------------------------------------------------------
+await test('Suplencia: solo el Admin ve y cambia el interruptor', async () => {
+  for (const rol of ['TESORERA', 'PRESIDENTA', 'DIRECTORA', 'SECRETARIA']) {
+    assert.strictEqual((await call('GET', '/tesoreria/suplencia', tokens[rol])).status, 403, `${rol} no ve la suplencia`);
+    assert.strictEqual((await call('PUT', '/tesoreria/suplencia', tokens[rol], { activa: true })).status, 403, `${rol} no la activa`);
+  }
+  const estado = await call('GET', '/tesoreria/suplencia', tokens.ADMIN);
+  assert.strictEqual(estado.status, 200);
+  assert.strictEqual(estado.body.data.activa, false);
+  assert.strictEqual(estado.body.data.candidatas.length, 1, 'hay una sola Directora activa');
+  assert.strictEqual((await call('PUT', '/tesoreria/suplencia', tokens.ADMIN, { activa: 'si' })).status, 400);
+});
+
+await test('Suplencia: activa, la Directora opera como Tesorera; desactivada, pierde el acceso', async () => {
+  const directora = tokens.DIRECTORA;
+  assert.strictEqual((await call('GET', '/tesoreria/resumen', directora)).status, 403);
+  assert.strictEqual((await call('GET', '/creditos/periodo?mes=3&anio=2027', directora)).status, 403);
+
+  const activar = await call('PUT', '/tesoreria/suplencia', tokens.ADMIN, { activa: true });
+  assert.strictEqual(activar.status, 200, activar.body.message);
+  assert.strictEqual(activar.body.data.activa, true);
+  assert.ok(activar.body.data.suplente.nombre);
+
+  // Rige en la siguiente petición, sin volver a iniciar sesión
+  const me = await call('GET', '/auth/me', directora);
+  assert.strictEqual(me.body.data.user.suplenteTesoreria, true);
+  assert.strictEqual((await call('GET', '/tesoreria/resumen', directora)).status, 200);
+  assert.strictEqual((await call('GET', '/creditos/periodo?mes=3&anio=2027', directora)).status, 200);
+  assert.strictEqual((await call('GET', '/dashboard/audit-recent', directora)).status, 200);
+  // Conserva lo suyo de Directora y la Tesorera sigue operando
+  assert.strictEqual((await call('GET', '/socias?limit=1', directora)).status, 200);
+  assert.strictEqual((await call('GET', '/tesoreria/resumen', tokens.TESORERA)).status, 200);
+  // Sigue sin poder tocar el interruptor
+  assert.strictEqual((await call('PUT', '/tesoreria/suplencia', directora, { activa: false })).status, 403);
+
+  const [registro] = await query("SELECT accion FROM auditoria WHERE accion LIKE 'SUPLENCIA_TESORERIA_%' ORDER BY id DESC LIMIT 1");
+  assert.strictEqual(registro.accion, 'SUPLENCIA_TESORERIA_ACTIVADA');
+
+  const desactivar = await call('PUT', '/tesoreria/suplencia', tokens.ADMIN, { activa: false });
+  assert.strictEqual(desactivar.status, 200);
+  assert.strictEqual(desactivar.body.data.activa, false);
+  assert.strictEqual((await call('GET', '/tesoreria/resumen', directora)).status, 403);
+  assert.strictEqual((await call('GET', '/auth/me', directora)).body.data.user.suplenteTesoreria, false);
+});
+
+// ---------------------------------------------------------------------------
 // H-005: cambiar la contraseña cierra las demás sesiones (va al final: cambia la clave del admin)
 // ---------------------------------------------------------------------------
 await test('Cambiar la contraseña cierra las otras sesiones y mantiene la actual', async () => {

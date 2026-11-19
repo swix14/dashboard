@@ -73,3 +73,9 @@ export const listMovementsSchema = z.object({
   fechaHasta: fechaFiltro,
   fechaExacta: fechaFiltro
 });
+
+// Suplencia de Tesorería (solo Admin): activa o desactiva a la Directora que reemplaza a la Tesorera
+export const suplenciaSchema = z.object({
+  activa: z.boolean({ message: 'Indique si la suplencia queda activa o no.' }),
+  suplenteId: z.coerce.number().int().positive().optional()
+});
