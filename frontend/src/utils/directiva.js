@@ -27,5 +27,15 @@ export const DIRECTIVA_OFICIAL = [
     bgVar: 'var(--accent-pink-100)',
     textVar: 'var(--accent-pink-700)',
     borderVar: 'var(--accent-pink-300)'
+  },
+  {
+    // Mismo correo con el que inicia sesión en el sistema (database/admin.sql)
+    nombre: 'Victoria Abarza Vega',
+    cargo: 'Directora',
+    correo: 'directora@vtftemuco.cl',
+    color: '#9a7448',
+    bgVar: 'var(--sand-100)',
+    textVar: 'var(--sand-700)',
+    borderVar: 'var(--sand-300)'
   }
 ];
